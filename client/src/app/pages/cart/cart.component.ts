@@ -1,0 +1,84 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { CartService } from '../../core/services/cart.service';
+import { ImgFallbackDirective } from '../../shared/directives/img-fallback.directive';
+
+@Component({
+  selector: 'app-cart',
+  standalone: true,
+  imports: [CommonModule, RouterLink, ImgFallbackDirective],
+  template: `
+    <section class="section">
+      <div class="container">
+        <h1>Your cart</h1>
+        @if (cart.items().length === 0) {
+          <div class="empty card card-pad center">
+            <div style="font-size:3rem">🛒</div>
+            <h3>Your cart is empty</h3>
+            <p class="text-muted">Let’s find something lovely for your little one.</p>
+            <a routerLink="/shop" class="btn btn-primary mt">Start shopping</a>
+          </div>
+        } @else {
+          <div class="cart-layout mt-lg">
+            <div class="items">
+              @for (i of cart.items(); track i.product) {
+                <div class="item card">
+                  <img [src]="i.image" [alt]="i.name" appImgFallback />
+                  <div class="item-info">
+                    @if (i.slug) {
+                      <a [routerLink]="['/product', i.slug]" class="name">{{ i.name }}</a>
+                    } @else {
+                      <span class="name">{{ i.name }}</span>
+                    }
+                    <span class="price">Rs {{ i.price | number }}</span>
+                  </div>
+                  <div class="qty">
+                    <button (click)="cart.setQty(i.product, i.qty-1)">−</button>
+                    <span>{{ i.qty }}</span>
+                    <button (click)="cart.setQty(i.product, i.qty+1)">+</button>
+                  </div>
+                  <div class="line-total price">Rs {{ i.price * i.qty | number }}</div>
+                  <button class="remove" (click)="cart.remove(i.product)" aria-label="Remove">✕</button>
+                </div>
+              }
+            </div>
+
+            <aside class="summary card card-pad">
+              <h3>Order summary</h3>
+              <div class="row"><span>Subtotal</span><strong>Rs {{ cart.subtotal() | number }}</strong></div>
+              <div class="row"><span>Shipping</span><strong>Rs 250</strong></div>
+              <div class="row total"><span>Total</span><strong class="price">Rs {{ cart.subtotal() + 250 | number }}</strong></div>
+              <a routerLink="/checkout" class="btn btn-primary btn-block mt">Proceed to checkout</a>
+              <a routerLink="/shop" class="btn btn-ghost btn-block mt" style="margin-top:10px">Continue shopping</a>
+            </aside>
+          </div>
+        }
+      </div>
+    </section>
+  `,
+  styles: [`
+    .cart-layout { display:grid; grid-template-columns: 1fr 340px; gap:28px; align-items:start; }
+    .item { display:grid; grid-template-columns: 84px 1fr auto auto auto; gap:16px; align-items:center; padding:14px; margin-bottom:14px; }
+    .item img { width:84px; height:84px; object-fit:cover; border-radius:12px; }
+    .name { font-family: var(--font-display); font-weight:600; display:block; }
+    .qty { display:flex; align-items:center; border:2px solid var(--line); border-radius:999px; }
+    .qty button { width:34px; height:36px; border:none; background:#fff; font-size:1.2rem; cursor:pointer; }
+    .qty span { width:34px; text-align:center; font-weight:800; }
+    .remove { border:none; background:none; color: var(--muted); font-size:1.1rem; cursor:pointer; }
+    .remove:hover { color: var(--danger); }
+    .summary { position:sticky; top:88px; }
+    .row { display:flex; justify-content:space-between; padding:8px 0; }
+    .row.total { border-top:1px solid var(--line); margin-top:8px; padding-top:14px; font-size:1.2rem; }
+    .empty { padding:60px 20px; }
+    @media (max-width: 800px) {
+      .cart-layout { grid-template-columns: 1fr; }
+      .item { grid-template-columns: 64px 1fr auto; grid-template-areas: 'img info remove' 'img qty total'; }
+      .item img { width:64px; height:64px; grid-area:img; }
+      .item-info { grid-area:info; } .qty { grid-area:qty; } .line-total { grid-area:total; text-align:right; } .remove { grid-area:remove; justify-self:end; }
+    }
+  `],
+})
+export class CartComponent {
+  constructor(public cart: CartService) {}
+}
