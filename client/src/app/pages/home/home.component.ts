@@ -124,7 +124,10 @@ export class HomeComponent implements OnInit {
   constructor(private products: ProductService, private cats: CategoryService) {}
 
   ngOnInit() {
-    this.cats.list().subscribe((c) => this.categories.set(c.slice(0, 6)));
+    // Every category is shown. The API returns them alphabetically, so taking a
+    // slice here would hide whichever lines happen to sort last rather than the
+    // least important ones.
+    this.cats.list().subscribe((c) => this.categories.set(c));
     this.products.list({ featured: true, limit: 8 }).subscribe({
       next: (r) => { this.featured.set(r.items); this.loading.set(false); },
       error: () => this.loading.set(false),
