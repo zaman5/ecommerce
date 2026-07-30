@@ -1,0 +1,26 @@
+{
+  "name": "funkybunky",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Funkybunky e-commerce — Angular client + Express API, deployed together on Vercel",
+  "scripts": {
+    "build": "cd client && npm run build",
+    "dev:client": "cd client && npm start",
+    "dev:server": "cd server && npm run dev",
+    "seed": "cd server && npm run seed"
+  },
+  "comments": {
+    "dependencies": "These mirror server/package.json. Vercel installs only this root package.json when bundling the /api serverless function, so the API's runtime dependencies have to be declared here too. Keep the two lists in sync when you add a server dependency."
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.1",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}

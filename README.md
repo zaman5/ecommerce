@@ -29,13 +29,16 @@ A complete e-commerce store for children's products, with a customer storefront 
 
 ```
 funkybunky/
+├── vercel.json      # build + routing config for the Vercel deployment
+├── api/index.js     # serverless entry point — mounts the Express app at /api
 ├── server/          # Node.js + Express + MongoDB API
 │   ├── models/      # User, Product, Category, Order
 │   ├── controllers/ # auth, product, category, order, analytics
 │   ├── routes/      # API routes
 │   ├── middleware/  # JWT auth + role guard, error handling
+│   ├── config/      # db.js (local dev) + serverlessDb.js (Vercel)
 │   ├── seed.js      # sample data + admin/customer accounts
-│   └── server.js
+│   └── server.js    # local dev entry point (connect + listen)
 └── client/          # Angular 17 storefront + admin
     └── src/app/
         ├── core/    # services, guards, interceptor, models
@@ -77,6 +80,37 @@ npm start                   # starts Angular on http://localhost:4200
 Open **http://localhost:4200**. Log in as the admin to reach the admin panel (top-right → **Admin**), or as the customer to shop and track orders.
 
 > If your API runs on a different URL, edit `client/src/environments/environment.ts`.
+
+---
+
+## ▲ Deploying to Vercel
+
+Client and API deploy together from this one repo. `vercel.json` builds the
+Angular app to static files and serves `server/` as a serverless function
+mounted at `/api`, so the frontend talks to the API on its own origin — no CORS
+setup and no API host to hardcode.
+
+**1. Use MongoDB Atlas, not a local Mongo.** A serverless function can't reach
+`127.0.0.1`. Create a free Atlas cluster and, under **Network Access**, allow
+`0.0.0.0/0` (Vercel's function IPs aren't fixed).
+
+**2. Set these in Vercel → Settings → Environment Variables:**
+
+| Variable         | Value                                                        |
+|------------------|--------------------------------------------------------------|
+| `MONGO_URI`      | your Atlas connection string, ending in `/funkybunky`         |
+| `JWT_SECRET`     | a long random string (**not** the one from `.env.example`)    |
+| `JWT_EXPIRES_IN` | `7d`                                                          |
+
+`CLIENT_ORIGIN` isn't needed — same origin. Leave **Root Directory** blank in
+the Vercel project settings so it builds from the repo root.
+
+**3. Seed the production database** by pointing `MONGO_URI` at Atlas locally and
+running `npm run seed` once, from your machine.
+
+> Deploying only the frontend instead? Set `apiUrl` in
+> `client/src/environments/environment.prod.ts` to your API's absolute URL and
+> set `CLIENT_ORIGIN` on the API to your Vercel domain.
 
 ---
 
