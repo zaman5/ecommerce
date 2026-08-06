@@ -1,5 +1,6 @@
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
+import Review from '../models/Review.js';
 
 function slugify(str) {
   return str
@@ -27,7 +28,12 @@ export async function listProducts(req, res, next) {
     const filter = { isActive: true };
     if (category) {
       const cat = await Category.findOne({ slug: category });
-      if (cat) filter.category = cat._id;
+      // An unknown slug must narrow to nothing. Leaving the filter off would
+      // quietly return the whole catalogue as if no category had been asked for.
+      if (!cat) {
+        return res.json({ items: [], page: 1, pages: 0, total: 0 });
+      }
+      filter.category = cat._id;
     }
     if (ageGroup && ageGroup !== 'all') filter.ageGroup = ageGroup;
     if (featured === 'true') filter.isFeatured = true;
@@ -126,6 +132,9 @@ export async function deleteProduct(req, res, next) {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found.' });
+    // Reviews are meaningless once their product is gone, and the unique
+    // (product, user) index would otherwise keep blocking a re-created product.
+    await Review.deleteMany({ product: product._id });
     res.json({ message: 'Product deleted.' });
   } catch (err) {
     next(err);
