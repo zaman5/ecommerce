@@ -12,7 +12,7 @@ import { AuthService } from '../../../core/services/auth.service';
     <section class="section">
       <div class="container auth-wrap">
         <div class="card card-pad auth-card">
-          <div class="center"><div class="emoji">🧸</div><h1>Welcome back</h1><p class="text-muted">Log in to your Funkybunky account.</p></div>
+          <div class="center"><div class="emoji">🎒</div><h1>Welcome back</h1><p class="text-muted">Log in to your Wondercart account.</p></div>
           @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
           <div class="field"><label>Email</label><input class="input" type="email" [(ngModel)]="email" (keyup.enter)="submit()" placeholder="you@example.com" /></div>
           <div class="field"><label>Password</label><input class="input" type="password" [(ngModel)]="password" (keyup.enter)="submit()" placeholder="••••••••" /></div>
@@ -20,8 +20,8 @@ import { AuthService } from '../../../core/services/auth.service';
           <p class="center mt">New here? <a routerLink="/register" class="link">Create an account</a></p>
           <div class="demo">
             <strong>Demo accounts</strong>
-            <span>Admin: admin&#64;funkybunky.pk / admin12345</span>
-            <span>Customer: customer&#64;funkybunky.pk / customer123</span>
+            <span>Admin: admin&#64;wondercart.pk / admin12345</span>
+            <span>Customer: customer&#64;wondercart.pk / customer123</span>
           </div>
         </div>
       </div>

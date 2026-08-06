@@ -16,8 +16,8 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
       <div class="container hero-grid">
         <div class="hero-copy">
           <span class="eyebrow">Trusted by 10,000+ parents 💛</span>
-          <h1>Gentle care for your <span class="hl">little one</span></h1>
-          <p>Soft clothing, safe toys, and everyday essentials — thoughtfully chosen for babies and toddlers, delivered to your door.</p>
+          <h1>Everything for the <span class="hl">school year</span></h1>
+          <p>School bags, lunch boxes, water bottles, stationery and art supplies — picked to survive a full term, delivered to your door.</p>
           <div class="flex gap wrap">
             <a routerLink="/shop" class="btn btn-primary">Shop all products</a>
             <a routerLink="/shop" class="btn btn-ghost">Browse best sellers</a>
@@ -29,9 +29,9 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
           </div>
         </div>
         <div class="hero-art">
-          <img src="https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=700&q=80" alt="Happy baby" appImgFallback />
-          <div class="floaty f1">🍼</div>
-          <div class="floaty f2">🧸</div>
+          <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=700&q=80" alt="School books, pencils and alphabet blocks on a desk" appImgFallback />
+          <div class="floaty f1">🎒</div>
+          <div class="floaty f2">✏️</div>
           <div class="floaty f3">⭐</div>
         </div>
       </div>
@@ -58,7 +58,7 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
     <!-- FEATURED -->
     <section class="section featured">
       <div class="container">
-        <div class="head"><h2>Parents’ favourites</h2><a routerLink="/shop" class="see">See all →</a></div>
+        <div class="head"><h2>Back-to-school favourites</h2><a routerLink="/shop" class="see">See all →</a></div>
         @if (loading()) { <div class="spinner"></div> }
         @else {
           <div class="grid grid-4">
@@ -71,9 +71,9 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
     <!-- PROMISE -->
     <section class="section">
       <div class="container promise">
-        <h2>Why parents choose Funkybunky</h2>
+        <h2>Why parents choose Wondercart</h2>
         <div class="grid grid-3 mt-lg">
-          <div class="promise-card"><span>🌿</span><h3>Gentle & safe</h3><p>Baby-safe materials, tested for delicate skin and tiny hands.</p></div>
+          <div class="promise-card"><span>🛡️</span><h3>Built to last</h3><p>Reinforced bags, leak-proof boxes and non-toxic supplies that survive the term.</p></div>
           <div class="promise-card"><span>📦</span><h3>Fast delivery</h3><p>Dispatched within 24 hours with live order tracking.</p></div>
           <div class="promise-card"><span>💬</span><h3>Real support</h3><p>Friendly help whenever you need it, from real people.</p></div>
         </div>

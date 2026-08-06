@@ -13,8 +13,8 @@ import { OrderService } from '../../core/services/api.service';
     <header class="nav">
       <div class="container nav-inner">
         <a routerLink="/" class="brand" (click)="menuOpen.set(false)">
-          <span class="logo-mark">🧸</span>
-          <span class="logo-text">Funky<span>bunky</span></span>
+          <span class="logo-mark">🎒</span>
+          <span class="logo-text">Wonder<span>cart</span></span>
         </a>
 
         <nav class="links" [class.open]="menuOpen()">

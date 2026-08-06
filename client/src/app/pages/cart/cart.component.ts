@@ -16,7 +16,7 @@ import { ImgFallbackDirective } from '../../shared/directives/img-fallback.direc
           <div class="empty card card-pad center">
             <div style="font-size:3rem">🛒</div>
             <h3>Your cart is empty</h3>
-            <p class="text-muted">Let’s find something lovely for your little one.</p>
+            <p class="text-muted">Let’s find what your child needs for school.</p>
             <a routerLink="/shop" class="btn btn-primary mt">Start shopping</a>
           </div>
         } @else {

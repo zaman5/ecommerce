@@ -9,8 +9,8 @@ import { RouterLink } from '@angular/router';
     <footer class="footer">
       <div class="container foot-grid">
         <div>
-          <div class="brand">🧸 Funky<span>bunky</span></div>
-          <p class="text-muted">Everything your little one needs — trusted quality, gentle prices, and fast delivery across Pakistan.</p>
+          <div class="brand">🎒 Wonder<span>cart</span></div>
+          <p class="text-muted">Everything your child needs for school — trusted quality, fair prices, and fast delivery across Pakistan.</p>
         </div>
         <div>
           <h4>Shop</h4>
@@ -32,7 +32,7 @@ import { RouterLink } from '@angular/router';
         </div>
       </div>
       <div class="foot-bottom">
-        <div class="container">© {{ year }} Funkybunky. Made with care for little ones.</div>
+        <div class="container">© {{ year }} Wondercart. Packed with care for every school day.</div>
       </div>
     </footer>
   `,

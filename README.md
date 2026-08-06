@@ -1,6 +1,8 @@
-# 🧸 Funkybunky — Full-Stack E-Commerce for Baby & Kids Products
+# 🎒 Wondercart — Full-Stack E-Commerce for School Products
 
-A complete e-commerce store for children's products, with a customer storefront **and** an admin panel.
+A complete e-commerce store for school products — bags, lunch boxes, water
+bottles, stationery, notebooks, art supplies, educational toys and mobile cases
+— with a customer storefront **and** an admin panel.
 
 - **Frontend:** Angular 17 (standalone components + signals), fully responsive / mobile-friendly
 - **Backend:** Node.js + Express + MongoDB (Mongoose)
@@ -11,7 +13,7 @@ A complete e-commerce store for children's products, with a customer storefront 
 ## ✨ Features
 
 ### Customer (client) side
-- Browse products with search, category / age-group / price filters, sorting & pagination
+- Browse products with search, category / school-level / price filters, sorting & pagination
 - Product detail pages with image gallery, stock and discounts
 - Cart (saved in the browser) and checkout with multiple payment options
 - Account with **order history** and live **order tracking timeline**
@@ -28,7 +30,7 @@ A complete e-commerce store for children's products, with a customer storefront 
 ## 🗂️ Project structure
 
 ```
-funkybunky/
+wondercart/
 ├── vercel.json      # build + routing config for the Vercel deployment
 ├── api/index.js     # serverless entry point — mounts the Express app at /api
 ├── server/          # Node.js + Express + MongoDB API
@@ -66,8 +68,8 @@ The seed creates two logins:
 
 | Role     | Email                  | Password    |
 |----------|------------------------|-------------|
-| Admin    | admin@funkybunky.pk      | admin12345  |
-| Customer | customer@funkybunky.pk   | customer123 |
+| Admin    | admin@wondercart.pk      | admin12345  |
+| Customer | customer@wondercart.pk   | customer123 |
 
 ### 2) Frontend
 
@@ -98,7 +100,7 @@ setup and no API host to hardcode.
 
 | Variable         | Value                                                        |
 |------------------|--------------------------------------------------------------|
-| `MONGO_URI`      | your Atlas connection string, ending in `/funkybunky`         |
+| `MONGO_URI`      | your Atlas connection string, ending in `/wondercart`         |
 | `JWT_SECRET`     | a long random string (**not** the one from `.env.example`)    |
 | `JWT_EXPIRES_IN` | `7d`                                                          |
 
@@ -134,4 +136,4 @@ running `npm run seed` once, from your machine.
 - Order status changes append to a **tracking timeline** the customer sees in real time.
 - Admin routes are protected by both a JWT check and a **role guard** on the server, plus route guards on the client.
 
-Built with care for little ones. 💛
+Packed with care for every school day. 💛

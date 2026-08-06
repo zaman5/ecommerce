@@ -1,5 +1,5 @@
 {
-  "name": "funkybunky-client",
+  "name": "wondercart-client",
   "version": "1.0.0",
   "scripts": {
     "start": "ng serve",

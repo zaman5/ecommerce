@@ -12,7 +12,7 @@ import { AuthService } from '../../../core/services/auth.service';
     <section class="section">
       <div class="container auth-wrap">
         <div class="card card-pad auth-card">
-          <div class="center"><div class="emoji">🌟</div><h1>Create your account</h1><p class="text-muted">Join Funkybunky for faster checkout and order tracking.</p></div>
+          <div class="center"><div class="emoji">🌟</div><h1>Create your account</h1><p class="text-muted">Join Wondercart for faster checkout and order tracking.</p></div>
           @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
           <div class="field"><label>Full name</label><input class="input" [(ngModel)]="form.name" placeholder="Your name" /></div>
           <div class="field"><label>Email</label><input class="input" type="email" [(ngModel)]="form.email" placeholder="you@example.com" /></div>

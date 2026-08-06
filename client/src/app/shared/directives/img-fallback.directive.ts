@@ -8,9 +8,9 @@ export const FALLBACK_IMAGE =
   encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
        <rect width="400" height="400" fill="#f4ebe1"/>
-       <text x="200" y="188" font-size="64" text-anchor="middle">🧸</text>
+       <text x="200" y="188" font-size="64" text-anchor="middle">🎒</text>
        <text x="200" y="238" font-size="20" text-anchor="middle"
-             fill="#7d8a97" font-family="system-ui, sans-serif">Funkybunky</text>
+             fill="#7d8a97" font-family="system-ui, sans-serif">Wondercart</text>
      </svg>`
   );
 
@@ -26,7 +26,7 @@ export const FALLBACK_IMAGE =
   standalone: true,
 })
 export class ImgFallbackDirective {
-  /** Optional custom placeholder; defaults to the inline Funkybunky SVG. */
+  /** Optional custom placeholder; defaults to the inline Wondercart SVG. */
   @Input() appImgFallback: string | '' = '';
 
   constructor(private el: ElementRef<HTMLImageElement>) {}

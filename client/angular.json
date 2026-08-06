@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "funkybunky-client": {
+    "wondercart-client": {
       "projectType": "application",
       "root": "",
       "sourceRoot": "src",
@@ -12,7 +12,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/funkybunky-client",
+            "outputPath": "dist/wondercart-client",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -47,8 +47,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
-            "production": { "buildTarget": "funkybunky-client:build:production" },
-            "development": { "buildTarget": "funkybunky-client:build:development" }
+            "production": { "buildTarget": "wondercart-client:build:production" },
+            "development": { "buildTarget": "wondercart-client:build:development" }
           },
           "defaultConfiguration": "development"
         }

@@ -59,7 +59,7 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
               <p class="desc">{{ p.description }}</p>
 
               <div class="meta">
-                <div><span>Age group</span><strong>{{ ageLabel(p.ageGroup) }}</strong></div>
+                <div><span>School level</span><strong>{{ ageLabel(p.ageGroup) }}</strong></div>
                 <div><span>Category</span><strong>{{ catName(p) }}</strong></div>
               </div>
 
@@ -288,6 +288,12 @@ export class ProductDetailComponent implements OnInit {
         const mine = this.myReview();
         this.form = mine ? { rating: mine.rating, comment: mine.comment } : { rating: 0, comment: '' };
         this.reviewsLoading.set(false);
+        // The reviews block only exists once this data has rendered, so the
+        // router's own #reviews scroll has already come and gone by now.
+        // Arriving from "Write a review" on a delivered order lands here.
+        if (this.route.snapshot.fragment === 'reviews') {
+          setTimeout(() => this.scrollToReviews());
+        }
       },
       error: () => { this.summary.set({ reviews: [], average: 0, total: 0, breakdown: [] }); this.reviewsLoading.set(false); },
     });
@@ -372,7 +378,7 @@ export class ProductDetailComponent implements OnInit {
   discount(p: Product) { return Math.round((1 - p.price / p.compareAtPrice) * 100); }
   catName(p: Product) { return typeof p.category === 'object' ? p.category.name : '—'; }
   ageLabel(a: string) {
-    const map: Record<string, string> = { '0-6m': '0–6 months', '6-12m': '6–12 months', '1-2y': '1–2 years', '2-4y': '2–4 years', '4y+': '4 years +', all: 'All ages' };
+    const map: Record<string, string> = { 'pre-school': 'Pre-school (3–5 yrs)', primary: 'Primary (5–10 yrs)', middle: 'Middle school (11–13 yrs)', high: 'High school (14+ yrs)', all: 'All levels' };
     return map[a] || a;
   }
 }

@@ -1,4 +1,4 @@
-// Vercel serverless entry point for the Funkybunky API.
+// Vercel serverless entry point for the Wondercart API.
 //
 // vercel.json rewrites every /api/* request here. The Express app already
 // mounts its routes under /api, so the URL passes through unchanged and the

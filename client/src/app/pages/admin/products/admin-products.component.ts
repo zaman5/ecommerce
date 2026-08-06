@@ -75,10 +75,11 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../../shared/directives
             </div>
             <div class="grid grid-2">
               <div class="field"><label>Stock</label><input class="input" type="number" [(ngModel)]="form.stock" /></div>
-              <div class="field"><label>Age group</label>
+              <div class="field"><label>School level</label>
                 <select class="input" [(ngModel)]="form.ageGroup">
-                  <option value="all">All ages</option><option value="0-6m">0–6 months</option><option value="6-12m">6–12 months</option>
-                  <option value="1-2y">1–2 years</option><option value="2-4y">2–4 years</option><option value="4y+">4 years +</option>
+                  <option value="all">All levels</option><option value="pre-school">Pre-school (3–5 yrs)</option>
+                  <option value="primary">Primary (5–10 yrs)</option><option value="middle">Middle school (11–13 yrs)</option>
+                  <option value="high">High school (14+ yrs)</option>
                 </select>
               </div>
             </div>
@@ -140,7 +141,7 @@ export class AdminProductsComponent implements OnInit {
     });
   }
   blank() {
-    return { name: '', description: '', brand: 'Funkybunky', category: '', price: 0, compareAtPrice: 0, stock: 0, ageGroup: 'all', isFeatured: false, isActive: true };
+    return { name: '', description: '', brand: 'Wondercart', category: '', price: 0, compareAtPrice: 0, stock: 0, ageGroup: 'all', isFeatured: false, isActive: true };
   }
   openNew() { this.editing.set(null); this.form = this.blank(); this.imageUrl = ''; this.error.set(''); this.showForm.set(true); }
   edit(p: Product) {

@@ -9,21 +9,18 @@ import Review from './models/Review.js';
 import { recalcProductRating } from './controllers/reviewController.js';
 
 const IMG = 'https://images.unsplash.com/photo-';
-// A few royalty-free baby-themed Unsplash photos (swap for your own product photos).
+// Royalty-free school-supply Unsplash photos (swap for your own product photos).
 // Every URL here is checked to return 200 — Unsplash retires photo IDs over time,
 // so if an image ever goes blank, replace the ID and re-run `npm run seed`.
 const photos = {
-  clothing: `${IMG}1519238263530-99bdd11df2ea?w=600&q=80`,
-  toys: `${IMG}1584824486509-112e4181ff6b?w=600&q=80`,
-  feeding: `${IMG}1519689680058-324335c77eba?w=600&q=80`,
-  diapers: `${IMG}1596461404969-9ae70f2830c1?w=600&q=80`,
-  gear: `${IMG}1544126592-807ade215a0b?w=600&q=80`,
-  bath: `${IMG}1566004100631-35d015d6a491?w=600&q=80`,
   schoolBags: `${IMG}1553062407-98eeb64c6a62?w=600&q=80`,
-  babyBags: `${IMG}1622560480605-d83c853bc5c3?w=600&q=80`,
-  newbornBags: `${IMG}1555252333-9f8e92e65df9?w=600&q=80`,
-  lunchBoxes: `${IMG}1546069901-ba9599a7e63c?w=600&q=80`,
+  lunchBoxes: `${IMG}1726726192151-6d4139ff229d?w=600&q=80`,
   waterBottles: `${IMG}1602143407151-7111542de6e8?w=600&q=80`,
+  stationery: `${IMG}1574944558125-f8d12f23be89?w=600&q=80`,
+  notebooks: `${IMG}1497633762265-9d179a990aa6?w=600&q=80`,
+  deskSet: `${IMG}1531346878377-a5be20888e57?w=600&q=80`,
+  artCraft: `${IMG}1452860606245-08befc0ff44b?w=600&q=80`,
+  colouring: `${IMG}1513542789411-b6a5d4f31634?w=600&q=80`,
   educationalToys: `${IMG}1587654780291-39c9404d746b?w=600&q=80`,
   mobileCases: `${IMG}1601593346740-925612772716?w=600&q=80`,
 };
@@ -32,18 +29,13 @@ const photos = {
 // — it does not affect how the storefront lists them.
 const categoriesSeed = [
   { name: 'School Bags', slug: 'school-bags', image: photos.schoolBags, description: 'Light, sturdy backpacks for every school day.' },
-  { name: 'Baby Bags', slug: 'baby-bags', image: photos.babyBags, description: 'Roomy changing bags that keep everything to hand.' },
-  { name: 'Newborn Bags', slug: 'newborn-bags', image: photos.newbornBags, description: 'Hospital and first-outing bags for brand-new arrivals.' },
   { name: 'Lunch Boxes', slug: 'lunch-boxes', image: photos.lunchBoxes, description: 'Leak-proof boxes that keep lunch fresh till break.' },
-  { name: 'Water Bottles', slug: 'water-bottles', image: photos.waterBottles, description: 'Spill-free bottles sized for little hands.' },
+  { name: 'Water Bottles', slug: 'water-bottles', image: photos.waterBottles, description: 'Spill-free bottles that survive a whole school day.' },
+  { name: 'Stationery', slug: 'stationery', image: photos.stationery, description: 'Pens, pencil cases and geometry sets that last the term.' },
+  { name: 'Notebooks & Diaries', slug: 'notebooks-diaries', image: photos.notebooks, description: 'Ruled, squared and blank — for every subject on the timetable.' },
+  { name: 'Art & Craft', slug: 'art-craft', image: photos.artCraft, description: 'Colours, glue and cutting tools for project days.' },
   { name: 'Educational Toys', slug: 'educational-toys', image: photos.educationalToys, description: 'Play that quietly teaches counting, letters and logic.' },
-  { name: 'Mobile Cases', slug: 'mobile-cases', image: photos.mobileCases, description: 'Drop-proof, kid-friendly cases for family phones.' },
-  { name: 'Clothing', slug: 'clothing', image: photos.clothing, description: 'Soft, comfy outfits for little ones.' },
-  { name: 'Toys', slug: 'toys', image: photos.toys, description: 'Safe, fun toys for every age.' },
-  { name: 'Feeding', slug: 'feeding', image: photos.feeding, description: 'Bottles, bibs and mealtime must-haves.' },
-  { name: 'Diapers & Wipes', slug: 'diapers-wipes', image: photos.diapers, description: 'Gentle care for delicate skin.' },
-  { name: 'Baby Gear', slug: 'baby-gear', image: photos.gear, description: 'Strollers, carriers and more.' },
-  { name: 'Bath & Skincare', slug: 'bath-skincare', image: photos.bath, description: 'Tear-free, tender care.' },
+  { name: 'Mobile Cases', slug: 'mobile-cases', image: photos.mobileCases, description: 'Drop-proof, kid-friendly cases for phones and tablets.' },
 ];
 
 function make(name, catSlug, price, opts = {}) {
@@ -53,7 +45,7 @@ function make(name, catSlug, price, opts = {}) {
     catSlug,
     price,
     compareAtPrice: opts.compareAtPrice || 0,
-    brand: opts.brand || 'Funkybunky',
+    brand: opts.brand || 'Wondercart',
     ageGroup: opts.ageGroup || 'all',
     stock: opts.stock ?? 25,
     rating: opts.rating ?? 4.5,
@@ -62,59 +54,52 @@ function make(name, catSlug, price, opts = {}) {
     isFeatured: opts.isFeatured || false,
     description:
       opts.description ||
-      'Thoughtfully made for babies and toddlers with gentle, high-quality materials. Easy to clean and built to last.',
+      'Made for the school run and everything after it — hard-wearing materials, easy to clean, and built to last the full year.',
     image: opts.image,
   };
 }
 
 const productsSeed = [
   // ---- School Bags ----
-  make('Classic Two-Pocket School Backpack', 'school-bags', 2499, { compareAtPrice: 2999, ageGroup: '4y+', unitsSold: 64, isFeatured: true, rating: 4.7, image: photos.schoolBags, description: 'Padded straps and a reinforced base for books that keep getting heavier. Water-resistant outer with a roomy front pocket.' }),
-  make('Wheeled Trolley School Bag', 'school-bags', 4299, { compareAtPrice: 4999, ageGroup: '4y+', unitsSold: 21, stock: 9, image: photos.schoolBags, description: 'Pull-along wheels and a retractable handle to take the weight off small shoulders. Straps tuck away when not in use.' }),
-  make('Mini Pre-School Backpack', 'school-bags', 1499, { ageGroup: '2-4y', unitsSold: 38, image: photos.schoolBags, description: 'Sized down for nursery and playgroup — big enough for a snack box, a spare set of clothes and a favourite toy.' }),
-
-  // ---- Baby Bags ----
-  make('Everyday Diaper Backpack', 'baby-bags', 3999, { compareAtPrice: 4699, unitsSold: 47, isFeatured: true, rating: 4.8, image: photos.babyBags, description: 'Insulated bottle pockets, a wipe-clean lining and a fold-out changing mat. Carries on the back or clips to the pram.' }),
-  make('Quilted Shoulder Baby Bag', 'baby-bags', 3299, { unitsSold: 12, image: photos.babyBags, description: 'A softer, lighter option for short trips, with a zipped valuables pocket and an adjustable shoulder strap.' }),
-  make('Compact Nappy Caddy Organiser', 'baby-bags', 1899, { unitsSold: 29, stock: 6, image: photos.babyBags, description: 'Keeps nappies, creams and wipes sorted in one carry handle — moves from nursery to living room in one lift.' }),
-
-  // ---- Newborn Bags ----
-  make('Hospital Ready Newborn Bag', 'newborn-bags', 3499, { compareAtPrice: 3999, ageGroup: '0-6m', unitsSold: 33, isFeatured: true, rating: 4.9, image: photos.newbornBags, description: 'Packed-and-waiting bag with labelled compartments for mum and baby, so nothing gets hunted for at 3am.' }),
-  make('First Outing Newborn Tote', 'newborn-bags', 2699, { ageGroup: '0-6m', unitsSold: 18, image: photos.newbornBags, description: 'Light tote for short trips in the early weeks, with a padded base and room for two bottles.' }),
-  make('Swaddle & Essentials Travel Set', 'newborn-bags', 2299, { ageGroup: '0-6m', unitsSold: 7, stock: 5, image: photos.newbornBags, description: 'Zip pouch with two muslin swaddles, a changing mat and space for the day’s essentials.' }),
+  make('Classic Two-Pocket School Backpack', 'school-bags', 2499, { compareAtPrice: 2999, ageGroup: 'primary', unitsSold: 64, isFeatured: true, rating: 4.7, image: photos.schoolBags, description: 'Padded straps and a reinforced base for books that keep getting heavier. Water-resistant outer with a roomy front pocket.' }),
+  make('Wheeled Trolley School Bag', 'school-bags', 4299, { compareAtPrice: 4999, ageGroup: 'primary', unitsSold: 21, stock: 9, image: photos.schoolBags, description: 'Pull-along wheels and a retractable handle to take the weight off small shoulders. Straps tuck away when not in use.' }),
+  make('Mini Pre-School Backpack', 'school-bags', 1499, { ageGroup: 'pre-school', unitsSold: 38, image: photos.schoolBags, description: 'Sized down for nursery and playgroup — big enough for a snack box, a spare set of clothes and a favourite toy.' }),
+  make('Laptop-Ready Senior Rucksack', 'school-bags', 3899, { compareAtPrice: 4499, ageGroup: 'high', unitsSold: 27, image: photos.schoolBags, description: 'Padded 15" laptop sleeve, a hidden zip pocket and breathable back panel — sized for college folders, not lunch toys.' }),
 
   // ---- Lunch Boxes ----
-  make('Leak-Proof Bento Lunch Box', 'lunch-boxes', 1299, { compareAtPrice: 1599, ageGroup: '4y+', unitsSold: 71, isFeatured: true, rating: 4.6, image: photos.lunchBoxes, description: 'Four sealed compartments keep wet and dry foods apart. Clip-lock lid, dishwasher safe, no BPA.' }),
-  make('Insulated Stainless Food Jar', 'lunch-boxes', 1899, { ageGroup: '4y+', unitsSold: 24, image: photos.lunchBoxes, description: 'Keeps a hot lunch warm until break and cold food chilled. Wide mouth so small spoons fit easily.' }),
-  make('Toddler Snack Box (3 Compartments)', 'lunch-boxes', 799, { ageGroup: '1-2y', unitsSold: 52, stock: 8, image: photos.lunchBoxes, description: 'Small portions, soft-open latches little hands can manage on their own. Fits neatly in any school bag.' }),
+  make('Leak-Proof Bento Lunch Box', 'lunch-boxes', 1299, { compareAtPrice: 1599, ageGroup: 'primary', unitsSold: 71, isFeatured: true, rating: 4.6, image: photos.lunchBoxes, description: 'Four sealed compartments keep wet and dry foods apart. Clip-lock lid, dishwasher safe, no BPA.' }),
+  make('Insulated Stainless Food Jar', 'lunch-boxes', 1899, { ageGroup: 'middle', unitsSold: 24, image: photos.lunchBoxes, description: 'Keeps a hot lunch warm until break and cold food chilled. Wide mouth so a normal spoon fits easily.' }),
+  make('Three-Compartment Snack Box', 'lunch-boxes', 799, { ageGroup: 'pre-school', unitsSold: 52, stock: 8, image: photos.lunchBoxes, description: 'Small portions with soft-open latches little hands can manage on their own. Fits neatly in any school bag.' }),
 
   // ---- Water Bottles ----
-  make('Spill-Free Straw Water Bottle', 'water-bottles', 899, { compareAtPrice: 1099, ageGroup: '2-4y', unitsSold: 88, isFeatured: true, rating: 4.7, image: photos.waterBottles, description: 'Weighted straw draws from any angle and the lid locks shut in a bag. Easy to pull apart for a proper wash.' }),
-  make('Insulated Steel Bottle (500ml)', 'water-bottles', 1499, { ageGroup: '4y+', unitsSold: 36, image: photos.waterBottles, description: 'Stays cold for a full school day. Powder-coated finish that survives being dropped on the playground.' }),
-  make('Toddler Sipper with Handles', 'water-bottles', 649, { ageGroup: '1-2y', unitsSold: 43, stock: 7, image: photos.waterBottles, description: 'Two chunky grips and a soft spout for the move from bottle to cup. Holds 250ml.' }),
+  make('Spill-Free Straw Water Bottle', 'water-bottles', 899, { compareAtPrice: 1099, ageGroup: 'pre-school', unitsSold: 88, isFeatured: true, rating: 4.7, image: photos.waterBottles, description: 'Weighted straw draws from any angle and the lid locks shut in a bag. Easy to pull apart for a proper wash.' }),
+  make('Insulated Steel Bottle (500ml)', 'water-bottles', 1499, { ageGroup: 'primary', unitsSold: 36, image: photos.waterBottles, description: 'Stays cold for a full school day. Powder-coated finish that survives being dropped on the playground.' }),
+  make('Flip-Top Sports Bottle (750ml)', 'water-bottles', 1099, { ageGroup: 'high', unitsSold: 43, stock: 7, image: photos.waterBottles, description: 'One-hand flip lid for between drills, with a wide neck for ice cubes and a carry loop that clips to a kit bag.' }),
+
+  // ---- Stationery ----
+  make('Zip Pencil Case with Pen Loops', 'stationery', 699, { compareAtPrice: 899, ageGroup: 'primary', unitsSold: 93, isFeatured: true, rating: 4.6, image: photos.stationery, description: 'Two zipped layers with elastic loops so pens stop rattling loose. Wipe-clean canvas that hides a term of ink marks.' }),
+  make('12-Piece Geometry Box Set', 'stationery', 549, { ageGroup: 'middle', unitsSold: 47, image: photos.stationery, description: 'Compass, protractor, set squares and a metal ruler in a snap-shut tin — the full maths kit in one purchase.' }),
+  make('Everyday Ballpoint Pens (10-Pack)', 'stationery', 399, { ageGroup: 'all', unitsSold: 118, stock: 60, image: photos.deskSet, description: 'Smooth 0.7mm blue ink that does not blob mid-sentence. Enough spares to survive the ones that vanish in class.' }),
+
+  // ---- Notebooks & Diaries ----
+  make('A4 Spiral Ruled Notebook (5-Pack)', 'notebooks-diaries', 1199, { compareAtPrice: 1499, ageGroup: 'middle', unitsSold: 66, isFeatured: true, rating: 4.5, image: photos.notebooks, description: 'One notebook per subject, 160 pages each. Thick paper that does not ghost when you write on both sides.' }),
+  make('Hardcover School Diary & Planner', 'notebooks-diaries', 899, { ageGroup: 'high', unitsSold: 29, image: photos.notebooks, description: 'Week-to-view layout with a timetable page and homework tracker. Stitched hardcover that lasts the whole year.' }),
+  make('Squared Maths Copy (4-Pack)', 'notebooks-diaries', 649, { ageGroup: 'primary', unitsSold: 54, stock: 12, image: photos.deskSet, description: '5mm squares for graphs, tables and long division. Stapled spine that opens flat on a small desk.' }),
+
+  // ---- Art & Craft ----
+  make('24 Colouring Pencils Tin', 'art-craft', 799, { compareAtPrice: 999, ageGroup: 'primary', unitsSold: 82, isFeatured: true, rating: 4.8, image: photos.colouring, description: 'Soft, break-resistant leads in a hinged tin. Bright enough to fill a page without pressing hard.' }),
+  make('Washable Poster Paint Set (12 Colours)', 'art-craft', 1099, { ageGroup: 'primary', unitsSold: 35, image: photos.artCraft, description: 'Thick, bright paints that wash out of uniforms and off tables. Screw-top pots so half-used colours do not dry out.' }),
+  make('Craft Kit: Safety Scissors, Glue & Tape', 'art-craft', 949, { ageGroup: 'pre-school', unitsSold: 41, stock: 10, image: photos.artCraft, description: 'Round-tip scissors, two glue sticks and coloured tape — everything a project-day assignment usually asks for.' }),
 
   // ---- Educational Toys ----
-  make('Wooden Alphabet Puzzle Board', 'educational-toys', 1399, { compareAtPrice: 1699, ageGroup: '2-4y', unitsSold: 57, isFeatured: true, rating: 4.8, image: photos.educationalToys, description: 'Chunky lift-out letters with pictures underneath. Builds letter recognition before school starts.' }),
-  make('Counting & Sorting Number Blocks', 'educational-toys', 1199, { ageGroup: '2-4y', unitsSold: 31, image: photos.educationalToys, description: 'Match numbers to quantities and sort by colour and shape — early maths that plays like a game.' }),
-  make('Build-It Engineering Brick Set (120 pcs)', 'educational-toys', 2499, { ageGroup: '4y+', unitsSold: 19, stock: 10, image: photos.educationalToys, description: 'Open-ended bricks with an idea booklet, for children who would rather invent than follow instructions.' }),
+  make('Wooden Alphabet Puzzle Board', 'educational-toys', 1399, { compareAtPrice: 1699, ageGroup: 'pre-school', unitsSold: 57, isFeatured: true, rating: 4.8, image: photos.educationalToys, description: 'Chunky lift-out letters with pictures underneath. Builds letter recognition before school starts.' }),
+  make('Counting & Sorting Number Blocks', 'educational-toys', 1199, { ageGroup: 'pre-school', unitsSold: 31, image: photos.educationalToys, description: 'Match numbers to quantities and sort by colour and shape — early maths that plays like a game.' }),
+  make('Build-It Engineering Brick Set (120 pcs)', 'educational-toys', 2499, { ageGroup: 'primary', unitsSold: 19, stock: 10, image: photos.educationalToys, description: 'Open-ended bricks with an idea booklet, for children who would rather invent than follow instructions.' }),
 
   // ---- Mobile Cases ----
   make('Shockproof Kids Phone Case', 'mobile-cases', 899, { compareAtPrice: 1099, unitsSold: 40, rating: 4.4, image: photos.mobileCases, description: 'Raised bezel and cushioned corners that take the drop instead of the screen. Grippy edges for small hands.' }),
   make('Cartoon Silicone Phone Case', 'mobile-cases', 649, { unitsSold: 26, image: photos.mobileCases, description: 'Soft silicone in bright character prints, slim enough to keep the phone pocket-sized.' }),
   make('Kids Tablet Case with Stand', 'mobile-cases', 1799, { unitsSold: 9, stock: 4, image: photos.mobileCases, description: 'Foam bumper case with a fold-out handle that doubles as a stand for hands-free watching.' }),
-
-  make('Organic Cotton Onesie (3-Pack)', 'clothing', 1499, { compareAtPrice: 1999, ageGroup: '0-6m', unitsSold: 42, isFeatured: true, rating: 4.8, image: photos.clothing }),
-  make('Soft Knit Baby Cardigan', 'clothing', 1299, { ageGroup: '6-12m', unitsSold: 8, image: photos.clothing }),
-  make('Wooden Stacking Rings Toy', 'toys', 999, { ageGroup: '6-12m', unitsSold: 60, isFeatured: true, rating: 4.9, image: photos.toys }),
-  make('Plush Sensory Activity Cube', 'toys', 1799, { ageGroup: '0-6m', unitsSold: 15, image: photos.toys }),
-  make('Anti-Colic Baby Bottle (250ml)', 'feeding', 799, { compareAtPrice: 999, unitsSold: 35, stock: 4, image: photos.feeding }),
-  make('Silicone Bib with Food Catcher', 'feeding', 649, { ageGroup: '6-12m', unitsSold: 22, image: photos.feeding }),
-  make('Ultra-Soft Diapers Newborn (Pack of 40)', 'diapers-wipes', 1099, { ageGroup: '0-6m', unitsSold: 80, isFeatured: true, stock: 3, rating: 4.7, image: photos.diapers }),
-  make('Water Wipes Fragrance-Free (2-Pack)', 'diapers-wipes', 599, { unitsSold: 50, image: photos.diapers }),
-  make('Lightweight Travel Stroller', 'baby-gear', 18999, { compareAtPrice: 22999, ageGroup: 'all', unitsSold: 12, rating: 4.6, isFeatured: true, image: photos.gear }),
-  make('Ergonomic Baby Carrier', 'baby-gear', 6499, { ageGroup: 'all', unitsSold: 2, image: photos.gear }),
-  make('Tear-Free Baby Shampoo 400ml', 'bath-skincare', 549, { unitsSold: 28, image: photos.bath }),
-  make('Gentle Moisturizing Baby Lotion', 'bath-skincare', 699, { unitsSold: 1, image: photos.bath }),
 ];
 
 // Demo shoppers who leave the sample reviews.
@@ -127,11 +112,11 @@ const reviewersSeed = [
 
 // [rating, comment] pairs, cycled across products so every item has a few.
 const reviewTexts = [
-  [5, 'Exactly as described and the quality is lovely. My little one is very happy with it.'],
+  [5, 'Exactly as described and the quality is lovely. My son takes it to school every day.'],
   [4, 'Good value for the price. Delivery took a couple of days but everything arrived safely.'],
-  [5, 'Bought this twice now. Soft, easy to wash, and it has held up really well.'],
+  [5, 'Bought this twice now. Easy to clean, and it has survived a full term already.'],
   [3, 'Does the job, though it runs a little smaller than I expected. Still happy overall.'],
-  [5, 'Wonderful quality — gentle on my baby’s skin and no irritation at all.'],
+  [5, 'Sturdy and well finished — no loose stitching or sharp edges anywhere.'],
   [4, 'Nicely made and well packaged. Would recommend to other parents.'],
 ];
 
@@ -150,13 +135,13 @@ async function run() {
   console.log('👤 Creating admin + demo client...');
   const admin = new User({
     name: process.env.ADMIN_NAME || 'Store Admin',
-    email: process.env.ADMIN_EMAIL || 'admin@funkybunky.pk',
+    email: process.env.ADMIN_EMAIL || 'admin@wondercart.pk',
     role: 'admin',
   });
   await admin.setPassword(process.env.ADMIN_PASSWORD || 'admin12345');
   await admin.save();
 
-  const client = new User({ name: 'Demo Customer', email: 'customer@funkybunky.pk', role: 'client', phone: '03001234567' });
+  const client = new User({ name: 'Demo Customer', email: 'customer@wondercart.pk', role: 'client', phone: '03001234567' });
   await client.setPassword('customer123');
   await client.save();
 
@@ -221,7 +206,7 @@ async function run() {
   console.log(`   ${products.length} products · ${reviewCount} reviews`);
   console.log('----------------------------------------');
   console.log('Admin login   :', admin.email, '/', process.env.ADMIN_PASSWORD || 'admin12345');
-  console.log('Client login  : customer@funkybunky.pk / customer123');
+  console.log('Client login  : customer@wondercart.pk / customer123');
   console.log('----------------------------------------');
 
   await mongoose.disconnect();

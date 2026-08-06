@@ -1,7 +1,7 @@
 {
-  "name": "funkybunky-server",
+  "name": "wondercart-server",
   "version": "1.0.0",
-  "description": "Funkybunky e-commerce API (Node.js + Express + MongoDB)",
+  "description": "Wondercart e-commerce API (Node.js + Express + MongoDB)",
   "main": "server.js",
   "type": "module",
   "scripts": {

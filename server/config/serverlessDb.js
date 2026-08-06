@@ -21,7 +21,7 @@ mongoose.set('bufferTimeoutMS', 5000);
 // The Node process is reused across invocations, so the connection is cached
 // on globalThis and re-awaited rather than reopened per request — otherwise a
 // traffic burst opens a pool per request and exhausts the Atlas limit.
-const cache = (globalThis.__funkybunkyMongo ??= { promise: null });
+const cache = (globalThis.__wondercartMongo ??= { promise: null });
 
 export function connectServerless() {
   if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose.connection);

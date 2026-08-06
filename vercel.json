@@ -3,7 +3,7 @@
   "framework": null,
   "installCommand": "npm install && cd client && npm install",
   "buildCommand": "cd client && npm run build",
-  "outputDirectory": "client/dist/funkybunky-client/browser",
+  "outputDirectory": "client/dist/wondercart-client/browser",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }

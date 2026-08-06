@@ -7,9 +7,10 @@ const productSchema = new mongoose.Schema(
     description: { type: String, default: '' },
     brand: { type: String, default: '' },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+    // School stage the item is sized/pitched for — the storefront filters on this.
     ageGroup: {
       type: String,
-      enum: ['0-6m', '6-12m', '1-2y', '2-4y', '4y+', 'all'],
+      enum: ['pre-school', 'primary', 'middle', 'high', 'all'],
       default: 'all',
     },
     price: { type: Number, required: true, min: 0 },

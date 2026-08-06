@@ -14,7 +14,7 @@ import { ProductCardComponent } from '../../shared/components/product-card.compo
     <section class="shop-head">
       <div class="container">
         <h1>Shop all products</h1>
-        <p class="text-muted">Everything for babies and toddlers, in one happy place.</p>
+        <p class="text-muted">Everything for the school year, in one happy place.</p>
       </div>
     </section>
 
@@ -34,14 +34,13 @@ import { ProductCardComponent } from '../../shared/components/product-card.compo
             </select>
           </div>
           <div class="field">
-            <label>Age group</label>
+            <label>School level</label>
             <select class="input" [(ngModel)]="filters.ageGroup" (change)="apply()">
-              <option value="">All ages</option>
-              <option value="0-6m">0–6 months</option>
-              <option value="6-12m">6–12 months</option>
-              <option value="1-2y">1–2 years</option>
-              <option value="2-4y">2–4 years</option>
-              <option value="4y+">4 years +</option>
+              <option value="">All levels</option>
+              <option value="pre-school">Pre-school (3–5 yrs)</option>
+              <option value="primary">Primary (5–10 yrs)</option>
+              <option value="middle">Middle school (11–13 yrs)</option>
+              <option value="high">High school (14+ yrs)</option>
             </select>
           </div>
           <div class="field">
