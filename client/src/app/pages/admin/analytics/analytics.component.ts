@@ -58,7 +58,7 @@ import { AdminNavComponent } from '../admin-nav.component';
               <h3>Revenue by category</h3>
               @for (c of byCategory(); track c.category) {
                 <div class="catrow">
-                  <div class="between"><strong>{{ c.category }}</strong><span class="price">Rs {{ c.revenue | number }}</span></div>
+                  <div class="flex between gap"><strong>{{ c.category }}</strong><span class="price">Rs {{ c.revenue | number }}</span></div>
                   <div class="track"><div class="fill" [style.width.%]="catPct(c.revenue)"></div></div>
                   <span class="text-muted">{{ c.units }} units</span>
                 </div>
@@ -99,7 +99,9 @@ import { AdminNavComponent } from '../admin-nav.component';
     .chip { border:2px solid var(--line); background:#fff; padding:5px 14px; border-radius:999px; font-weight:700; cursor:pointer; font-family: var(--font-display); color: var(--muted); margin-left:6px; }
     .chip.on { background: var(--mint); border-color: var(--mint); color:#fff; }
     .chart { display:flex; align-items:flex-end; gap:4px; height:200px; margin-top:20px; padding-top:10px; }
-    .bar-wrap { flex:1; height:100%; display:flex; align-items:flex-end; }
+    /* max-width keeps a quiet period (one or two days of sales) reading as
+       bars rather than one full-bleed block stretched across the card. */
+    .bar-wrap { flex:1; max-width:52px; height:100%; display:flex; align-items:flex-end; }
     .bar { width:100%; background: linear-gradient(var(--coral), var(--sun)); border-radius:6px 6px 0 0; min-height:3px; transition:height .3s; }
     .bar-wrap:hover .bar { background: var(--coral); }
     .chart-foot { display:flex; justify-content:space-between; margin-top:8px; font-size:.82rem; color: var(--muted); }

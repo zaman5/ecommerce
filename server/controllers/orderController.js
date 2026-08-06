@@ -69,6 +69,7 @@ export async function placeOrder(req, res, next) {
       orderItems.push({
         product: product._id,
         name: product.name,
+        slug: product.slug,
         image: product.images?.[0] || '',
         price: product.price,
         qty,
@@ -215,6 +216,18 @@ export async function updateOrderStatus(req, res, next) {
 
     if (status) {
       if (!allowed.includes(status)) return res.status(400).json({ message: 'Invalid status.' });
+
+      // Cancelling puts the goods back on the shelf, exactly as a customer-side
+      // cancel does. Guarded on the *previous* status so re-saving an already
+      // cancelled order can't credit the stock twice.
+      if (status === 'cancelled' && order.status !== 'cancelled') {
+        for (const line of order.items) {
+          await Product.findByIdAndUpdate(line.product, {
+            $inc: { stock: line.qty, unitsSold: -line.qty },
+          });
+        }
+      }
+
       order.status = status;
       order.tracking.push({ status, note: note || '', at: new Date() });
       if (status === 'delivered') order.paymentStatus = 'paid';

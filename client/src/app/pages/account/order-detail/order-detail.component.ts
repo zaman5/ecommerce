@@ -80,7 +80,16 @@ import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.di
                 @for (i of o.items; track i.product) {
                   <div class="line-item">
                     <img [src]="i.image" [alt]="i.name" appImgFallback />
-                    <div class="li-info"><span>{{ i.name }}</span><span class="text-muted">Qty {{ i.qty }}</span></div>
+                    <div class="li-info">
+                      <span>{{ i.name }}</span>
+                      <span class="text-muted">Qty {{ i.qty }}</span>
+                      <!-- Once it's delivered this is the moment to ask for a
+                           review — and the review earns a "verified purchase"
+                           badge. Older orders have no slug, so no link. -->
+                      @if (o.status === 'delivered' && i.slug) {
+                        <a class="review-link" [routerLink]="['/product', i.slug]" fragment="reviews">★ Write a review</a>
+                      }
+                    </div>
                     <strong class="price">Rs {{ i.price * i.qty | number }}</strong>
                   </div>
                 }
@@ -130,6 +139,8 @@ import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.di
     .line-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
     .line-item img { width:48px; height:48px; object-fit:cover; border-radius:8px; }
     .li-info { display:flex; flex-direction:column; flex:1; font-size:.9rem; }
+    .review-link { color: var(--coral); font-weight:700; font-size:.8rem; margin-top:3px; align-self:flex-start; }
+    .review-link:hover { text-decoration: underline; }
     .line { display:flex; justify-content:space-between; padding:7px 0; }
     .line.total { border-top:1px solid var(--line); margin-top:8px; padding-top:12px; font-size:1.15rem; }
     .addr { line-height:1.7; color: var(--ink); }

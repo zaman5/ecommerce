@@ -11,5 +11,10 @@ export function errorHandler(err, req, res, next) {
   if (err.name === 'ValidationError') {
     return res.status(400).json({ message: Object.values(err.errors).map((e) => e.message).join(', ') });
   }
+  // A malformed id (e.g. "abc" where an ObjectId is expected) is a bad request,
+  // not a server fault — without this it surfaces as a 500.
+  if (err.name === 'CastError') {
+    return res.status(400).json({ message: `Invalid ${err.path}: ${err.value}` });
+  }
   res.status(err.status || 500).json({ message: err.message || 'Something went wrong on the server.' });
 }

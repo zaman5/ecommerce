@@ -102,7 +102,8 @@ export interface Order {
   guestEmail?: string;
   /** Returned only in the checkout response, never on later fetches. */
   guestToken?: string;
-  items: { product: string; name: string; image: string; price: number; qty: number }[];
+  /** `slug` is snapshotted at checkout; orders placed before that lack it. */
+  items: { product: string; name: string; slug?: string; image: string; price: number; qty: number }[];
   shippingAddress: {
     fullName: string; line1: string; city: string; province: string; postalCode: string; phone: string;
   };

@@ -4,6 +4,9 @@ const orderItemSchema = new mongoose.Schema(
   {
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
     name: String,
+    // Snapshotted so the order page can link back to the product (and to its
+    // review form) without re-fetching every item. Absent on pre-existing orders.
+    slug: String,
     image: String,
     price: Number,
     qty: Number,
