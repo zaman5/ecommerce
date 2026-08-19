@@ -21,7 +21,8 @@ export async function listBanners(req, res, next) {
     const banners = await Banner.find({ isActive: true }).sort({ order: 1, createdAt: 1 });
     res.json(banners);
   } catch (err) {
-    next(err);
+    console.error('Error fetching banners:', err.message);
+    res.json([]);
   }
 }
 
@@ -32,9 +33,11 @@ export async function listAllBanners(req, res, next) {
     const banners = await Banner.find().sort({ order: 1, createdAt: 1 });
     res.json(banners);
   } catch (err) {
-    next(err);
+    console.error('Error fetching all banners:', err.message);
+    res.json([]);
   }
 }
+
 
 // POST /api/banners  (admin)
 export async function createBanner(req, res, next) {

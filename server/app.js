@@ -47,17 +47,6 @@ export function createApp() {
     });
   });
 
-  // DB connection guard for API routes (excluding health check)
-  app.use('/api', (req, res, next) => {
-    if (req.path === '/health') return next();
-    if (mongoose.connection.readyState !== 1 && mongoose.connection.readyState !== 2) {
-      return res.status(503).json({
-        message: 'Database is not connected. Please check your MONGO_URI in Hostinger environment variables or .env file and ensure MongoDB Atlas allows connections from 0.0.0.0/0.',
-      });
-    }
-    next();
-  });
-
   // Uploaded product photos. Served from disk, which works for a normal Node
   // host but NOT on a serverless platform like Vercel, where the filesystem is
   // ephemeral — move to Cloudinary/S3 before deploying there.

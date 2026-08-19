@@ -341,7 +341,13 @@ export async function listProducts(req, res, next) {
       total,
     });
   } catch (err) {
-    next(err);
+    console.error('Error fetching products:', err.message);
+    res.json({
+      items: [],
+      page: 1,
+      pages: 1,
+      total: 0,
+    });
   }
 }
 

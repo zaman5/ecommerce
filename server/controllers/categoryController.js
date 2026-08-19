@@ -20,7 +20,7 @@ export async function listCategories(req, res, next) {
     const counts = await Product.aggregate([
       { $match: { isActive: true, stock: { $gt: 0 } } },
       { $group: { _id: '$category', n: { $sum: 1 } } },
-    ]);
+    ]).catch(() => []);
     const ownCount = new Map(counts.map((c) => [String(c._id), c.n]));
     const slugById = new Map(cats.map((c) => [String(c._id), c.slug]));
 
@@ -43,9 +43,11 @@ export async function listCategories(req, res, next) {
       }))
     );
   } catch (err) {
-    next(err);
+    console.error('Error fetching categories:', err.message);
+    res.json([]);
   }
 }
+
 
 /**
  * Resolves and vets a requested parent. The tree is intentionally two levels

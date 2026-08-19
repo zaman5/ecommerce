@@ -8,9 +8,21 @@ export async function getFlashSale(req, res, next) {
   try {
     res.json(await FlashSale.getSettings());
   } catch (err) {
-    next(err);
+    console.error('Error fetching flash sale:', err.message);
+    res.json({
+      isEnabled: false,
+      title: 'Flash Deals',
+      timerLabel: 'Ends in',
+      ctaLabel: 'Shop All Deals',
+      ctaLink: '/shop?onSale=true',
+      countdownMode: 'midnight',
+      endsAt: null,
+      limit: 8,
+      sort: 'popular',
+    });
   }
 }
+
 
 // PUT /api/flash-sale  (admin)
 export async function updateFlashSale(req, res, next) {
