@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Wondercart e-commerce — Angular client + Express API, deployed together on Vercel",
   "scripts": {
-    "build": "cd client && npm run build",
+    "build": "cd client && npm install && npm run build",
     "dev:client": "cd client && npm start",
     "dev:server": "cd server && npm run dev",
     "seed": "cd server && npm run seed"
