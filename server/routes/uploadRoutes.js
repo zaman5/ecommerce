@@ -6,7 +6,11 @@ import multer from 'multer';
 import { protect, restrictTo } from '../middleware/auth.js';
 
 export const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+try {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+} catch (e) {
+  console.warn('Could not create uploads directory:', e.message);
+}
 
 const ALLOWED = new Map([
   ['image/jpeg', '.jpg'],
