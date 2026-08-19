@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -16,6 +18,9 @@ import settingRoutes from './routes/settingRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import uploadRoutes, { UPLOAD_DIR } from './routes/uploadRoutes.js';
 import { notFound, errorHandler } from './middleware/error.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // The Express app is built here (and exported) so tests can mount it with
 // supertest without opening a port. server.js owns the DB connect + listen.
@@ -47,6 +52,19 @@ export function createApp() {
   app.use('/api/email-templates', emailRoutes);
   app.use('/api/uploads', uploadRoutes);
 
+  // ── Serve Angular frontend in production ──
+  // Angular 17 with the "application" builder outputs to dist/<name>/browser/
+  const clientDist = path.join(__dirname, '..', 'client', 'dist', 'wondercart-client', 'browser');
+  app.use(express.static(clientDist, { maxAge: '7d' }));
+
+  // SPA fallback: any non-API route returns index.html so Angular Router works
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(clientDist, 'index.html'), (err) => {
+      if (err) next(); // fall through to notFound if file doesn't exist
+    });
+  });
+
   app.use(notFound);
   app.use(errorHandler);
 
@@ -54,3 +72,4 @@ export function createApp() {
 }
 
 export default createApp;
+
