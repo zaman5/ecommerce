@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { autoSeedIfEmpty } from '../utils/autoSeed.js';
 
 export async function connectDB(uri) {
   if (!uri) {
@@ -11,6 +12,10 @@ export async function connectDB(uri) {
       serverSelectionTimeoutMS: 5000,
     });
     console.log(`✅ MongoDB connected: ${conn.connection.host}/${conn.connection.name}`);
+    
+    // Auto-seed if database has no categories
+    autoSeedIfEmpty().catch((e) => console.warn('Auto-seed warning:', e.message));
+    
     return conn;
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err.message);
@@ -18,4 +23,5 @@ export async function connectDB(uri) {
     return null;
   }
 }
+
 

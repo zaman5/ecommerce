@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -32,7 +33,30 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
   if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
 
-  app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+  app.get('/api/health', (req, res) => {
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    const dbState = states[mongoose.connection.readyState] || 'unknown';
+    res.json({
+      status: 'ok',
+      time: new Date(),
+      database: {
+        status: dbState,
+        connected: mongoose.connection.readyState === 1,
+        hasMongoUri: Boolean(process.env.MONGO_URI),
+      },
+    });
+  });
+
+  // DB connection guard for API routes (excluding health check)
+  app.use('/api', (req, res, next) => {
+    if (req.path === '/health') return next();
+    if (mongoose.connection.readyState !== 1 && mongoose.connection.readyState !== 2) {
+      return res.status(503).json({
+        message: 'Database is not connected. Please check your MONGO_URI in Hostinger environment variables or .env file and ensure MongoDB Atlas allows connections from 0.0.0.0/0.',
+      });
+    }
+    next();
+  });
 
   // Uploaded product photos. Served from disk, which works for a normal Node
   // host but NOT on a serverless platform like Vercel, where the filesystem is

@@ -1,4 +1,25 @@
-import 'dotenv/config';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env from multiple potential locations (root, server/, cwd)
+const envPaths = [
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), 'server', '.env'),
+  path.resolve(__dirname, '.env'),
+  path.resolve(__dirname, '..', '.env'),
+];
+
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+}
+
 import { connectDB } from './config/db.js';
 import { createApp } from './app.js';
 
@@ -17,7 +38,7 @@ if (mongoUri) {
     console.error('Initial MongoDB connection error:', err.message);
   });
 } else {
-  console.warn('⚠️ MONGO_URI is not set. Please set MONGO_URI in your environment variables.');
+  console.warn('⚠️ MONGO_URI is not set in environment variables or .env file.');
 }
 
 process.on('uncaughtException', (err) => {
@@ -27,4 +48,5 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
 
