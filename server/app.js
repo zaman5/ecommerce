@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import authRoutes from './routes/authRoutes.js';
@@ -53,16 +54,26 @@ export function createApp() {
   app.use('/api/uploads', uploadRoutes);
 
   // ── Serve Angular frontend in production ──
-  // Angular 17 with the "application" builder outputs to dist/<name>/browser/
-  const clientDist = path.join(__dirname, '..', 'client', 'dist', 'wondercart-client', 'browser');
+  const possibleDistPaths = [
+    path.join(__dirname, '..', 'client', 'dist', 'wondercart-client', 'browser'),
+    path.join(__dirname, '..', 'client', 'dist', 'wondercart-client'),
+    path.join(__dirname, '..', 'dist', 'wondercart-client', 'browser'),
+    path.join(__dirname, '..', 'dist', 'wondercart-client'),
+    path.join(__dirname, '..', 'dist', 'browser'),
+    path.join(__dirname, '..', 'dist'),
+  ];
+  const clientDist = possibleDistPaths.find((p) => fs.existsSync(path.join(p, 'index.html'))) || possibleDistPaths[0];
+
   app.use(express.static(clientDist, { maxAge: '7d' }));
 
-  // SPA fallback: any non-API route returns index.html so Angular Router works
+  // SPA fallback: any non-API and non-uploads route returns index.html so Angular Router works
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api/')) return next();
-    res.sendFile(path.join(clientDist, 'index.html'), (err) => {
-      if (err) next(); // fall through to notFound if file doesn't exist
-    });
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return next();
+    const indexPath = path.join(clientDist, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    next();
   });
 
   app.use(notFound);
@@ -72,4 +83,5 @@ export function createApp() {
 }
 
 export default createApp;
+
 
