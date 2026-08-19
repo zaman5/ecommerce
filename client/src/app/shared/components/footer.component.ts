@@ -9,7 +9,7 @@ import { RouterLink } from '@angular/router';
     <footer class="footer">
       <div class="container foot-grid">
         <div>
-          <div class="brand">🎒 Wonder<span>cart</span></div>
+          <img src="assets/logo.png" alt="Wondercart" class="brand-img" width="480" height="341" />
           <p class="text-muted">Everything your child needs for school — trusted quality, fair prices, and fast delivery across Pakistan.</p>
         </div>
         <div>
@@ -26,26 +26,35 @@ import { RouterLink } from '@angular/router';
         </div>
         <div>
           <h4>Help</h4>
-          <a href="#">Shipping & returns</a>
-          <a href="#">Contact us</a>
-          <a href="#">FAQ</a>
+          <a routerLink="/contact">Contact us</a>
+          <a routerLink="/terms" fragment="returns">Shipping &amp; returns</a>
+          <a routerLink="/terms">Terms &amp; Conditions</a>
         </div>
       </div>
       <div class="foot-bottom">
-        <div class="container">© {{ year }} Wondercart. Packed with care for every school day.</div>
+        <div class="container foot-bottom-inner">
+          <span>© {{ year }} Wondercart. Packed with care for every school day.</span>
+          <span class="foot-links">
+            <a routerLink="/terms">Terms &amp; Conditions</a>
+            <a routerLink="/contact">Contact us</a>
+          </span>
+        </div>
       </div>
     </footer>
   `,
   styles: [`
     .footer { background: #fff; border-top: 1px solid var(--line); margin-top: 40px; }
     .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; padding: 48px 20px 28px; }
-    .brand { font-family: var(--font-display); font-weight: 800; font-size: 1.4rem; margin-bottom: 10px; }
-    .brand span { color: var(--coral); }
+    .brand-img { height: 76px; width: auto; display: block; margin-bottom: 12px; }
     .footer h4 { font-size: 1rem; margin-bottom: 12px; }
     .footer a { display: block; color: var(--muted); padding: 5px 0; }
-    .footer a:hover { color: var(--coral); }
-    .foot-bottom { border-top: 1px solid var(--line); padding: 18px 0; color: var(--muted); font-size: .9rem; text-align: center; }
+    .footer a:hover { color: var(--brand); }
+    .foot-bottom { border-top: 1px solid var(--line); padding: 18px 0; color: var(--muted); font-size: .9rem; }
+    .foot-bottom-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .foot-links { display: flex; gap: 18px; }
+    .foot-links a { display: inline; padding: 0; }
     @media (max-width: 720px) { .foot-grid { grid-template-columns: 1fr 1fr; gap: 24px; } }
+    @media (max-width: 560px) { .foot-bottom-inner { flex-direction: column; text-align: center; } }
   `],
 })
 export class FooterComponent {

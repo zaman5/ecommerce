@@ -84,8 +84,10 @@ import { AdminNavComponent } from '../admin-nav.component';
     .alert-card.warn { background:#fff0d6; color:#a9721f; }
     .alert-card.danger { background:#ffe0dd; color:#c53030; }
     .head { display:flex; align-items:center; justify-content:space-between; }
-    .see { color: var(--coral); font-weight:700; }
-    .lnk { color: var(--coral); font-weight:700; }
+    .see { color: var(--ink); font-weight:700; }
+    .see:hover { color: var(--brand); }
+    .lnk { color: var(--ink); font-weight:700; }
+    .lnk:hover { color: var(--brand); }
   `],
 })
 export class DashboardComponent implements OnInit {

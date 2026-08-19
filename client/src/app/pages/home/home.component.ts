@@ -1,69 +1,87 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ProductService, CategoryService } from '../../core/services/api.service';
-import { Category, Product } from '../../core/models/models';
+import { FlashSaleService, ProductService } from '../../core/services/api.service';
+import { FlashSale, Product } from '../../core/models/models';
 import { ProductCardComponent } from '../../shared/components/product-card.component';
-import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/img-fallback.directive';
+import { ProductRailComponent } from '../../shared/components/product-rail.component';
+import { HeroBannerComponent } from '../../shared/components/hero-banner.component';
+
+/** How many products the "Just For You" feed pulls per request. */
+const PAGE_SIZE = 20;
+
+/**
+ * How many rows of the feed the home page shows, and how many more each "Load
+ * More" adds. Rows rather than a product count: the grid is 2–5 columns wide
+ * depending on the screen, so a fixed count would be two rows on a desktop and
+ * five on a phone.
+ */
+const ROWS_SHOWN = 2;
+
+/** Fallback if --listing-cols can't be read (SSR, or a stylesheet still loading). */
+const DEFAULT_COLS = 4;
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, ProductCardComponent, ImgFallbackDirective],
+  imports: [CommonModule, RouterLink, ProductCardComponent, ProductRailComponent, HeroBannerComponent],
   template: `
-    <!-- HERO -->
-    <section class="hero">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <span class="eyebrow">Trusted by 10,000+ parents 💛</span>
-          <h1>Everything for the <span class="hl">school year</span></h1>
-          <p>School bags, lunch boxes, water bottles, stationery and art supplies — picked to survive a full term, delivered to your door.</p>
-          <div class="flex gap wrap">
-            <a routerLink="/shop" class="btn btn-primary">Shop all products</a>
-            <a routerLink="/shop" class="btn btn-ghost">Browse best sellers</a>
-          </div>
-          <div class="hero-trust">
-            <div><strong>🚚 Free</strong><span>over Rs 5,000</span></div>
-            <div><strong>↩️ 7-day</strong><span>easy returns</span></div>
-            <div><strong>🔒 Secure</strong><span>checkout</span></div>
-          </div>
-        </div>
-        <div class="hero-art">
-          <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=700&q=80" alt="School books, pencils and alphabet blocks on a desk" appImgFallback />
-          <div class="floaty f1">🎒</div>
-          <div class="floaty f2">✏️</div>
-          <div class="floaty f3">⭐</div>
-        </div>
-      </div>
-    </section>
+    <!-- PROMO BANNERS — managed in Admin → Banners -->
+    <app-hero-banner />
 
-    <!-- CATEGORIES -->
-    <section class="section">
-      <div class="container">
-        <div class="head"><h2>Shop by category</h2><a routerLink="/shop" class="see">See all →</a></div>
-        <div class="grid grid-3 cat-grid">
-          @for (c of categories(); track c._id) {
-            <a [routerLink]="['/shop']" [queryParams]="{ category: c.slug }" class="cat-tile">
-              <img [src]="c.image || fallback" [alt]="c.name" appImgFallback />
-              <div class="cat-info">
-                <h3>{{ c.name }}</h3>
-                <span>{{ c.productCount }} items</span>
+    <!-- FLASH SALE — every part of this head is set in Admin → Flash Sale -->
+    @if (showFlash() && deals().length) {
+      <section class="flash">
+        <div class="container">
+          <div class="flash-head">
+            <h2>{{ flash()!.title }}</h2>
+            @if (flash()!.countdownMode !== 'none') {
+              <div class="timer" [attr.aria-label]="flash()!.timerLabel">
+                <span>{{ flash()!.timerLabel }}</span>
+                <b>{{ countdown() }}</b>
               </div>
-            </a>
-          }
+            }
+            @if (flash()!.ctaLabel) {
+              <a [routerLink]="ctaRoute()" [queryParams]="ctaParams()" class="see">{{ flash()!.ctaLabel }} ›</a>
+            }
+          </div>
+          <app-product-rail [products]="deals()" />
         </div>
-      </div>
-    </section>
+      </section>
+    }
 
-    <!-- FEATURED -->
-    <section class="section featured">
+    <!-- FEATURED RAIL -->
+    @if (featured().length) {
+      <section class="flash featured-rail">
+        <div class="container">
+          <div class="flash-head">
+            <h2>Back-to-school favourites</h2>
+            <a routerLink="/shop" class="see">See all ›</a>
+          </div>
+          <app-product-rail [products]="featured()" />
+        </div>
+      </section>
+    }
+
+    <!-- JUST FOR YOU -->
+    <section class="jfy">
       <div class="container">
-        <div class="head"><h2>Back-to-school favourites</h2><a routerLink="/shop" class="see">See all →</a></div>
+        <div class="jfy-head"><h2>Just For You</h2></div>
         @if (loading()) { <div class="spinner"></div> }
         @else {
-          <div class="grid grid-4">
-            @for (p of featured(); track p._id) { <app-product-card [product]="p" /> }
+          <div class="dense-grid">
+            @for (p of visibleFeed(); track p._id) { <app-product-card [product]="p" [dense]="true" /> }
           </div>
+          @if (loadingMore()) { <div class="spinner"></div> }
+          @if (hasMore()) {
+            <div class="more-wrap">
+              <button class="btn btn-ghost" [disabled]="loadingMore()" (click)="loadMore()">
+                {{ loadingMore() ? 'Loading…' : 'Load More' }}
+              </button>
+            </div>
+          } @else if (visibleFeed().length) {
+            <p class="end">You've reached the end — {{ visibleFeed().length }} products shown.</p>
+          }
         }
       </div>
     </section>
@@ -81,56 +99,225 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
     </section>
   `,
   styles: [`
-    .hero { background: linear-gradient(160deg, var(--mint-soft), var(--cream) 70%); overflow:hidden; }
-    .hero-grid { display:grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items:center; padding: 60px 20px; }
-    .eyebrow { display:inline-block; background:#fff; padding:6px 14px; border-radius:999px; font-weight:700; font-size:.85rem; box-shadow: var(--shadow-sm); }
-    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); margin:18px 0 12px; }
-    .hl { color: var(--coral); }
-    .hero-copy p { font-size: 1.1rem; color: var(--muted); max-width: 460px; margin-bottom: 22px; }
-    .hero-trust { display:flex; gap:26px; margin-top:28px; flex-wrap:wrap; }
-    .hero-trust div { display:flex; flex-direction:column; }
-    .hero-trust strong { font-family: var(--font-display); }
-    .hero-trust span { font-size:.85rem; color: var(--muted); }
-    .hero-art { position:relative; }
-    .hero-art img { border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); aspect-ratio: 4/3; object-fit:cover; }
-    .floaty { position:absolute; background:#fff; width:56px; height:56px; border-radius:50%; display:grid; place-items:center; font-size:1.6rem; box-shadow: var(--shadow); animation: bob 3s ease-in-out infinite; }
-    .f1 { top:-14px; left:-14px; } .f2 { bottom:20px; left:-22px; animation-delay:.6s; } .f3 { top:30px; right:-16px; animation-delay:1.2s; }
-    @keyframes bob { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-10px);} }
-    @media (prefers-reduced-motion: reduce) { .floaty { animation: none; } }
-    .head { display:flex; align-items:center; justify-content:space-between; margin-bottom: 22px; }
-    .head h2 { font-size: 1.8rem; }
-    .see { color: var(--coral); font-weight:700; }
-    .cat-tile { position:relative; border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow-sm); aspect-ratio: 3/2; display:block; }
-    .cat-tile img { width:100%; height:100%; object-fit:cover; transition: transform .3s; }
-    .cat-tile:hover img { transform: scale(1.06); }
-    .cat-info { position:absolute; inset:auto 0 0 0; padding:16px; background: linear-gradient(transparent, rgba(51,65,79,.75)); color:#fff; }
-    .cat-info h3 { color:#fff; margin:0; }
-    .cat-info span { font-size:.85rem; opacity:.9; }
-    .featured { background:#fff; }
+    .see { color: var(--ink); font-weight:700; font-size:.9rem; white-space:nowrap; }
+    .see:hover { color: var(--brand); }
+
+    /* ---- flash sale ---- */
+    .flash { background: var(--cream); padding: 26px 0; }
+    .flash-head { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+    .flash-head h2 { font-size:1.4rem; margin:0; }
+    .timer { display:flex; align-items:center; gap:8px; font-size:.82rem; color: var(--muted); }
+    .timer b { font-family: var(--font-display); background: var(--ink); color:#fff; padding:3px 10px;
+      border-radius:6px; font-size:.9rem; letter-spacing:.5px; font-variant-numeric: tabular-nums; }
+    .flash-head .see { margin-left:auto; }
+
+    /* ---- just for you ---- */
+    .featured-rail { background:#fff; }
     .promise { text-align:center; }
     .promise-card { background: var(--cream); border-radius: var(--radius); padding: 28px; }
     .promise-card span { font-size:2.4rem; }
     .promise-card h3 { margin:12px 0 6px; }
     .promise-card p { color: var(--muted); margin:0; }
-    @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; } .hero-art { order:-1; } }
+    .jfy { background: var(--cream); padding: 26px 0 56px; }
+    .jfy-head { margin-bottom:16px; border-bottom:3px solid var(--ink); display:inline-block; padding-bottom:6px; }
+    .jfy-head h2 { font-size:1.4rem; margin:0; }
+    /* Column count comes from --listing-cols in styles.css, so the rails above
+       and the catalogue on /shop step together — a row never mixes card sizes.
+       minmax(0,1fr) rather than 1fr: a long product title would otherwise set a
+       column's minimum width and knock the row out of even thirds. */
+    .dense-grid { display:grid; grid-template-columns: repeat(var(--listing-cols), minmax(0, 1fr)); gap:12px; }
+    .more-wrap { display:flex; justify-content:center; margin-top:28px; }
+    .end { text-align:center; color: var(--muted); margin-top:28px; font-size:.9rem; }
   `],
 })
-export class HomeComponent implements OnInit {
-  categories = signal<Category[]>([]);
+export class HomeComponent implements OnInit, OnDestroy {
   featured = signal<Product[]>([]);
+  deals = signal<Product[]>([]);
+  feed = signal<Product[]>([]);
   loading = signal(true);
-  fallback = FALLBACK_IMAGE;
+  loadingMore = signal(false);
+  countdown = signal('00:00:00');
+  flash = signal<FlashSale | null>(null);
+  /** Flips to true when an `endsAt` sale runs out, without a page reload. */
+  private expired = signal(false);
 
-  constructor(private products: ProductService, private cats: CategoryService) {}
+  /**
+   * Columns the grid is currently showing, read from the --listing-cols CSS
+   * variable rather than re-declaring the breakpoints here. One source of truth:
+   * change the ladder in styles.css and the row maths follows.
+   */
+  cols = signal(DEFAULT_COLS);
+  rows = signal(ROWS_SHOWN);
+
+  /**
+   * Exactly `rows` rows' worth. Slicing what is already loaded rather than
+   * re-fetching means widening the window from 4 to 5 columns fills the extra
+   * slots instantly, with no request and no half-empty row.
+   */
+  visibleFeed = computed(() => this.feed().slice(0, this.cols() * this.rows()));
+
+  private page = 1;
+  private totalPages = 1;
+  private timer?: ReturnType<typeof setInterval>;
+
+  constructor(private products: ProductService, private flashSvc: FlashSaleService) {}
 
   ngOnInit() {
-    // Every category is shown. The API returns them alphabetically, so taking a
-    // slice here would hide whichever lines happen to sort last rather than the
-    // least important ones.
-    this.cats.list().subscribe((c) => this.categories.set(c));
-    this.products.list({ featured: true, limit: 8 }).subscribe({
-      next: (r) => { this.featured.set(r.items); this.loading.set(false); },
+    this.readCols();
+
+    // The strip's settings decide how many deals to pull and in what order, so
+    // they have to arrive before the products do.
+    this.flashSvc.get().subscribe({
+      next: (s) => {
+        this.flash.set(s);
+        this.tick();
+        if (s.isEnabled) this.loadDeals(s);
+      },
+      // Settings are presentation, not content — if the request fails the strip
+      // simply stays hidden rather than blocking the rest of the page.
+      error: () => this.flash.set(null),
+    });
+
+    this.products.list({ featured: true, limit: 12 }).subscribe({
+      next: (r) => this.featured.set(r.items),
+      error: () => this.featured.set([]),
+    });
+
+    this.products.list({ sort: 'popular', page: 1, limit: PAGE_SIZE }).subscribe({
+      next: (r) => {
+        this.feed.set(r.items);
+        this.totalPages = r.pages;
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
+
+    this.tick();
+    this.timer = setInterval(() => this.tick(), 1000);
+  }
+
+  ngOnDestroy() {
+    // Without this the interval keeps firing after navigation.
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  /** More to show if the window is hiding some, or the server has further pages. */
+  hasMore() {
+    return this.visibleFeed().length < this.feed().length || this.page < this.totalPages;
+  }
+
+  /**
+   * Opens the window by another {@link ROWS_SHOWN} rows, fetching only when
+   * those rows aren't already loaded — the first click is usually instant
+   * because one request covers several rows.
+   */
+  loadMore() {
+    if (this.loadingMore() || !this.hasMore()) return;
+
+    const nextRows = this.rows() + ROWS_SHOWN;
+    const needed = this.cols() * nextRows;
+    this.rows.set(nextRows);
+
+    if (needed <= this.feed().length || this.page >= this.totalPages) return;
+
+    this.loadingMore.set(true);
+    const next = this.page + 1;
+    this.products.list({ sort: 'popular', page: next, limit: PAGE_SIZE }).subscribe({
+      next: (r) => {
+        this.feed.update((cur) => [...cur, ...r.items]);
+        this.page = next;
+        this.totalPages = r.pages;
+        this.loadingMore.set(false);
+      },
+      error: () => this.loadingMore.set(false),
+    });
+  }
+
+  /**
+   * Keeps the row count honest across a breakpoint change — a resize alters how
+   * many columns the CSS is drawing, and the slice has to follow it.
+   */
+  @HostListener('window:resize')
+  readCols() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--listing-cols');
+    const n = parseInt(raw.trim(), 10);
+    this.cols.set(Number.isFinite(n) && n > 0 ? n : DEFAULT_COLS);
+  }
+
+  private loadDeals(s: FlashSale) {
+    this.products.list({ flashSale: true, sort: s.sort, limit: s.limit }).subscribe({
+      next: (r) => {
+        if (r.items && r.items.length > 0) {
+          this.deals.set(r.items);
+        } else {
+          // Fallback to all discounted items if no specific products have flashSale flag
+          this.products.list({ onSale: true, sort: s.sort, limit: s.limit }).subscribe({
+            next: (res) => this.deals.set(res.items),
+            error: () => this.deals.set([]),
+          });
+        }
+      },
+      error: () => this.deals.set([]),
+    });
+  }
+
+  /** Shown only when switched on, in date, and there is something to show. */
+  showFlash(): boolean {
+    const s = this.flash();
+    return !!s && s.isEnabled && !this.expired();
+  }
+
+  /** The CTA link is free text, so split it the way routerLink needs. */
+  ctaRoute(): string {
+    return (this.flash()?.ctaLink || '/shop').split('?')[0] || '/shop';
+  }
+
+  ctaParams(): Record<string, string> {
+    const qs = (this.flash()?.ctaLink || '').split('?')[1];
+    const out: Record<string, string> = {};
+    if (qs) new URLSearchParams(qs).forEach((v, k) => (out[k] = v));
+    return out;
+  }
+
+  /**
+   * Recomputes the countdown once a second.
+   *
+   * 'midnight' is the daily-deals boundary the strip shipped with; 'endsAt'
+   * targets a fixed moment and retires the whole section when it passes, since
+   * a sale frozen at 00:00:00 is worse than no sale at all. Over 24 hours the
+   * clock grows a day part rather than showing a meaningless "47:12:06".
+   */
+  private tick() {
+    const s = this.flash();
+    if (!s || s.countdownMode === 'none') return;
+
+    const now = new Date();
+    let target: Date;
+
+    if (s.countdownMode === 'endsAt') {
+      if (!s.endsAt) return;
+      target = new Date(s.endsAt);
+      if (target.getTime() <= now.getTime()) {
+        this.expired.set(true);
+        this.countdown.set('00:00:00');
+        return;
+      }
+      this.expired.set(false);
+    } else {
+      target = new Date(now);
+      target.setHours(24, 0, 0, 0);
+    }
+
+    const left = Math.max(0, target.getTime() - now.getTime());
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const days = Math.floor(left / 86_400_000);
+    const h = Math.floor((left % 86_400_000) / 3_600_000);
+    const m = Math.floor((left % 3_600_000) / 60_000);
+    const sec = Math.floor((left % 60_000) / 1000);
+    this.countdown.set(
+      days > 0
+        ? `${days}d ${pad(h)}:${pad(m)}:${pad(sec)}`
+        : `${pad(h)}:${pad(m)}:${pad(sec)}`
+    );
   }
 }

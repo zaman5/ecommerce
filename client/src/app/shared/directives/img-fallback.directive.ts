@@ -7,7 +7,7 @@ export const FALLBACK_IMAGE =
   'data:image/svg+xml;charset=UTF-8,' +
   encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
-       <rect width="400" height="400" fill="#f4ebe1"/>
+       <rect width="400" height="400" fill="#e9eef9"/>
        <text x="200" y="188" font-size="64" text-anchor="middle">🎒</text>
        <text x="200" y="238" font-size="20" text-anchor="middle"
              fill="#7d8a97" font-family="system-ui, sans-serif">Wondercart</text>

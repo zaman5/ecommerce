@@ -8,11 +8,12 @@ import { OrderService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Order } from '../../../core/models/models';
 import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.directive';
+import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ImgFallbackDirective],
+  imports: [CommonModule, FormsModule, RouterLink, ImgFallbackDirective, MediaUrlPipe],
   template: `
     <section class="section">
       <div class="container">
@@ -45,7 +46,7 @@ import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.di
                   <div class="o-num">#{{ o.orderNumber }}</div>
                   <div class="text-muted">{{ o.createdAt | date:'mediumDate' }} · {{ o.items.length }} item(s)</div>
                   <div class="thumbs">
-                    @for (i of o.items.slice(0,4); track i.product) { <img [src]="i.image" [alt]="i.name" appImgFallback /> }
+                    @for (i of o.items.slice(0,4); track i.product + '::' + (i.color || '')) { <img [src]="i.image | mediaUrl" [alt]="i.name" appImgFallback /> }
                   </div>
                 </div>
                 <div class="o-side">
@@ -83,10 +84,12 @@ import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.di
     .thumbs { display:flex; gap:6px; margin-top:8px; }
     .thumbs img { width:44px; height:44px; object-fit:cover; border-radius:8px; }
     .o-side { text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
-    .track { color: var(--coral); font-weight:700; font-size:.9rem; }
-    .guest-note { background: var(--mint-soft); }
+    .track { color: var(--ink); font-weight:700; font-size:.9rem; }
+    .track:hover { color: var(--brand); }
+    .guest-note { background: var(--soft); }
     .guest-note p { margin:4px 0 0; }
-    .link { color: var(--coral); font-weight:700; }
+    .link { color: var(--ink); font-weight:700; }
+    .link:hover { color: var(--brand); }
     .lookup { max-width:640px; }
     @media (max-width:560px){ .order { flex-direction:column; align-items:flex-start; } .o-side { text-align:left; align-items:flex-start; } }
   `],

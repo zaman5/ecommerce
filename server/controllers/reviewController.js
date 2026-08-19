@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Review from '../models/Review.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
+import { canManageProduct } from '../middleware/auth.js';
 
 // Recalculates a product's average rating + review count from its reviews.
 // Called after every create/update/delete so the two never drift apart.
@@ -87,15 +88,21 @@ export async function upsertReview(req, res, next) {
   }
 }
 
-// DELETE /api/reviews/:id  (the author, or an admin)
+// DELETE /api/reviews/:id  (the author, admin, or a shop manager who manages the product)
 export async function deleteReview(req, res, next) {
   try {
     const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ message: 'Review not found.' });
 
     const isAuthor = review.user.toString() === req.user._id.toString();
-    if (!isAuthor && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'You can only delete your own review.' });
+    const isAdmin = req.user.role === 'admin';
+    let isManagerOfProduct = false;
+    if (req.user.role === 'shopmanager') {
+      isManagerOfProduct = await canManageProduct(req.user, review.product);
+    }
+
+    if (!isAuthor && !isAdmin && !isManagerOfProduct) {
+      return res.status(403).json({ message: 'You do not have permission to delete this review.' });
     }
 
     await review.deleteOne();

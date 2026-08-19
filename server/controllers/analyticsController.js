@@ -1,22 +1,48 @@
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
+import { scopedProductIds } from '../middleware/auth.js';
+import mongoose from 'mongoose';
 
-// GET /api/analytics/overview  (admin)
+// GET /api/analytics/overview  (admin / shop-manager)
 export async function overview(req, res, next) {
   try {
+    const ids = await scopedProductIds(req.user);
+
+    // When scoped, only count products and orders in scope.
+    const productFilter = ids
+      ? { _id: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } }
+      : {};
+    const scopedProductFilter = ids
+      ? { isActive: true, _id: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } }
+      : { isActive: true };
+
+    const orderMatch = { status: { $ne: 'cancelled' } };
+    if (ids) orderMatch['items.product'] = { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
+
+    const revenueAggregation = ids
+      ? [
+          { $match: { status: { $ne: 'cancelled' } } },
+          { $unwind: '$items' },
+          { $match: { 'items.product': { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } } },
+          { $group: { _id: null, total: { $sum: { $multiply: ['$items.price', '$items.qty'] } } } },
+        ]
+      : [
+          { $match: orderMatch },
+          { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+        ];
+
     const [orders, revenueAgg, customers, products, lowStock] = await Promise.all([
-      Order.countDocuments({ status: { $ne: 'cancelled' } }),
-      Order.aggregate([
-        { $match: { status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, total: { $sum: '$grandTotal' } } },
-      ]),
-      User.countDocuments({ role: 'client' }),
-      Product.countDocuments({ isActive: true }),
-      Product.countDocuments({ isActive: true, stock: { $lte: 5 } }),
+      Order.countDocuments(orderMatch),
+      Order.aggregate(revenueAggregation),
+      ids ? Promise.resolve(0) : User.countDocuments({ role: 'client' }),
+      Product.countDocuments(scopedProductFilter),
+      Product.countDocuments({ ...scopedProductFilter, stock: { $lte: 5 } }),
     ]);
 
-    const pending = await Order.countDocuments({ status: 'pending' });
+    const pendingMatch = { status: 'pending' };
+    if (ids) pendingMatch['items.product'] = { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
+    const pending = await Order.countDocuments(pendingMatch);
 
     res.json({
       totalRevenue: revenueAgg[0]?.total || 0,
@@ -38,17 +64,44 @@ export async function salesTrend(req, res, next) {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const data = await Order.aggregate([
-      { $match: { createdAt: { $gte: since }, status: { $ne: 'cancelled' } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          revenue: { $sum: '$grandTotal' },
-          orders: { $sum: 1 },
+    const ids = await scopedProductIds(req.user);
+
+    let data;
+    if (ids) {
+      const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+      data = await Order.aggregate([
+        { $match: { createdAt: { $gte: since }, status: { $ne: 'cancelled' } } },
+        { $unwind: '$items' },
+        { $match: { 'items.product': { $in: objectIds } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            revenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } },
+            ordersSet: { $addToSet: '$_id' },
+          },
         },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+        {
+          $project: {
+            _id: 1,
+            revenue: 1,
+            orders: { $size: '$ordersSet' },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+    } else {
+      data = await Order.aggregate([
+        { $match: { createdAt: { $gte: since }, status: { $ne: 'cancelled' } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            revenue: { $sum: '$grandTotal' },
+            orders: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+    }
 
     res.json(data.map((d) => ({ date: d._id, revenue: d.revenue, orders: d.orders })));
   } catch (err) {
@@ -59,7 +112,11 @@ export async function salesTrend(req, res, next) {
 // GET /api/analytics/top-products  (best sellers)
 export async function topProducts(req, res, next) {
   try {
-    const items = await Product.find({ unitsSold: { $gt: 0 } })
+    const ids = await scopedProductIds(req.user);
+    const filter = { unitsSold: { $gt: 0 } };
+    if (ids) filter._id = { $in: ids };
+
+    const items = await Product.find(filter)
       .sort({ unitsSold: -1 })
       .limit(10)
       .populate('category', 'name')
@@ -73,9 +130,20 @@ export async function topProducts(req, res, next) {
 // GET /api/analytics/by-category  (revenue share by category)
 export async function revenueByCategory(req, res, next) {
   try {
-    const data = await Order.aggregate([
-      { $match: { status: { $ne: 'cancelled' } } },
+    const ids = await scopedProductIds(req.user);
+    const orderMatch = { status: { $ne: 'cancelled' } };
+
+    const pipeline = [
+      { $match: orderMatch },
       { $unwind: '$items' },
+    ];
+
+    // Scope to the shop manager's products.
+    if (ids) {
+      pipeline.push({ $match: { 'items.product': { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } } });
+    }
+
+    pipeline.push(
       {
         $lookup: {
           from: 'products',
@@ -101,8 +169,10 @@ export async function revenueByCategory(req, res, next) {
           units: { $sum: '$items.qty' },
         },
       },
-      { $sort: { revenue: -1 } },
-    ]);
+      { $sort: { revenue: -1 } }
+    );
+
+    const data = await Order.aggregate(pipeline);
     res.json(data.map((d) => ({ category: d._id, revenue: d.revenue, units: d.units })));
   } catch (err) {
     next(err);
@@ -110,22 +180,22 @@ export async function revenueByCategory(req, res, next) {
 }
 
 // GET /api/analytics/recommendations
-// Simple, explainable heuristics the client can act on next time.
 export async function recommendations(req, res, next) {
   try {
+    const ids = await scopedProductIds(req.user);
+    const base = { isActive: true };
+    if (ids) base._id = { $in: ids };
+
     const [restock, promote, slowMovers] = await Promise.all([
-      // Selling well but low on stock -> restock
-      Product.find({ isActive: true, unitsSold: { $gte: 5 }, stock: { $lte: 5 } })
+      Product.find({ ...base, unitsSold: { $gte: 5 }, stock: { $lte: 5 } })
         .sort({ unitsSold: -1 })
         .limit(6)
         .select('name stock unitsSold price images'),
-      // Best sellers with healthy stock -> feature/promote
-      Product.find({ isActive: true, unitsSold: { $gte: 10 }, stock: { $gt: 5 } })
+      Product.find({ ...base, unitsSold: { $gte: 10 }, stock: { $gt: 5 } })
         .sort({ unitsSold: -1 })
         .limit(6)
         .select('name stock unitsSold price images'),
-      // In catalogue a while, barely sold -> discount / bundle
-      Product.find({ isActive: true, unitsSold: { $lte: 2 } })
+      Product.find({ ...base, unitsSold: { $lte: 2 } })
         .sort({ createdAt: 1 })
         .limit(6)
         .select('name stock unitsSold price images createdAt'),
@@ -149,3 +219,4 @@ export async function recommendations(req, res, next) {
     next(err);
   }
 }
+

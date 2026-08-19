@@ -8,6 +8,9 @@ const orderItemSchema = new mongoose.Schema(
     // review form) without re-fetching every item. Absent on pre-existing orders.
     slug: String,
     image: String,
+    // The colour the customer picked, snapshotted by name so it survives the
+    // product later being re-coloured or deleted. '' when the product has none.
+    color: { type: String, default: '' },
     price: Number,
     qty: Number,
   },
@@ -50,6 +53,7 @@ const orderSchema = new mongoose.Schema(
     shippingFee: { type: Number, default: 0 },
     grandTotal: { type: Number, required: true },
     paymentMethod: { type: String, enum: ['cod', 'card', 'jazzcash', 'easypaisa'], default: 'cod' },
+    paymentScreenshot: { type: String, default: '' },
     paymentStatus: { type: String, enum: ['unpaid', 'paid', 'refunded'], default: 'unpaid' },
     status: {
       type: String,

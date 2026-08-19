@@ -19,3 +19,7 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# deployment artifacts
+*.zip
+deployment/

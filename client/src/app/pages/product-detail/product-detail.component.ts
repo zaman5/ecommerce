@@ -1,79 +1,273 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProductService, ReviewService } from '../../core/services/api.service';
-import { Product, Review, ReviewSummary } from '../../core/models/models';
+import { Product, ProductColor, Review, ReviewSummary } from '../../core/models/models';
 import { CartService } from '../../core/services/cart.service';
+import { SavedService } from '../../core/services/saved.service';
 import { AuthService } from '../../core/services/auth.service';
 import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/img-fallback.directive';
+import { SwatchPipe } from '../../shared/pipes/swatch.pipe';
+import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
 
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ImgFallbackDirective],
+  imports: [CommonModule, FormsModule, RouterLink, ImgFallbackDirective, SwatchPipe, MediaUrlPipe],
   template: `
     <section class="section">
       <div class="container">
         @if (loading()) { <div class="spinner"></div> }
         @else if (product()) {
           @if (product(); as p) {
-          <a routerLink="/shop" class="back">← Back to shop</a>
-          <div class="detail">
-            <div class="gallery">
-              <img [src]="active() || fallback" [alt]="p.name" class="main-img" appImgFallback />
-              @if (p.images.length > 1) {
-                <div class="thumbs">
-                  @for (img of p.images; track img) {
-                    <img [src]="img" [class.on]="img === active()" (click)="active.set(img)" alt="thumbnail" appImgFallback />
+          <!-- Breadcrumb -->
+          <nav class="crumbs" aria-label="Breadcrumb">
+            <a routerLink="/">Home</a>
+            <span>›</span>
+            @if (catSlug(p)) {
+              <a [routerLink]="['/shop']" [queryParams]="{ category: catSlug(p) }">{{ catName(p) }}</a>
+              <span>›</span>
+            }
+            <span class="current">{{ p.name }}</span>
+          </nav>
+
+          <div class="detail" style="position:relative;">
+            <!-- ---------------- gallery ---------------- -->
+            <div class="gallery" style="position:relative;">
+              @if (isVideoActive() && p.video) {
+                <div class="main-video-box">
+                  <video [src]="p.video | mediaUrl" controls autoplay playsinline class="main-video-player"></video>
+                  <button class="back-to-photo-btn" (click)="isVideoActive.set(false)">
+                    📷 Back to photos
+                  </button>
+                </div>
+              } @else {
+                <div
+                  class="main-wrap"
+                  [class.zooming]="zooming()"
+                  (mouseenter)="zoomOn()"
+                  (mouseleave)="zoomOff()"
+                  (mousemove)="zoomMove($event)"
+                >
+                  <img
+                    [src]="(active() | mediaUrl) || fallback"
+                    [alt]="p.name"
+                    class="main-img"
+                    appImgFallback
+                  />
+                  @if (zooming()) {
+                    <div class="amazon-lens" [ngStyle]="lensStyle()" aria-hidden="true"></div>
                   }
+                  @if (discount(p) > 0) { <span class="off-tag">-{{ discount(p) }}%</span> }
+                  <div class="zoom-hint">🔍 Roll over image to zoom</div>
+                </div>
+              }
+
+              @if (p.images.length > 1 || p.video) {
+                <div class="thumbs">
+                  @for (img of p.images; track img; let i = $index) {
+                    <button
+                      class="thumb"
+                      [class.on]="!isVideoActive() && img === active()"
+                      (click)="selectImage(img)"
+                      [attr.aria-label]="'View photo ' + (i + 1) + ' of ' + p.images.length"
+                      [attr.aria-pressed]="!isVideoActive() && img === active()"
+                    >
+                      <img [src]="img | mediaUrl" alt="" appImgFallback />
+                    </button>
+                  }
+                  @if (p.video) {
+                    <button
+                      class="thumb video-thumb"
+                      [class.on]="isVideoActive()"
+                      (click)="selectVideo()"
+                      [attr.aria-label]="'Watch product video'"
+                      [attr.aria-pressed]="isVideoActive()"
+                      title="Watch product video"
+                    >
+                      <div class="vid-thumb-icon">▶</div>
+                      <span class="vid-thumb-label">Video</span>
+                    </button>
+                  }
+                </div>
+              }
+              <button class="wish" [class.on]="saved.has(p._id)" (click)="saved.toggle(p)">
+                {{ saved.has(p._id) ? '♥ Saved to wishlist' : '♡ Add to wishlist' }}
+              </button>
+
+              <!-- Amazon Side Zoom Flyout Window -->
+              @if (zooming() && !isVideoActive()) {
+                <div class="amazon-zoom-window">
+                  <div class="zoom-header">🔍 Zoomed View</div>
+                  <div class="zoom-img-box" [style.backgroundImage]="'url(' + ((active() | mediaUrl) || fallback) + ')'" [ngStyle]="zoomWindowStyle()"></div>
                 </div>
               }
             </div>
 
+            <!-- ---------------- main info ---------------- -->
             <div class="info">
-              <div class="brand">{{ p.brand }}</div>
               <h1>{{ p.name }}</h1>
-              <div class="rating">
+              <div class="sub">
+                Brand:
+                <a class="brand-link" [routerLink]="['/shop']" [queryParams]="{ search: p.brand }">{{ p.brand }}</a>
+              </div>
+
+              <div class="rating-row">
                 <span class="stars" [attr.aria-label]="'Rated ' + (p.rating | number:'1.1-1') + ' out of 5'">{{ stars(p.rating) }}</span>
-                {{ p.rating | number:'1.1-1' }}
                 <a class="review-jump" href="javascript:void(0)" (click)="scrollToReviews()">
-                  ({{ p.numReviews }} {{ p.numReviews === 1 ? 'review' : 'reviews' }})
+                  {{ p.numReviews }} {{ p.numReviews === 1 ? 'Rating' : 'Ratings' }}
                 </a>
+                <span class="divider"></span>
+                <a class="review-jump" href="javascript:void(0)" (click)="scrollToReviews()">Write a review</a>
               </div>
 
-              <div class="price-row">
-                <span class="price big">Rs {{ p.price | number }}</span>
-                @if (p.compareAtPrice > p.price) {
-                  <span class="strike">Rs {{ p.compareAtPrice | number }}</span>
-                  <span class="badge badge-sale">Save {{ discount(p) }}%</span>
-                }
-              </div>
-
-              @if (p.stock > 0) {
-                <div class="stock in">✓ In stock ({{ p.stock }} available)</div>
-              } @else {
-                <div class="stock out">Out of stock</div>
-              }
-
-              <p class="desc">{{ p.description }}</p>
-
-              <div class="meta">
-                <div><span>School level</span><strong>{{ ageLabel(p.ageGroup) }}</strong></div>
-                <div><span>Category</span><strong>{{ catName(p) }}</strong></div>
-              </div>
-
-              @if (p.stock > 0) {
-                <div class="buy">
-                  <div class="qty">
-                    <button (click)="qty.set(Math.max(1, qty()-1))">−</button>
-                    <span>{{ qty() }}</span>
-                    <button (click)="qty.set(Math.min(p.stock, qty()+1))">+</button>
-                  </div>
-                  <button class="btn btn-primary" (click)="addToCart(p)">Add to cart</button>
+              <div class="price-box">
+                <div class="price-row">
+                  <span class="price big">Rs {{ p.price | number }}</span>
+                  @if (p.compareAtPrice > p.price) {
+                    <span class="strike">Rs {{ p.compareAtPrice | number }}</span>
+                    <span class="save">-{{ discount(p) }}%</span>
+                  }
                 </div>
-                @if (added()) { <div class="alert alert-success mt">Added to your cart! 🎉</div> }
+              </div>
+
+              @if (p.colors?.length) {
+                <div class="opt">
+                  <div class="opt-label">
+                    Colour Family:
+                    <strong>{{ selectedColor()?.name || 'Please select' }}</strong>
+                  </div>
+                  <div class="tiles" role="radiogroup" aria-label="Choose a colour">
+                    @for (c of p.colors; track c.name) {
+                      <button
+                        type="button"
+                        class="tile"
+                        role="radio"
+                        [class.on]="selectedColor()?.name === c.name"
+                        [attr.aria-checked]="selectedColor()?.name === c.name"
+                        (click)="pickColor(c)"
+                      >
+                        @if (c.image) {
+                          <img class="tile-shot" [src]="c.image | mediaUrl" [alt]="c.name" appImgFallback />
+                        } @else {
+                          <img class="tile-dot" [src]="c.hex | swatch" alt="" />
+                        }
+                        <span>{{ c.name }}</span>
+                      </button>
+                    }
+                  </div>
+                  @if (colorError()) { <div class="color-error">Please select a colour first.</div> }
+                </div>
               }
+
+              <div class="opt">
+                <div class="opt-label">Quantity:</div>
+                <div class="qty-row">
+                  <div class="qty">
+                    <button [disabled]="qty() <= 1" (click)="qty.set(Math.max(1, qty()-1))">−</button>
+                    <span>{{ qty() }}</span>
+                    <button [disabled]="qty() >= p.stock" (click)="qty.set(Math.min(p.stock, qty()+1))">+</button>
+                  </div>
+                  @if (p.stock > 0) {
+                    <span class="stock in">{{ p.stock }} pieces available</span>
+                  } @else {
+                    <span class="stock out">Out of stock</span>
+                  }
+                </div>
+              </div>
+
+              @if (p.stock > 0) {
+                <div class="cta">
+                  <button class="btn btn-mint cta-btn" (click)="buyNow(p)">Buy Now</button>
+                  <button class="btn btn-primary cta-btn" (click)="addToCart(p)">Add to Cart</button>
+                </div>
+                @if (added()) {
+                  <div class="alert alert-success mt">
+                    Added to your cart! 🎉
+                    @if (selectedColor(); as c) { <strong>({{ c.name }})</strong> }
+                  </div>
+                }
+                @if (stockError()) {
+                  <div class="alert alert-error mt">
+                    All {{ p.stock }} in stock {{ p.stock === 1 ? 'is' : 'are' }} already in your cart.
+                  </div>
+                }
+              } @else {
+                <div class="alert alert-error mt">This product is currently out of stock.</div>
+              }
+            </div>
+
+            <!-- ---------------- delivery / service / seller ---------------- -->
+            <aside class="side">
+              <div class="side-card">
+                <h4>Delivery</h4>
+                <div class="side-row">
+                  <span class="ico">📍</span>
+                  <div><strong>Delivered across Pakistan</strong><em>Enter your address at checkout</em></div>
+                </div>
+                <div class="side-row">
+                  <span class="ico">🚚</span>
+                  <div><strong>Standard delivery — Rs {{ shippingFee | number }}</strong><em>Dispatched within 24 hours</em></div>
+                </div>
+                <div class="side-row">
+                  <span class="ico">💵</span>
+                  <div><strong>Cash on delivery available</strong><em>Pay when your order arrives</em></div>
+                </div>
+              </div>
+
+              <div class="side-card">
+                <h4>Service</h4>
+                <div class="side-row">
+                  <span class="ico">↩️</span>
+                  <div><strong>7 days easy return</strong><em>Change of mind is not accepted</em></div>
+                </div>
+                <div class="side-row">
+                  <span class="ico">🛡️</span>
+                  <div><strong>Warranty not available</strong><em>Damaged items replaced free</em></div>
+                </div>
+              </div>
+
+              <div class="side-card">
+                <h4>Sold by</h4>
+                <div class="seller">
+                  <span class="seller-mark">🎒</span>
+                  <div>
+                    <strong>{{ p.brand }}</strong>
+                    <em>Official store</em>
+                  </div>
+                </div>
+                <div class="seller-stats">
+                  <div><b>{{ p.rating | number:'1.1-1' }}</b><span>Product rating</span></div>
+                  <div><b>{{ p.unitsSold | number }}</b><span>Units sold</span></div>
+                  <div><b>24h</b><span>Dispatch time</span></div>
+                </div>
+                <a class="btn btn-ghost btn-sm btn-block" routerLink="/shop">Visit store</a>
+              </div>
+            </aside>
+          </div>
+
+          <!-- ---------------- details + specification ---------------- -->
+          <div class="panels">
+            <div class="panel card">
+              <h2>Product details of {{ p.name }}</h2>
+              <!-- Rich text from the admin editor. Angular sanitises innerHTML,
+                   and the API sanitises again before storing. -->
+              <div class="desc rich" [innerHTML]="p.description"></div>
+            </div>
+            <div class="panel card">
+              <h2>Specifications</h2>
+              <table class="specs">
+                <tbody>
+                  <tr><th>Brand</th><td>{{ p.brand }}</td></tr>
+                  <tr><th>Category</th><td>{{ catName(p) }}</td></tr>
+                  @if (p.colors?.length) {
+                    <tr><th>Colour family</th><td>{{ colorNames(p) }}</td></tr>
+                  }
+                  <tr><th>Availability</th><td>{{ p.stock > 0 ? p.stock + ' in stock' : 'Out of stock' }}</td></tr>
+                  <tr><th>SKU</th><td class="sku">{{ p.slug }}</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -172,30 +366,181 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
     </section>
   `,
   styles: [`
-    .back { color: var(--muted); font-weight:700; display:inline-block; margin-bottom:18px; }
-    .detail { display:grid; grid-template-columns: 1fr 1fr; gap:40px; }
-    .main-img { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius: var(--radius-lg); box-shadow: var(--shadow); background: var(--cream-deep); }
-    .thumbs { display:flex; gap:10px; margin-top:12px; }
-    .thumbs img { width:70px; height:70px; object-fit:cover; border-radius:12px; cursor:pointer; border:2px solid transparent; }
-    .thumbs img.on { border-color: var(--coral); }
-    .brand { color: var(--mint); font-weight:800; text-transform:uppercase; letter-spacing:.05em; font-size:.85rem; }
-    .info h1 { font-size:2rem; margin:6px 0; }
-    .rating { color:#f0a500; font-weight:700; display:flex; align-items:center; gap:8px; }
-    .stars { letter-spacing:2px; }
-    .review-jump { color: var(--muted); font-weight:600; font-size:.9rem; text-decoration:underline; cursor:pointer; }
-    .review-jump:hover { color: var(--coral); }
-    .price-row { display:flex; align-items:center; gap:12px; margin:16px 0; }
-    .price.big { font-size:2rem; }
-    .stock { font-weight:700; margin-bottom:14px; }
+    /* ---- breadcrumb ---- */
+    .crumbs { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:.85rem; color: var(--muted); margin-bottom:16px; }
+    .crumbs a { font-weight:700; }
+    .crumbs a:hover { color: var(--brand); text-decoration:underline; }
+    .crumbs .current { color: var(--ink); font-weight:700; }
+
+    /* ---- three columns: gallery | info | delivery ---- */
+    .detail { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr) 300px; gap:26px; align-items:start; }
+
+    /* Deliberately NOT sticky. The gallery is taller than the buy box, so
+       pinning it left the picture frozen while the rest of the page scrolled
+       underneath it — the whole page should move as one piece. */
+    .gallery { position:relative; }
+    .main-wrap { position:relative; overflow:hidden; border-radius: var(--radius);
+      border:1px solid var(--line); background: #fff; line-height:0; cursor: crosshair; }
+    .main-img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; }
+
+    .zoom-hint { position:absolute; bottom:10px; right:10px; z-index:2; background: rgba(15, 23, 42, 0.75); color: #fff; font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(4px); pointer-events: none; opacity: 1; transition: opacity .15s ease; }
+    .main-wrap.zooming .zoom-hint { opacity: 0; }
+
+    /* Amazon Target Lens Overlay */
+    .amazon-lens {
+      position: absolute; z-index: 4; pointer-events: none;
+      background: rgba(1, 98, 241, 0.15); border: 2px solid var(--brand);
+      box-shadow: 0 0 0 2000px rgba(15, 23, 42, 0.18);
+      border-radius: 4px;
+    }
+
+    /* Amazon Side Zoom Flyout Window */
+    .amazon-zoom-window {
+      position: absolute; z-index: 100; left: calc(100% + 20px); top: 0;
+      width: clamp(380px, 42vw, 550px); height: clamp(380px, 42vw, 550px);
+      background: #fff; border: 2px solid var(--line); border-radius: var(--radius);
+      box-shadow: 0 16px 50px rgba(15, 23, 42, 0.22); overflow: hidden;
+      display: flex; flex-direction: column; animation: amazonZoomFade .15s ease;
+    }
+    .zoom-header {
+      background: var(--cream-deep); padding: 8px 14px; font-family: var(--font-display);
+      font-size: .82rem; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; gap: 6px; flex: none;
+    }
+    .zoom-img-box {
+      flex: 1; width: 100%; height: 100%; background-repeat: no-repeat; background-color: #fff;
+    }
+    @keyframes amazonZoomFade { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
+
+    @media (max-width: 1080px) {
+      .amazon-zoom-window { left: 0; top: 0; width: 100%; height: 100%; z-index: 10; }
+    }
+    @media not all and (hover: hover) { .amazon-lens, .amazon-zoom-window, .zoom-hint { display:none; } }
+    /* line-height is explicit because .main-wrap sets it to 0 (to kill the
+       inline gap under the photo) and this span would otherwise inherit it and
+       collapse to a sliver. */
+    .off-tag { position:absolute; top:12px; left:12px; z-index:2; background: #CC0C39; color:#fff;
+      font-family: var(--font-display); font-weight:800; font-size:1.1rem; line-height:1.25;
+      padding:6px 14px; border-radius:999px; text-align:center; display:inline-flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(204, 12, 57, 0.35); }
+    .thumbs { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+    .thumb { width:64px; height:64px; padding:0; border-radius:10px; cursor:pointer; overflow:hidden;
+      border:2px solid var(--line); background:#fff; transition: border-color .15s; }
+    .thumb:hover { border-color: var(--sky); }
+    .thumb.on { border-color: var(--brand); }
+    .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .main-video-box {
+      position: relative; width: 100%; border-radius: var(--radius); overflow: hidden;
+      background: #000; box-shadow: var(--shadow-sm); aspect-ratio: 1 / 1; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .main-video-player { width: 100%; height: 100%; object-fit: contain; background: #000; }
+    .back-to-photo-btn {
+      position: absolute; top: 12px; right: 12px; z-index: 10;
+      background: rgba(15, 23, 42, 0.8); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 999px; padding: 6px 14px; font-family: var(--font-display);
+      font-size: .85rem; font-weight: 700; cursor: pointer; backdrop-filter: blur(4px);
+      transition: background .15s ease, transform .15s ease;
+    }
+    .back-to-photo-btn:hover { background: rgba(15, 23, 42, 0.95); transform: translateY(-1px); }
+
+    .video-thumb {
+      background: #1e293b; color: #fff; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 2px; border: 2px solid var(--line);
+    }
+    .video-thumb.on { border-color: var(--brand); background: #0f172a; }
+    .vid-thumb-icon { font-size: 1.1rem; line-height: 1; color: #facc15; }
+    .vid-thumb-label { font-size: .72rem; font-weight: 800; font-family: var(--font-display); letter-spacing: .5px; }
+
+    /* Carries the same light-blue chip as the navbar wishlist and the Saved /
+       Deals pills, so the save action looks like one thing across the site.
+       It used to sit at rest as a grey ghost, which read as disabled. */
+    .wish { margin-top:14px; width:100%; background: var(--sun-soft); border:2px solid var(--sun); border-radius:999px; padding:11px;
+      font-family: var(--font-display); font-weight:800; font-size:.98rem; color: var(--sun-ink); cursor:pointer;
+      transition: background .15s, color .15s, border-color .15s; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+    .wish:hover, .wish.on { color: var(--sun-ink); border-color: var(--sun-deep); background:#fde68a; }
+
+    /* ---- middle column ---- */
+    .info h1 { font-size:1.6rem; line-height:1.3; margin:0 0 6px; }
+    .sub { font-size:.86rem; color: var(--muted); }
+    .brand-link { color: var(--ink); font-weight:800; }
+    .brand-link:hover { text-decoration:underline; }
+    .rating-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 14px; }
+    .stars { color:var(--sun-deep); letter-spacing:2px; }
+    .divider { width:1px; height:14px; background: var(--line); }
+    .review-jump { color: var(--ink); font-weight:700; font-size:.85rem; cursor:pointer; }
+    .review-jump:hover { color: var(--brand); text-decoration:underline; }
+
+    .price-box { background: var(--cream); border-radius: var(--radius-sm); padding:14px 16px; margin-bottom:18px; }
+    .price-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+    .price.big { font-size:2rem; color: #000000; font-weight:800; }
+    .save { color: #CC0C39; font-size: 1.65rem; font-weight: 800; text-align: center; display: inline-flex; align-items: center; justify-content: center; background: #fff1f2; padding: 4px 14px; border-radius: 8px; }
+
+    .opt { padding:12px 0; border-top:1px solid var(--line); }
+    .opt-label { font-size:.86rem; color: var(--muted); margin-bottom:10px; }
+    .opt-label strong { color: var(--ink); font-family: var(--font-display); margin-left:4px; }
+    .tiles { display:flex; flex-wrap:wrap; gap:8px; }
+    .tile { display:flex; align-items:center; gap:8px; padding:6px 12px 6px 6px; cursor:pointer;
+      background:#fff; border:2px solid var(--line); border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-weight:700; font-size:.86rem; color: var(--ink); transition: border-color .15s; }
+    .tile:hover { border-color: var(--sky); }
+    .tile.on { border-color: var(--brand); background: var(--brand-soft); }
+    /* Own border so a white/clear swatch stays visible against the tile. */
+    .tile-dot { width:22px; height:22px; border-radius:50%; border:1px solid rgba(0,0,0,.15); display:block; flex:none; }
+    .tile-shot { width:30px; height:30px; border-radius:6px; object-fit:cover; display:block; flex:none;
+      border:1px solid rgba(0,0,0,.12); }
+    .color-error { color: var(--danger); font-weight:700; font-size:.88rem; margin-top:8px; }
+
+    .qty-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+    .qty { display:flex; align-items:center; border:2px solid var(--line); border-radius: var(--radius-sm); overflow:hidden; }
+    .qty button { width:40px; height:40px; border:none; background:#fff; font-size:1.2rem; cursor:pointer; color: var(--ink); }
+    .qty button:disabled { color: var(--line); cursor:not-allowed; }
+    .qty span { width:46px; text-align:center; font-weight:800; font-family: var(--font-display); }
+    .stock { font-weight:700; font-size:.86rem; }
     .stock.in { color: var(--success); }
     .stock.out { color: var(--danger); }
+
+    .cta { display:flex; gap:10px; margin-top:18px; align-items:center; flex-wrap:wrap; }
+    .cta-btn { flex:1; min-width:130px; }
+    .wish-btn { 
+      background: var(--sun-soft); color: var(--sun-ink); border: 2px solid var(--sun); 
+      border-radius: 999px; padding: 12px 18px; font-family: var(--font-display); 
+      font-weight: 700; font-size: .95rem; cursor: pointer; transition: all .15s ease; 
+      white-space: nowrap; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; 
+    }
+    .wish-btn:hover, .wish-btn.on { background: #fde68a; color: var(--sun-ink); border-color: var(--sun-deep); }
     .desc { color: var(--muted); line-height:1.7; }
-    .meta { display:flex; gap:32px; margin:20px 0; padding:16px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
-    .meta span { display:block; font-size:.8rem; color: var(--muted); }
-    .buy { display:flex; align-items:center; gap:16px; margin-top:20px; }
-    .qty { display:flex; align-items:center; border:2px solid var(--line); border-radius:999px; overflow:hidden; }
-    .qty button { width:42px; height:44px; border:none; background:#fff; font-size:1.3rem; cursor:pointer; }
-    .qty span { width:44px; text-align:center; font-weight:800; font-family: var(--font-display); }
+    /* The .rich article styles live in global styles.css, NOT here. Angular
+       scopes component CSS with _ngcontent attributes, and markup injected via
+       [innerHTML] never receives them — scoped rules simply would not apply. */
+
+    /* ---- right column ---- */
+    .side { display:flex; flex-direction:column; gap:14px; }
+    .side-card { background:#fff; border:1px solid var(--line); border-radius: var(--radius); padding:16px; }
+    .side-card h4 { font-size:.95rem; margin:0 0 12px; }
+    .side-row { display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--line); }
+    .side-card .side-row:first-of-type { border-top:none; padding-top:0; }
+    .side-row .ico { font-size:1.1rem; line-height:1.4; flex:none; }
+    .side-row strong { display:block; font-size:.85rem; font-family: var(--font-body); }
+    .side-row em { display:block; font-style:normal; font-size:.78rem; color: var(--muted); }
+    .seller { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .seller-mark { width:40px; height:40px; border-radius:12px; background: var(--soft); display:grid; place-items:center; font-size:1.3rem; flex:none; }
+    .seller strong { display:block; font-family: var(--font-display); }
+    .seller em { font-style:normal; font-size:.78rem; color: var(--muted); }
+    .seller-stats { display:grid; grid-template-columns: repeat(3,1fr); gap:6px; text-align:center; padding:12px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom:12px; }
+    .seller-stats b { display:block; font-family: var(--font-display); font-size:1rem; }
+    .seller-stats span { font-size:.68rem; color: var(--muted); line-height:1.3; display:block; }
+
+    /* ---- details + specs ---- */
+    /* start, not stretch — a short description shouldn't inherit the height of
+       the specs table beside it and leave a tall empty card. */
+    .panels { display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:26px; align-items:start; }
+    .panel { padding:22px; }
+    .panel h2 { font-size:1.15rem; margin:0 0 12px; }
+    .specs { width:100%; border-collapse:collapse; font-size:.9rem; }
+    .specs th, .specs td { text-align:left; padding:9px 10px; vertical-align:top; }
+    .specs th { width:42%; color: var(--muted); font-weight:700; background: var(--cream); border-radius:8px 0 0 8px; }
+    .specs tr + tr th, .specs tr + tr td { border-top:1px solid var(--line); }
+    .sku { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.82rem; word-break:break-all; }
 
     /* ---- reviews ---- */
     .reviews { margin-top:40px; }
@@ -204,12 +549,12 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
       padding-bottom:22px; border-bottom:1px solid var(--line); }
     .rev-score { text-align:center; }
     .big-score { font-family: var(--font-display); font-size:3rem; font-weight:800; line-height:1; }
-    .stars.big { color:#f0a500; font-size:1.2rem; letter-spacing:3px; margin:6px 0 2px; }
-    .stars.small { color:#f0a500; font-size:.9rem; letter-spacing:1px; }
+    .stars.big { color:var(--sun-deep); font-size:1.2rem; letter-spacing:3px; margin:6px 0 2px; }
+    .stars.small { color:var(--sun-deep); font-size:.9rem; letter-spacing:1px; }
     .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; font-size:.88rem; }
     .bar-label { width:38px; color: var(--muted); white-space:nowrap; }
     .bar { flex:1; height:9px; background: var(--cream-deep); border-radius:99px; overflow:hidden; }
-    .fill { height:100%; background:#f0a500; border-radius:99px; transition: width .3s ease; }
+    .fill { height:100%; background:var(--sun-deep); border-radius:99px; transition: width .3s ease; }
     .bar-count { width:26px; text-align:right; color: var(--muted); }
 
     .write { padding:22px 0; border-bottom:1px solid var(--line); }
@@ -217,25 +562,34 @@ import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../shared/directives/im
     .write textarea { resize:vertical; }
     .star-picker { display:flex; align-items:center; gap:2px; margin-bottom:12px; }
     .star-btn { background:none; border:none; font-size:1.8rem; line-height:1; cursor:pointer; color: var(--line); padding:0 2px; transition: color .12s, transform .12s; }
-    .star-btn.on { color:#f0a500; }
+    .star-btn.on { color:var(--sun-deep); }
     .star-btn:hover { transform: scale(1.15); }
     .picker-label { margin-left:10px; font-size:.9rem; }
     .write-actions { display:flex; gap:10px; margin-top:12px; }
-    .link { color: var(--coral); font-weight:700; }
+    .link { color: var(--ink); font-weight:700; }
 
     .rev-list { display:flex; flex-direction:column; }
     .rev { padding:18px 0; border-bottom:1px solid var(--line); }
     .rev:last-child { border-bottom:none; }
     .rev-head { display:flex; align-items:flex-start; gap:12px; }
-    .avatar { width:40px; height:40px; border-radius:50%; background: var(--mint-soft); color:#2f7d72;
+    .avatar { width:40px; height:40px; border-radius:50%; background: var(--soft); color:var(--ink);
       display:grid; place-items:center; font-weight:800; font-family: var(--font-display); flex-shrink:0; }
     .badge.verified { background:#dff5ec; color:#2f855a; margin-left:8px; font-size:.7rem; }
     .rev-body { margin:10px 0 0 52px; color: var(--muted); line-height:1.6; }
     .rev-del { margin-left:auto; background:none; border:none; color: var(--muted); cursor:pointer; font-size:1rem; padding:4px 6px; border-radius:8px; }
     .rev-del:hover { color: var(--danger); background: var(--cream); }
 
+    /* The delivery column folds under the other two first, then everything
+       stacks — the gallery and buy box stay side by side as long as they fit. */
+    @media (max-width: 1080px) {
+      .detail { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+      .side { grid-column: 1 / -1; flex-direction:row; flex-wrap:wrap; }
+      .side-card { flex:1 1 260px; }
+    }
     @media (max-width: 800px) {
       .detail { grid-template-columns: 1fr; gap:24px; }
+      .panels { grid-template-columns: 1fr; }
+      .cta { position:sticky; bottom:0; background:#fff; padding:10px 0; z-index:5; }
       .rev-top { grid-template-columns: 1fr; gap:16px; }
       .rev-body { margin-left:0; }
     }
@@ -245,10 +599,38 @@ export class ProductDetailComponent implements OnInit {
   product = signal<Product | null>(null);
   loading = signal(true);
   active = signal<string>('');
+  isVideoActive = signal(false);
   qty = signal(1);
   added = signal(false);
+
+  selectImage(img: string) {
+    this.isVideoActive.set(false);
+    this.active.set(img);
+  }
+
+  selectVideo() {
+    this.isVideoActive.set(true);
+    this.zooming.set(false);
+  }
+
+  // --- Amazon Magnifier Zoom ---
+  zooming = signal(false);
+  lensStyle = signal<Record<string, string>>({});
+  zoomWindowStyle = signal<Record<string, string>>({});
+
+  private readonly lensWidth = 150;
+  private readonly lensHeight = 150;
+  private readonly zoomFactor = 2.8;
+  // Deliberately starts empty: a colour is the customer's choice to make, not
+  // one to inherit from whichever colour happens to be listed first.
+  selectedColor = signal<ProductColor | null>(null);
+  colorError = signal(false);
+  /** Set when the cart already holds every unit this product has in stock. */
+  stockError = signal(false);
   Math = Math;
   fallback = FALLBACK_IMAGE;
+  /** Mirrors SHIPPING_FEE in the API's order controller. */
+  readonly shippingFee = 250;
 
   // --- reviews ---
   summary = signal<ReviewSummary | null>(null);
@@ -264,6 +646,8 @@ export class ProductDetailComponent implements OnInit {
     private productSvc: ProductService,
     private reviewSvc: ReviewService,
     private cart: CartService,
+    public saved: SavedService,
+    private router: Router,
     public auth: AuthService
   ) {}
 
@@ -272,7 +656,17 @@ export class ProductDetailComponent implements OnInit {
       const slug = params.get('slug')!;
       this.loading.set(true);
       this.productSvc.getBySlug(slug).subscribe({
-        next: (p) => { this.product.set(p); this.active.set(p.images?.[0] || ''); this.loading.set(false); },
+        next: (p) => {
+          this.product.set(p);
+          this.active.set(p.images?.[0] || '');
+          // Preselect the first colour so Add to Cart works straight away rather
+          // than bouncing off "Please select a colour first". Set fresh on every
+          // product — navigating must not carry the previous choice over.
+          this.selectedColor.set(p.colors?.length ? p.colors[0] : null);
+          this.colorError.set(false);
+          this.qty.set(1);
+          this.loading.set(false);
+        },
         error: () => { this.product.set(null); this.loading.set(false); },
       });
       this.loadReviews(slug);
@@ -356,6 +750,59 @@ export class ProductDetailComponent implements OnInit {
     document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  /**
+   * A tap on a touch screen still fires mouseenter/mousemove, but never a
+   * matching mouseleave — so without this the lens would appear on tap and stay
+   * stuck on the photo with no way to dismiss it.
+   */
+  private canZoom() {
+    return typeof window !== 'undefined'
+      && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
+
+  zoomOn() { if (this.canZoom()) this.zooming.set(true); }
+
+  zoomOff() { this.zooming.set(false); }
+
+  /**
+   * Park the lens over the cursor and pick the slice of the photo it should
+   * show. The offsets have to reproduce what `object-fit: cover` did to the
+   * <img>, otherwise a photo that isn't square would appear stretched inside
+   * the glass relative to the picture underneath it.
+   */
+  zoomMove(e: MouseEvent) {
+    if (!this.canZoom()) return;
+    const wrap = e.currentTarget as HTMLElement;
+    const box = wrap.getBoundingClientRect();
+    if (!box.width || !box.height) return;
+
+    const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+
+    const mouseX = e.clientX - box.left;
+    const mouseY = e.clientY - box.top;
+
+    const lensX = clamp(mouseX - this.lensWidth / 2, 0, box.width - this.lensWidth);
+    const lensY = clamp(mouseY - this.lensHeight / 2, 0, box.height - this.lensHeight);
+
+    this.lensStyle.set({
+      left: `${lensX}px`,
+      top: `${lensY}px`,
+      width: `${this.lensWidth}px`,
+      height: `${this.lensHeight}px`,
+    });
+
+    const Z = this.zoomFactor;
+    const bgX = lensX * Z;
+    const bgY = lensY * Z;
+    const bgW = box.width * Z;
+    const bgH = box.height * Z;
+
+    this.zoomWindowStyle.set({
+      backgroundPosition: `-${bgX}px -${bgY}px`,
+      backgroundSize: `${bgW}px ${bgH}px`,
+    });
+  }
+
   /** "★★★★☆" for a 0–5 score, rounded to the nearest whole star. */
   stars(score: number) {
     const filled = Math.round(score || 0);
@@ -370,15 +817,56 @@ export class ProductDetailComponent implements OnInit {
     return name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
   }
 
+  /**
+   * Choosing a colour also shows it: the gallery jumps to that colour's photo
+   * when one exists, and otherwise stays where it is rather than blanking.
+   */
+  pickColor(c: ProductColor) {
+    this.selectedColor.set(c);
+    this.colorError.set(false);
+    if (c.image) {
+      this.isVideoActive.set(false);
+      this.active.set(c.image);
+    }
+  }
+
+  /**
+   * @returns false when a required colour hasn't been chosen, or when the cart
+   *          already holds this product's whole stock across its colours.
+   */
+  private putInCart(p: Product): boolean {
+    if (p.colors?.length && !this.selectedColor()) {
+      this.colorError.set(true);
+      return false;
+    }
+    this.colorError.set(false);
+    if (!this.cart.add(p, this.qty(), this.selectedColor())) {
+      this.stockError.set(true);
+      return false;
+    }
+    this.stockError.set(false);
+    return true;
+  }
+
   addToCart(p: Product) {
-    this.cart.add(p, this.qty());
+    if (!this.putInCart(p)) return;
     this.added.set(true);
     setTimeout(() => this.added.set(false), 2500);
   }
-  discount(p: Product) { return Math.round((1 - p.price / p.compareAtPrice) * 100); }
-  catName(p: Product) { return typeof p.category === 'object' ? p.category.name : '—'; }
-  ageLabel(a: string) {
-    const map: Record<string, string> = { 'pre-school': 'Pre-school (3–5 yrs)', primary: 'Primary (5–10 yrs)', middle: 'Middle school (11–13 yrs)', high: 'High school (14+ yrs)', all: 'All levels' };
-    return map[a] || a;
+
+  /** Same as adding, but takes them straight to checkout. */
+  buyNow(p: Product) {
+    if (!this.putInCart(p)) return;
+    this.router.navigate(['/checkout']);
   }
+
+  discount(p: Product) {
+    // Guards the 0 case — compareAtPrice defaults to 0, which would divide to
+    // -Infinity and render a nonsense discount badge.
+    if (!p.compareAtPrice || p.compareAtPrice <= p.price) return 0;
+    return Math.round((1 - p.price / p.compareAtPrice) * 100);
+  }
+  catName(p: Product) { return typeof p.category === 'object' ? p.category.name : '—'; }
+  catSlug(p: Product) { return typeof p.category === 'object' ? p.category.slug : ''; }
+  colorNames(p: Product) { return (p.colors || []).map((c) => c.name).join(', '); }
 }

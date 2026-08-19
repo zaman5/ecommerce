@@ -10,7 +10,7 @@ import { protect, restrictTo } from '../middleware/auth.js';
 
 const router = Router();
 
-router.use(protect, restrictTo('admin'));
+router.use(protect, restrictTo('admin', 'shopmanager'));
 
 router.get('/overview', overview);
 router.get('/sales', salesTrend);

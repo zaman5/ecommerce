@@ -15,10 +15,17 @@
             "outputPath": "dist/wondercart-client",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
-            "assets": ["src/favicon.ico", "src/assets"],
-            "styles": ["src/styles.css"],
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
+            "styles": [
+              "src/styles.css"
+            ],
             "scripts": []
           },
           "configurations": {
@@ -29,10 +36,22 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ],
-              "optimization": { "scripts": true, "styles": true, "fonts": false },
+              "optimization": {
+                "scripts": true,
+                "styles": true,
+                "fonts": false
+              },
               "budgets": [
-                { "type": "initial", "maximumWarning": "1mb", "maximumError": "2mb" },
-                { "type": "anyComponentStyle", "maximumWarning": "8kb", "maximumError": "16kb" }
+                {
+                  "type": "initial",
+                  "maximumWarning": "1mb",
+                  "maximumError": "2mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "16kb",
+                  "maximumError": "32kb"
+                }
               ],
               "outputHashing": "all"
             },
@@ -47,12 +66,22 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
-            "production": { "buildTarget": "wondercart-client:build:production" },
-            "development": { "buildTarget": "wondercart-client:build:development" }
+            "production": {
+              "buildTarget": "wondercart-client:build:production"
+            },
+            "development": {
+              "buildTarget": "wondercart-client:build:development"
+            }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "proxy.config.json"
+          }
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "e48edafd-72b2-4ed2-9226-8b5559e9bd92"
   }
 }

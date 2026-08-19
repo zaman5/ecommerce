@@ -17,3 +17,11 @@ export const adminGuard: CanActivateFn = () => {
   router.navigate(['/']);
   return false;
 };
+
+export const shopManagerGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.isShopManager()) return true;
+  router.navigate(['/']);
+  return false;
+};

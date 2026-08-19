@@ -5,9 +5,16 @@ import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import bannerRoutes from './routes/bannerRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
+import flashSaleRoutes from './routes/flashSaleRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import shopManagerRoutes from './routes/shopManagerRoutes.js';
+import settingRoutes from './routes/settingRoutes.js';
+import emailRoutes from './routes/emailRoutes.js';
+import uploadRoutes, { UPLOAD_DIR } from './routes/uploadRoutes.js';
 import { notFound, errorHandler } from './middleware/error.js';
 
 // The Express app is built here (and exported) so tests can mount it with
@@ -21,12 +28,24 @@ export function createApp() {
 
   app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
 
+  // Uploaded product photos. Served from disk, which works for a normal Node
+  // host but NOT on a serverless platform like Vercel, where the filesystem is
+  // ephemeral — move to Cloudinary/S3 before deploying there.
+  app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d' }));
+
   app.use('/api/auth', authRoutes);
   app.use('/api/products', productRoutes);
   app.use('/api/categories', categoryRoutes);
+  app.use('/api/banners', bannerRoutes);
+  app.use('/api/messages', messageRoutes);
+  app.use('/api/flash-sale', flashSaleRoutes);
   app.use('/api/orders', orderRoutes);
   app.use('/api/reviews', reviewRoutes);
   app.use('/api/analytics', analyticsRoutes);
+  app.use('/api/shop-managers', shopManagerRoutes);
+  app.use('/api/settings', settingRoutes);
+  app.use('/api/email-templates', emailRoutes);
+  app.use('/api/uploads', uploadRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

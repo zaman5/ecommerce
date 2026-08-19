@@ -4,11 +4,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { OrderService } from '../../../core/services/api.service';
 import { Order } from '../../../core/models/models';
 import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.directive';
+import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 
 @Component({
   selector: 'app-order-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, ImgFallbackDirective],
+  imports: [CommonModule, RouterLink, ImgFallbackDirective, MediaUrlPipe],
   template: `
     <section class="section">
       <div class="container">
@@ -77,12 +78,14 @@ import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.di
             <aside>
               <div class="card card-pad">
                 <h3>Items</h3>
-                @for (i of o.items; track i.product) {
+                @for (i of o.items; track i.product + '::' + (i.color || '')) {
                   <div class="line-item">
-                    <img [src]="i.image" [alt]="i.name" appImgFallback />
+                    <img [src]="i.image | mediaUrl" [alt]="i.name" appImgFallback />
                     <div class="li-info">
                       <span>{{ i.name }}</span>
-                      <span class="text-muted">Qty {{ i.qty }}</span>
+                      <span class="text-muted">
+                        @if (i.color) { Colour: {{ i.color }} · }Qty {{ i.qty }}
+                      </span>
                       <!-- Once it's delivered this is the moment to ask for a
                            review — and the review earns a "verified purchase"
                            badge. Older orders have no slug, so no link. -->
@@ -109,6 +112,12 @@ import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.di
                 </p>
                 <div class="line"><span>Payment</span><strong>{{ payLabel(o.paymentMethod) }}</strong></div>
                 <div class="line"><span>Payment status</span><span class="status" [class]="o.paymentStatus === 'paid' ? 'status-delivered' : 'status-pending'">{{ o.paymentStatus }}</span></div>
+                @if (o.paymentMethod === 'jazzcash' && o.paymentScreenshot) {
+                  <div class="screenshot-section mt">
+                    <strong>Payment screenshot</strong>
+                    <img [src]="o.paymentScreenshot | mediaUrl" alt="Payment screenshot" class="pay-screenshot" (click)="openScreenshot(o.paymentScreenshot!)" />
+                  </div>
+                }
               </div>
             </aside>
           </div>
@@ -127,10 +136,10 @@ import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.di
     .timeline { margin-top:14px; }
     .tl-step { display:flex; gap:14px; position:relative; padding-bottom:26px; }
     .tl-step:not(:last-child)::before { content:''; position:absolute; left:17px; top:34px; bottom:0; width:2px; background: var(--line); }
-    .tl-step.done:not(:last-child)::before { background: var(--mint); }
+    .tl-step.done:not(:last-child)::before { background: var(--success); }
     .dot { width:36px; height:36px; border-radius:50%; background: var(--cream-deep); color: var(--muted); display:grid; place-items:center; font-weight:800; font-family: var(--font-display); flex-shrink:0; z-index:1; }
-    .tl-step.done .dot { background: var(--mint); color:#fff; }
-    .tl-step.current .dot { background: var(--coral); color:#fff; box-shadow:0 0 0 5px #ffe0d9; }
+    .tl-step.done .dot { background: var(--success); color:#fff; }
+    .tl-step.current .dot { background: var(--sun-deep); color:#fff; box-shadow:0 0 0 5px #ffe0d9; }
     .tl-body { display:flex; flex-direction:column; padding-top:6px; }
     .tl-body span { font-size:.82rem; }
     .activity { display:flex; flex-direction:column; gap:12px; margin-top:12px; }
@@ -139,11 +148,15 @@ import { ImgFallbackDirective } from '../../../shared/directives/img-fallback.di
     .line-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
     .line-item img { width:48px; height:48px; object-fit:cover; border-radius:8px; }
     .li-info { display:flex; flex-direction:column; flex:1; font-size:.9rem; }
-    .review-link { color: var(--coral); font-weight:700; font-size:.8rem; margin-top:3px; align-self:flex-start; }
+    .review-link { color: var(--ink); font-weight:700; font-size:.8rem; margin-top:3px; align-self:flex-start; }
     .review-link:hover { text-decoration: underline; }
     .line { display:flex; justify-content:space-between; padding:7px 0; }
     .line.total { border-top:1px solid var(--line); margin-top:8px; padding-top:12px; font-size:1.15rem; }
     .addr { line-height:1.7; color: var(--ink); }
+    .screenshot-section { margin-top:12px; }
+    .screenshot-section strong { display:block; margin-bottom:6px; font-size:.9rem; }
+    .pay-screenshot { width:140px; height:140px; object-fit:cover; border-radius:10px; border:2px solid var(--line); cursor:pointer; transition: transform .2s, box-shadow .2s; }
+    .pay-screenshot:hover { transform:scale(1.05); box-shadow: var(--shadow-md); }
     @media (max-width: 860px) { .detail-grid { grid-template-columns: 1fr; } }
   `],
 })
@@ -200,4 +213,16 @@ export class OrderDetailComponent implements OnInit {
       error: () => this.cancelling.set(false),
     });
   }
+
+  getMediaUrl(url: string | undefined | null): string {
+    if (!url) return '';
+    if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:')) return url;
+    if (url.startsWith('/uploads/')) return 'http://localhost:5000' + url;
+    return url;
+  }
+
+  openScreenshot(url: string) {
+    window.open(this.getMediaUrl(url), '_blank');
+  }
 }
+

@@ -7,6 +7,7 @@ import {
   lookupOrder,
   adminListOrders,
   updateOrderStatus,
+  verifyPayment,
 } from '../controllers/orderController.js';
 import { protect, optionalAuth, restrictTo } from '../middleware/auth.js';
 
@@ -21,9 +22,10 @@ router.post('/lookup', lookupOrder);
 // Client (account required)
 router.get('/mine', protect, myOrders);
 
-// Admin
-router.get('/', protect, restrictTo('admin'), adminListOrders);
-router.put('/:id/status', protect, restrictTo('admin'), updateOrderStatus);
+// Admin + Shop Manager (scoped in the controller)
+router.get('/', protect, restrictTo('admin', 'shopmanager'), adminListOrders);
+router.put('/:id/status', protect, restrictTo('admin', 'shopmanager'), updateOrderStatus);
+router.put('/:id/verify-payment', protect, restrictTo('admin', 'shopmanager'), verifyPayment);
 
 // Owner, admin, or a guest holding the order's token — keep after the
 // specific routes above so `/mine` and `/lookup` aren't swallowed by `/:id`.

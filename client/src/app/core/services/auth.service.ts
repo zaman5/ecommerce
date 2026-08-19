@@ -13,6 +13,7 @@ export class AuthService {
   readonly user = this._user.asReadonly();
   readonly isLoggedIn = computed(() => !!this._user());
   readonly isAdmin = computed(() => this._user()?.role === 'admin');
+  readonly isShopManager = computed(() => this._user()?.role === 'shopmanager');
 
   constructor(private http: HttpClient) {}
 

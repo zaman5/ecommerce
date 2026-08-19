@@ -1,5 +1,7 @@
 import { verifyToken } from '../utils/token.js';
 import User from '../models/User.js';
+import Product from '../models/Product.js';
+import Category from '../models/Category.js';
 
 // Attaches req.user if a valid Bearer token is present
 export async function protect(req, res, next) {
@@ -11,6 +13,11 @@ export async function protect(req, res, next) {
     const decoded = verifyToken(token);
     const user = await User.findById(decoded.id);
     if (!user) return res.status(401).json({ message: 'User no longer exists.' });
+
+    // A disabled shop manager cannot use the system even if their token is valid.
+    if (user.role === 'shopmanager' && !user.isActive) {
+      return res.status(403).json({ message: 'Your account has been disabled. Contact the admin.' });
+    }
 
     req.user = user;
     next();
@@ -46,3 +53,46 @@ export function restrictTo(...roles) {
     next();
   };
 }
+
+// ---------- shop-manager scope helpers ----------
+
+/**
+ * All product IDs a shop manager is authorised to touch.
+ *
+ * The scope is the union of:
+ *   • every product filed under one of their assigned categories (including
+ *     sub-categories of those categories), and
+ *   • every individually assigned product.
+ *
+ * Admins get `null`, meaning "no restriction".
+ */
+export async function scopedProductIds(user) {
+  if (user.role === 'admin') return null; // unrestricted
+  if (user.role !== 'shopmanager') return []; // clients can't manage anything
+
+  const catIds = user.assignedCategories || [];
+  const prodIds = (user.assignedProducts || []).map((id) => id.toString());
+
+  if (catIds.length) {
+    // Include sub-categories of the assigned departments, so assigning
+    // "Electronics" also covers "Phones" and "Laptops" beneath it.
+    const children = await Category.find({ parent: { $in: catIds } }).select('_id');
+    const allCatIds = [...catIds.map((id) => id.toString()), ...children.map((c) => c._id.toString())];
+    const catProducts = await Product.find({ category: { $in: allCatIds } }).select('_id');
+    for (const p of catProducts) {
+      if (!prodIds.includes(p._id.toString())) prodIds.push(p._id.toString());
+    }
+  }
+
+  return prodIds;
+}
+
+/**
+ * True when `user` may touch `productId`.
+ */
+export async function canManageProduct(user, productId) {
+  if (user.role === 'admin') return true;
+  const ids = await scopedProductIds(user);
+  return ids.includes(productId.toString());
+}
+

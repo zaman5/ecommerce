@@ -1,21 +1,31 @@
 import User from '../models/User.js';
 import { signToken } from '../utils/token.js';
+import { isValidEmail } from '../utils/email.js';
 
 // POST /api/auth/register  (creates a client account)
 export async function register(req, res, next) {
   try {
     const { name, email, password, phone } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email and password are required.' });
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({ message: 'Name, email, phone number, and password are required.' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address.' });
+    }
+    if (String(phone).trim().length < 8) {
+      return res.status(400).json({ message: 'Please enter a valid phone number (at least 8 digits).' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+    }
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      return res.status(400).json({ message: 'Password must contain both letters and numbers for security.' });
     }
 
     const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) return res.status(409).json({ message: 'An account with this email already exists.' });
 
-    const user = new User({ name, email, phone, role: 'client' });
+    const user = new User({ name: name.trim(), email: email.toLowerCase(), phone: phone.trim(), role: 'client' });
     await user.setPassword(password);
     await user.save();
 

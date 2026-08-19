@@ -2,11 +2,12 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AnalyticsService } from '../../../core/services/api.service';
 import { AdminNavComponent } from '../admin-nav.component';
+import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 
 @Component({
   selector: 'app-analytics',
   standalone: true,
-  imports: [CommonModule, AdminNavComponent],
+  imports: [CommonModule, AdminNavComponent, MediaUrlPipe],
   template: `
     <section class="section">
       <div class="container">
@@ -46,7 +47,7 @@ import { AdminNavComponent } from '../admin-nav.component';
               @for (p of top(); track p._id; let i = $index) {
                 <div class="rank">
                   <span class="pos">{{ i + 1 }}</span>
-                  <img [src]="p.images?.[0] || placeholder" [alt]="p.name" />
+                  <img [src]="(p.images?.[0] | mediaUrl) || placeholder" [alt]="p.name" />
                   <div class="rank-info"><span>{{ p.name }}</span><span class="text-muted">{{ p.unitsSold }} sold · Rs {{ p.price | number }}</span></div>
                   <div class="rev">Rs {{ p.unitsSold * p.price | number }}</div>
                 </div>
@@ -97,22 +98,22 @@ import { AdminNavComponent } from '../admin-nav.component';
     .head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
     .range, .chip { display:inline-flex; }
     .chip { border:2px solid var(--line); background:#fff; padding:5px 14px; border-radius:999px; font-weight:700; cursor:pointer; font-family: var(--font-display); color: var(--muted); margin-left:6px; }
-    .chip.on { background: var(--mint); border-color: var(--mint); color:#fff; }
+    .chip.on { background:#fff; border-color: var(--brand); color: var(--brand); box-shadow: var(--shadow-sm); }
     .chart { display:flex; align-items:flex-end; gap:4px; height:200px; margin-top:20px; padding-top:10px; }
     /* max-width keeps a quiet period (one or two days of sales) reading as
        bars rather than one full-bleed block stretched across the card. */
     .bar-wrap { flex:1; max-width:52px; height:100%; display:flex; align-items:flex-end; }
-    .bar { width:100%; background: linear-gradient(var(--coral), var(--sun)); border-radius:6px 6px 0 0; min-height:3px; transition:height .3s; }
-    .bar-wrap:hover .bar { background: var(--coral); }
+    .bar { width:100%; background: linear-gradient(var(--accent), var(--sun)); border-radius:6px 6px 0 0; min-height:3px; transition:height .3s; }
+    .bar-wrap:hover .bar { background: var(--brand); }
     .chart-foot { display:flex; justify-content:space-between; margin-top:8px; font-size:.82rem; color: var(--muted); }
     .rank { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
     .pos { width:26px; height:26px; border-radius:50%; background: var(--cream-deep); display:grid; place-items:center; font-weight:800; font-family: var(--font-display); font-size:.85rem; }
     .rank img { width:40px; height:40px; object-fit:cover; border-radius:8px; }
     .rank-info { display:flex; flex-direction:column; flex:1; font-size:.9rem; }
-    .rev { font-weight:800; color: var(--coral-dark); font-family: var(--font-display); }
+    .rev { font-weight:800; color: var(--brand-dark); font-family: var(--font-display); }
     .catrow { margin-bottom:16px; }
     .track { height:10px; background: var(--cream-deep); border-radius:999px; overflow:hidden; margin:6px 0; }
-    .fill { height:100%; background: linear-gradient(90deg, var(--mint), var(--sky)); border-radius:999px; }
+    .fill { height:100%; background: linear-gradient(90deg, var(--sun-deep), var(--sun)); border-radius:999px; }
     .rec-head { font-family: var(--font-display); font-weight:700; padding-bottom:10px; margin-bottom:10px; border-bottom:2px solid var(--line); }
     .rec { padding:10px 0; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:2px; }
     .rec span { font-size:.82rem; }

@@ -1,3 +1,5 @@
 node_modules/
 .env
 *.log
+# Admin-uploaded product photos — user data, not source.
+uploads/

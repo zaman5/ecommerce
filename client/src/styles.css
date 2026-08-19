@@ -1,30 +1,47 @@
-/* ============ Wondercart design tokens ============ */
 :root {
-  --cream: #fbf6f0;
-  --cream-deep: #f4ebe1;
+  /* Soft Light Sky Blue */
+  --brand: #3b82f6;
+  --brand-dark: #2563eb;
+  --brand-soft: #f0f7ff;
+  --brand-glow: rgba(59, 130, 246, 0.12);
+
+  /* Soft Pastel Rose Coral */
+  --accent: #f43f5e;
+  --accent-dark: #e11d48;
+  --accent-soft: #fff1f2;
+
+  /* Warm Honey Yellow */
+  --sun: #fbbf24;
+  --sun-deep: #d97706;
+  --sun-soft: #fffbeb;
+  --sun-ink: #92400e;
+
+  /* Soft Slate Ink Typography (Ultra-gentle on the eyes) */
+  --ink: #334155;
+  --ink-light: #475569;
+  --muted: #64748b;
+  --line: #f1f5f9;
+
+  /* Pure Crisp White & Ultra-Light Background Surfaces */
+  --cream: #ffffff;
+  --cream-deep: #f8fafc;
   --surface: #ffffff;
-  --coral: #f5897b;
-  --coral-dark: #e5705f;
-  --mint: #7fc8be;
-  --mint-soft: #e3f3f0;
-  --sky: #a9d6e5;
-  --sun: #ffc978;
-  --ink: #33414f;
-  --muted: #7d8a97;
-  --line: #ece2d7;
-  --danger: #e06055;
-  --success: #4caf87;
+  --soft: #f8fafc;
+
+  --danger: #f43f5e;
+  --success: #10b981;
 
   --radius-sm: 10px;
-  --radius: 18px;
-  --radius-lg: 28px;
-  --shadow-sm: 0 2px 10px rgba(74, 60, 50, 0.06);
-  --shadow: 0 10px 30px rgba(74, 60, 50, 0.1);
-  --shadow-lg: 0 20px 50px rgba(74, 60, 50, 0.14);
+  --radius: 16px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 2px 10px rgba(51, 65, 85, 0.03);
+  --shadow: 0 8px 24px rgba(51, 65, 85, 0.05);
+  --shadow-lg: 0 16px 36px rgba(51, 65, 85, 0.08);
 
   --font-display: 'Baloo 2', system-ui, sans-serif;
   --font-body: 'Nunito', system-ui, sans-serif;
   --maxw: 1200px;
+  --listing-cols: 4;
 }
 
 * { box-sizing: border-box; }
@@ -40,7 +57,8 @@ h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.15; margin: 0 
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
 
-.container { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+/* Gutter scales with the viewport: 14px on a phone, 36px on a wide desktop. */
+.container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(14px, 2vw, 36px); }
 .section { padding: 56px 0; }
 .text-muted { color: var(--muted); }
 .center { text-align: center; }
@@ -48,18 +66,20 @@ img { max-width: 100%; display: block; }
 /* buttons */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-  font-family: var(--font-display); font-weight: 600; font-size: 1rem;
+  font-family: var(--font-display); font-weight: 800; font-size: 1rem;
   padding: 12px 22px; border-radius: 999px; border: none; cursor: pointer;
-  transition: transform .12s ease, box-shadow .2s ease, background .2s ease;
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
   text-align: center;
 }
 .btn:active { transform: translateY(1px) scale(.99); }
-.btn-primary { background: var(--coral); color: #fff; box-shadow: 0 8px 18px rgba(245, 137, 123, .35); }
-.btn-primary:hover { background: var(--coral-dark); }
-.btn-mint { background: var(--mint); color: #fff; }
-.btn-mint:hover { filter: brightness(.96); }
+/* Add to Cart — Light Yellow */
+.btn-primary { background: #facc15; color: #0f172a; box-shadow: 0 4px 14px rgba(250, 204, 21, 0.35); }
+.btn-primary:hover { background: #eab308; color: #0f172a; box-shadow: 0 6px 20px rgba(234, 179, 8, 0.45); transform: translateY(-1px); }
+/* Buy Now — Light Blue */
+.btn-mint { background: #38bdf8; color: #ffffff; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35); }
+.btn-mint:hover { background: #0284c7; color: #ffffff; box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45); transform: translateY(-1px); }
 .btn-ghost { background: transparent; color: var(--ink); border: 2px solid var(--line); }
-.btn-ghost:hover { border-color: var(--coral); color: var(--coral-dark); }
+.btn-ghost:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
 .btn-block { width: 100%; }
 .btn-sm { padding: 8px 16px; font-size: .9rem; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -68,6 +88,7 @@ img { max-width: 100%; display: block; }
 .card {
   background: var(--surface); border-radius: var(--radius);
   box-shadow: var(--shadow-sm); border: 1px solid var(--line);
+  transition: box-shadow .2s ease, border-color .2s ease;
 }
 .card-pad { padding: 22px; }
 
@@ -77,18 +98,18 @@ img { max-width: 100%; display: block; }
 .input, select.input, textarea.input {
   width: 100%; padding: 12px 14px; border-radius: var(--radius-sm);
   border: 2px solid var(--line); background: #fff; font-family: var(--font-body);
-  font-size: 1rem; color: var(--ink); transition: border-color .15s ease;
+  font-size: 1rem; color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease;
 }
-.input:focus { outline: none; border-color: var(--mint); }
+.input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-glow); }
 textarea.input { min-height: 110px; resize: vertical; }
 
 /* badges & pills */
 .badge {
   display: inline-block; padding: 3px 12px; border-radius: 999px;
-  font-size: .78rem; font-weight: 700; background: var(--mint-soft); color: #2f7d72;
+  font-size: .78rem; font-weight: 700; background: var(--soft); color: var(--ink);
 }
-.badge-sale { background: #ffe0d9; color: var(--coral-dark); }
-.badge-sun { background: #fff0d6; color: #a9721f; }
+.badge-sale { background: #CC0C39; color: #ffffff; font-weight: 800; text-align: center; }
+.badge-sun { background: var(--sun-soft); color: #8a6206; }
 
 .status {
   display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .8rem; font-weight: 700;
@@ -117,28 +138,53 @@ textarea.input { min-height: 110px; resize: vertical; }
 .mt { margin-top: 16px; }
 .mt-lg { margin-top: 32px; }
 .mb { margin-bottom: 16px; }
-.price { font-family: var(--font-display); font-weight: 700; color: var(--coral-dark); }
+/* Price — Black */
+.price { font-family: var(--font-display); font-weight: 800; color: #000000; }
 .strike { text-decoration: line-through; color: var(--muted); font-weight: 600; font-size: .9em; }
 
 /* alerts */
 .alert { padding: 12px 16px; border-radius: var(--radius-sm); font-weight: 600; margin-bottom: 14px; }
 .alert-error { background: #ffe6e3; color: #c1352a; }
 .alert-success { background: #dff5ec; color: #2f855a; }
-.alert-info { background: var(--mint-soft); color: #2f7d72; font-weight: 500; }
+.alert-info { background: var(--soft); color: var(--ink); font-weight: 500; }
 
 /* spinner */
 .spinner {
   width: 34px; height: 34px; border-radius: 50%;
-  border: 4px solid var(--line); border-top-color: var(--coral);
+  border: 4px solid var(--line); border-top-color: var(--ink);
   animation: spin .8s linear infinite; margin: 40px auto;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* table */
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table { width: 100%; border-collapse: collapse; min-width: 600px; }
+.table th, .table td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .table th { font-family: var(--font-display); font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
-.table-wrap { overflow-x: auto; }
+
+/* ============ rich article body (admin-authored copy) ============
+   Global on purpose. This markup arrives through [innerHTML], so it carries no
+   _ngcontent attribute and component-scoped rules would never match it. */
+.rich { color: #55606c; font-size: .97rem; line-height: 1.75; }
+.rich > :first-child { margin-top: 0; }
+.rich > :last-child { margin-bottom: 0; }
+.rich h2 { font-family: var(--font-display); font-size: 1.2rem; margin: 1.4em 0 .4em; color: var(--ink); }
+.rich h3 { font-family: var(--font-display); font-size: 1.03rem; margin: 1.2em 0 .35em; color: var(--ink); }
+.rich p { margin: 0 0 1em; }
+.rich ul, .rich ol { margin: 0 0 1em; padding-left: 1.35em; }
+.rich li { margin-bottom: .4em; }
+.rich li::marker { color: var(--accent); }
+.rich a { color: var(--ink); text-decoration: underline; }
+.rich a:hover { color: var(--brand-dark); }
+.rich strong, .rich b { color: var(--ink); font-weight: 800; }
+.rich blockquote { margin: 1.2em 0; padding: 2px 0 2px 16px; border-left: 3px solid var(--line); color: var(--ink); font-style: italic; }
+.rich img { display: block; max-width: 100%; width: auto; max-height: 420px; height: auto; border-radius: var(--radius-sm); margin: 1.4em auto; box-shadow: var(--shadow-sm); }
+.rich figure { margin: 1.2em 0; }
+.rich figcaption { font-size: .84rem; color: var(--muted); text-align: center; margin-top: .5em; }
+
+/* modal overlay defaults */
+.overlay { position: fixed; inset: 0; background: rgba(51, 65, 79, .5); display: grid; place-items: center; z-index: 100; padding: 16px; }
+.modal { width: min(640px, 100%); max-height: 92vh; display: flex; flex-direction: column; }
 
 /* responsive */
 @media (max-width: 960px) {
@@ -147,9 +193,40 @@ textarea.input { min-height: 110px; resize: vertical; }
 @media (max-width: 720px) {
   .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-2 { grid-template-columns: 1fr; }
-  .section { padding: 40px 0; }
+  .section { padding: 36px 0; }
   .hide-sm { display: none !important; }
+  .card-pad { padding: 16px; }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.3rem; }
+  .overlay { padding: 8px; }
+  .modal { max-height: 95vh; }
 }
-@media (max-width: 460px) {
-  .grid-4, .grid-3 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 560px) {
+  /* One column on a phone. */
+  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .grid { gap: 14px; }
+  .container { padding: 0 12px; }
+  .btn { padding: 10px 18px; font-size: .95rem; }
+  .btn-sm { padding: 6px 12px; font-size: .82rem; }
 }
+
+/* ---- wide screens ----
+   The shell used to stop dead at 1200px, so everything past that on a 1440px,
+   1080p or 4K monitor was margin. Widen it in steps instead, capped at 2040px
+   so an ultra-wide doesn't stretch a row of cards to postcard size. */
+@media (min-width: 1400px) { :root { --maxw: 1340px; } }
+@media (min-width: 1600px) { :root { --maxw: 1520px; } }
+@media (min-width: 1900px) { :root { --maxw: 1760px; } }
+@media (min-width: 2400px) { :root { --maxw: 2040px; } }
+
+/* ---- how many products fit a row ----
+   Paired with the shell ladder above so the card width stays in a narrow band
+   (~260-330px) at every step rather than ballooning between breakpoints:
+     phone      ≤760   → 2
+     tablet     ≤1080  → 3
+     laptop     default→ 4   (declared in :root)
+     desktop    ≥1600  → 5   — the shell is 1520px+ here, so five cards still
+                              get ~290px each, wider than four did at 1200px. */
+@media (max-width: 760px)  { :root { --listing-cols: 2; } }
+@media (max-width: 1080px) and (min-width: 761px) { :root { --listing-cols: 3; } }
+@media (min-width: 1600px) { :root { --listing-cols: 5; } }

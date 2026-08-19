@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   listProducts,
+  listColors,
   getProduct,
   adminListProducts,
   createProduct,
@@ -12,11 +13,11 @@ import { protect, restrictTo } from '../middleware/auth.js';
 
 const router = Router();
 
-// Admin
-router.get('/admin/all', protect, restrictTo('admin'), adminListProducts);
-router.post('/', protect, restrictTo('admin'), createProduct);
-router.put('/:id', protect, restrictTo('admin'), updateProduct);
-router.delete('/:id', protect, restrictTo('admin'), deleteProduct);
+// Admin + Shop Manager (scoped in the controller)
+router.get('/admin/all', protect, restrictTo('admin', 'shopmanager'), adminListProducts);
+router.post('/', protect, restrictTo('admin', 'shopmanager'), createProduct);
+router.put('/:id', protect, restrictTo('admin', 'shopmanager'), updateProduct);
+router.delete('/:id', protect, restrictTo('admin', 'shopmanager'), deleteProduct);
 
 // Reviews (nested under a product slug) — keep above the catch-all `/:slug`
 router.get('/:slug/reviews', listReviews);
@@ -24,6 +25,8 @@ router.post('/:slug/reviews', protect, upsertReview);
 
 // Public
 router.get('/', listProducts);
+// Must stay above `/:slug`, or "colors" is read as a product slug.
+router.get('/colors', listColors);
 router.get('/:slug', getProduct);
 
 export default router;

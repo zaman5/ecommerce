@@ -9,100 +9,125 @@ import Review from './models/Review.js';
 import { recalcProductRating } from './controllers/reviewController.js';
 
 const IMG = 'https://images.unsplash.com/photo-';
-// Royalty-free school-supply Unsplash photos (swap for your own product photos).
-// Every URL here is checked to return 200 — Unsplash retires photo IDs over time,
-// so if an image ever goes blank, replace the ID and re-run `npm run seed`.
+const img = (id) => `${IMG}${id}?w=600&q=80`;
+
 const photos = {
-  schoolBags: `${IMG}1553062407-98eeb64c6a62?w=600&q=80`,
-  lunchBoxes: `${IMG}1726726192151-6d4139ff229d?w=600&q=80`,
-  waterBottles: `${IMG}1602143407151-7111542de6e8?w=600&q=80`,
-  stationery: `${IMG}1574944558125-f8d12f23be89?w=600&q=80`,
-  notebooks: `${IMG}1497633762265-9d179a990aa6?w=600&q=80`,
-  deskSet: `${IMG}1531346878377-a5be20888e57?w=600&q=80`,
-  artCraft: `${IMG}1452860606245-08befc0ff44b?w=600&q=80`,
-  colouring: `${IMG}1513542789411-b6a5d4f31634?w=600&q=80`,
-  educationalToys: `${IMG}1587654780291-39c9404d746b?w=600&q=80`,
-  mobileCases: `${IMG}1601593346740-925612772716?w=600&q=80`,
+  headphones: img('1505740420928-5e560c06d30e'),
+  laptop: img('1496181133206-80ce9b88a853'),
+  smartphone: img('1511707171634-5f897ff02aa9'),
+  smartwatch: img('1546868871-7041f2a55e12'),
+  clothing: img('1445205170230-053b83016050'),
+  sneakers: img('1560769629-975ec94e6a86'),
+  watch: img('1524805444758-089113d48a6d'),
+  handbag: img('1584917865442-de89df76afd3'),
+  vintageCamera: img('1516035069371-29a1b244cc32'),
+  painting: img('1541961017774-22349e4a1262'),
+  coins: img('1621416894569-0f39ed31d247'),
+  vinyl: img('1493663284031-b7e3aefcae8e'),
+  football: img('1461896836934-ffe607ba8211'),
+  dumbbells: img('1517836357463-d25dfeac3438'),
+  bicycle: img('1485965120184-e220f721d03e'),
+  yoga: img('1571019613454-1cb2f99b2d8b'),
+  cosmetics: img('1596462502278-27bfdc403348'),
+  skincare: img('1571781926291-c477ebfd024b'),
+  perfume: img('1541643600914-78b084683601'),
+  haircare: img('1522335789203-aabd1fc54bc9'),
+  sofa: img('1555041469-a586c61ea9bc'),
+  garden: img('1416879595882-3373a0480b5b'),
+  kitchen: img('1556909114-f6e7ad7d3136'),
+  bedding: img('1595246140625-573b715d11dc'),
 };
 
-// GET /api/categories sorts by name, so the order here is only for readability
-// — it does not affect how the storefront lists them.
 const categoriesSeed = [
-  { name: 'School Bags', slug: 'school-bags', image: photos.schoolBags, description: 'Light, sturdy backpacks for every school day.' },
-  { name: 'Lunch Boxes', slug: 'lunch-boxes', image: photos.lunchBoxes, description: 'Leak-proof boxes that keep lunch fresh till break.' },
-  { name: 'Water Bottles', slug: 'water-bottles', image: photos.waterBottles, description: 'Spill-free bottles that survive a whole school day.' },
-  { name: 'Stationery', slug: 'stationery', image: photos.stationery, description: 'Pens, pencil cases and geometry sets that last the term.' },
-  { name: 'Notebooks & Diaries', slug: 'notebooks-diaries', image: photos.notebooks, description: 'Ruled, squared and blank — for every subject on the timetable.' },
-  { name: 'Art & Craft', slug: 'art-craft', image: photos.artCraft, description: 'Colours, glue and cutting tools for project days.' },
-  { name: 'Educational Toys', slug: 'educational-toys', image: photos.educationalToys, description: 'Play that quietly teaches counting, letters and logic.' },
-  { name: 'Mobile Cases', slug: 'mobile-cases', image: photos.mobileCases, description: 'Drop-proof, kid-friendly cases for phones and tablets.' },
+  { name: 'Electronics', slug: 'electronics', image: photos.headphones, description: 'Phones, laptops, audio and wearables from top brands.' },
+  { name: 'Fashion', slug: 'fashion', image: photos.clothing, description: 'Clothing, footwear, watches and bags for every day.' },
+  { name: 'Collectibles & Art', slug: 'collectibles-and-art', image: photos.vintageCamera, description: 'Prints, coins, vinyl and vintage finds.' },
+  { name: 'Sports', slug: 'sports', image: photos.football, description: 'Kit for the pitch, gym, road and mat.' },
+  { name: 'Health & Beauty', slug: 'health-and-beauty', image: photos.cosmetics, description: 'Skincare, haircare, fragrance and daily essentials.' },
+  { name: 'Home & Garden', slug: 'home-and-garden', image: photos.sofa, description: 'Furniture, kitchen, bedding and garden essentials.' },
 ];
+
+const C = {
+  black: { name: 'Black', hex: '#1f2124' },
+  white: { name: 'White', hex: '#f4f4f2' },
+  silver: { name: 'Silver', hex: '#c9ccd1' },
+  navy: { name: 'Navy', hex: '#1f3358' },
+  red: { name: 'Red', hex: '#c0392b' },
+  blue: { name: 'Blue', hex: '#2f6fb5' },
+  green: { name: 'Forest Green', hex: '#2f5d43' },
+  grey: { name: 'Charcoal', hex: '#4a4f55' },
+  beige: { name: 'Beige', hex: '#d9c7a9' },
+  pink: { name: 'Blush Pink', hex: '#e8a0a8' },
+  yellow: { name: 'Mustard', hex: '#d5a021' },
+  brown: { name: 'Tan Brown', hex: '#8a5a34' },
+};
+
+const colorsByCategory = {
+  electronics: [C.black, C.white, C.silver],
+  fashion: [C.black, C.navy, C.beige, C.pink],
+  'collectibles-and-art': [C.black, C.brown],
+  sports: [C.black, C.blue, C.red, C.yellow],
+  'health-and-beauty': [C.pink, C.beige],
+  'home-and-garden': [C.grey, C.green, C.beige, C.navy],
+};
 
 function make(name, catSlug, price, opts = {}) {
   return {
+    colors: opts.colors || colorsByCategory[catSlug] || [],
     name,
     slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
     catSlug,
     price,
     compareAtPrice: opts.compareAtPrice || 0,
     brand: opts.brand || 'Wondercart',
-    ageGroup: opts.ageGroup || 'all',
     stock: opts.stock ?? 25,
     rating: opts.rating ?? 4.5,
     numReviews: opts.numReviews ?? 12,
     unitsSold: opts.unitsSold ?? 0,
     isFeatured: opts.isFeatured || false,
-    description:
-      opts.description ||
-      'Made for the school run and everything after it — hard-wearing materials, easy to clean, and built to last the full year.',
+    description: opts.description || 'Premium quality product designed for durability, style, and top performance.',
     image: opts.image,
   };
 }
 
 const productsSeed = [
-  // ---- School Bags ----
-  make('Classic Two-Pocket School Backpack', 'school-bags', 2499, { compareAtPrice: 2999, ageGroup: 'primary', unitsSold: 64, isFeatured: true, rating: 4.7, image: photos.schoolBags, description: 'Padded straps and a reinforced base for books that keep getting heavier. Water-resistant outer with a roomy front pocket.' }),
-  make('Wheeled Trolley School Bag', 'school-bags', 4299, { compareAtPrice: 4999, ageGroup: 'primary', unitsSold: 21, stock: 9, image: photos.schoolBags, description: 'Pull-along wheels and a retractable handle to take the weight off small shoulders. Straps tuck away when not in use.' }),
-  make('Mini Pre-School Backpack', 'school-bags', 1499, { ageGroup: 'pre-school', unitsSold: 38, image: photos.schoolBags, description: 'Sized down for nursery and playgroup — big enough for a snack box, a spare set of clothes and a favourite toy.' }),
-  make('Laptop-Ready Senior Rucksack', 'school-bags', 3899, { compareAtPrice: 4499, ageGroup: 'high', unitsSold: 27, image: photos.schoolBags, description: 'Padded 15" laptop sleeve, a hidden zip pocket and breathable back panel — sized for college folders, not lunch toys.' }),
+  // ---- Electronics ----
+  make('Wireless Over-Ear Headphones (ANC)', 'electronics', 12999, { compareAtPrice: 15999, unitsSold: 74, isFeatured: true, rating: 4.8, image: photos.headphones, description: 'Active noise cancelling with 40 hours of playback on one charge. Folds flat into a hard case.' }),
+  make('14" Thin & Light Laptop (16GB RAM)', 'electronics', 149999, { compareAtPrice: 169999, unitsSold: 18, stock: 9, rating: 4.7, image: photos.laptop, description: '16GB RAM and a 512GB SSD in a 1.3kg aluminium body. All-day battery and backlit keyboard.' }),
+  make('5G Smartphone 128GB (Dual SIM)', 'electronics', 84999, { unitsSold: 42, rating: 4.6, image: photos.smartphone, description: '6.5" AMOLED display, triple camera and 5000mAh battery. Dual SIM with dedicated microSD slot.' }),
+  make('Fitness Smartwatch with GPS', 'electronics', 18999, { compareAtPrice: 22999, unitsSold: 56, rating: 4.5, image: photos.smartwatch, description: 'Built-in GPS, heart-rate and sleep tracking with 10-day battery life.' }),
 
-  // ---- Lunch Boxes ----
-  make('Leak-Proof Bento Lunch Box', 'lunch-boxes', 1299, { compareAtPrice: 1599, ageGroup: 'primary', unitsSold: 71, isFeatured: true, rating: 4.6, image: photos.lunchBoxes, description: 'Four sealed compartments keep wet and dry foods apart. Clip-lock lid, dishwasher safe, no BPA.' }),
-  make('Insulated Stainless Food Jar', 'lunch-boxes', 1899, { ageGroup: 'middle', unitsSold: 24, image: photos.lunchBoxes, description: 'Keeps a hot lunch warm until break and cold food chilled. Wide mouth so a normal spoon fits easily.' }),
-  make('Three-Compartment Snack Box', 'lunch-boxes', 799, { ageGroup: 'pre-school', unitsSold: 52, stock: 8, image: photos.lunchBoxes, description: 'Small portions with soft-open latches little hands can manage on their own. Fits neatly in any school bag.' }),
+  // ---- Fashion ----
+  make('Everyday Cotton Crew T-Shirt', 'fashion', 1899, { compareAtPrice: 2499, unitsSold: 132, isFeatured: true, rating: 4.6, image: photos.clothing, description: 'Mid-weight combed cotton that keeps its shape after washing. Pre-shrunk ribbed collar.' }),
+  make('Low-Top Canvas Sneakers', 'fashion', 4999, { unitsSold: 67, rating: 4.5, image: photos.sneakers, description: 'Cushioned insole and a vulcanised rubber sole with great grip. Goes with any casual outfit.' }),
+  make('Stainless Steel Analogue Watch', 'fashion', 11999, { compareAtPrice: 14999, unitsSold: 34, stock: 14, rating: 4.8, image: photos.watch, description: 'Sapphire-coated crystal, 5ATM water resistance and solid link bracelet.' }),
+  make('Structured Leather Shoulder Bag', 'fashion', 8499, { unitsSold: 45, rating: 4.6, image: photos.handbag, description: 'Full-grain leather with suede-lined interior, laptop sleeve and adjustable strap.' }),
 
-  // ---- Water Bottles ----
-  make('Spill-Free Straw Water Bottle', 'water-bottles', 899, { compareAtPrice: 1099, ageGroup: 'pre-school', unitsSold: 88, isFeatured: true, rating: 4.7, image: photos.waterBottles, description: 'Weighted straw draws from any angle and the lid locks shut in a bag. Easy to pull apart for a proper wash.' }),
-  make('Insulated Steel Bottle (500ml)', 'water-bottles', 1499, { ageGroup: 'primary', unitsSold: 36, image: photos.waterBottles, description: 'Stays cold for a full school day. Powder-coated finish that survives being dropped on the playground.' }),
-  make('Flip-Top Sports Bottle (750ml)', 'water-bottles', 1099, { ageGroup: 'high', unitsSold: 43, stock: 7, image: photos.waterBottles, description: 'One-hand flip lid for between drills, with a wide neck for ice cubes and a carry loop that clips to a kit bag.' }),
+  // ---- Collectibles & Art ----
+  make('Vintage 35mm Film Camera (Refurbished)', 'collectibles-and-art', 24999, { compareAtPrice: 29999, unitsSold: 11, stock: 5, isFeatured: true, rating: 4.9, image: photos.vintageCamera, description: 'Serviced, light-sealed and test-rolled before dispatch. Includes original 50mm lens.' }),
+  make('Framed Abstract Canvas Print (60x90cm)', 'collectibles-and-art', 13999, { unitsSold: 16, rating: 4.7, image: photos.painting, description: 'Giclée print on cotton canvas in a solid oak float frame. Ready to hang.' }),
+  make('Rare Coin Collector Starter Album', 'collectibles-and-art', 5499, { unitsSold: 22, rating: 4.8, image: photos.coins, description: 'Acid-free album with 240 labelled pockets, magnifier and cotton handling gloves.' }),
+  make('Classic Rock Vinyl LP Bundle (3 Records)', 'collectibles-and-art', 9999, { compareAtPrice: 11999, unitsSold: 27, stock: 8, rating: 4.9, image: photos.vinyl, description: 'Three remastered 180g pressings in sealed anti-static sleeves.' }),
 
-  // ---- Stationery ----
-  make('Zip Pencil Case with Pen Loops', 'stationery', 699, { compareAtPrice: 899, ageGroup: 'primary', unitsSold: 93, isFeatured: true, rating: 4.6, image: photos.stationery, description: 'Two zipped layers with elastic loops so pens stop rattling loose. Wipe-clean canvas that hides a term of ink marks.' }),
-  make('12-Piece Geometry Box Set', 'stationery', 549, { ageGroup: 'middle', unitsSold: 47, image: photos.stationery, description: 'Compass, protractor, set squares and a metal ruler in a snap-shut tin — the full maths kit in one purchase.' }),
-  make('Everyday Ballpoint Pens (10-Pack)', 'stationery', 399, { ageGroup: 'all', unitsSold: 118, stock: 60, image: photos.deskSet, description: 'Smooth 0.7mm blue ink that does not blob mid-sentence. Enough spares to survive the ones that vanish in class.' }),
+  // ---- Sports ----
+  make('Match-Grade Football (Size 5)', 'sports', 3999, { compareAtPrice: 4999, unitsSold: 88, isFeatured: true, rating: 4.7, image: photos.football, description: 'Thermally bonded panels that hold shape and stay light in wet conditions. FIFA-standard.' }),
+  make('Adjustable Dumbbell Set (2–24kg)', 'sports', 34999, { unitsSold: 19, stock: 7, rating: 4.8, image: photos.dumbbells, description: 'One dial swaps 15 weight settings, replacing a full rack. Non-slip grip.' }),
+  make('21-Speed Aluminium Mountain Bike', 'sports', 62999, { compareAtPrice: 74999, unitsSold: 9, stock: 4, rating: 4.6, image: photos.bicycle, description: 'Lightweight alloy frame, front suspension and dual disc brakes.' }),
+  make('Non-Slip Yoga Mat (6mm)', 'sports', 4499, { unitsSold: 73, rating: 4.7, image: photos.yoga, description: 'Closed-cell surface that grips well during intense sessions. Comes with carry strap.' }),
 
-  // ---- Notebooks & Diaries ----
-  make('A4 Spiral Ruled Notebook (5-Pack)', 'notebooks-diaries', 1199, { compareAtPrice: 1499, ageGroup: 'middle', unitsSold: 66, isFeatured: true, rating: 4.5, image: photos.notebooks, description: 'One notebook per subject, 160 pages each. Thick paper that does not ghost when you write on both sides.' }),
-  make('Hardcover School Diary & Planner', 'notebooks-diaries', 899, { ageGroup: 'high', unitsSold: 29, image: photos.notebooks, description: 'Week-to-view layout with a timetable page and homework tracker. Stitched hardcover that lasts the whole year.' }),
-  make('Squared Maths Copy (4-Pack)', 'notebooks-diaries', 649, { ageGroup: 'primary', unitsSold: 54, stock: 12, image: photos.deskSet, description: '5mm squares for graphs, tables and long division. Stapled spine that opens flat on a small desk.' }),
+  // ---- Health & Beauty ----
+  make('Everyday Makeup Starter Palette', 'health-and-beauty', 6999, { compareAtPrice: 8499, unitsSold: 91, isFeatured: true, rating: 4.8, image: photos.cosmetics, description: 'Twelve blendable neutrals in matte and shimmer, plus a dual-ended brush.' }),
+  make('Vitamin C Brightening Serum (30ml)', 'health-and-beauty', 4299, { unitsSold: 118, rating: 4.9, image: photos.skincare, description: '15% stabilised vitamin C with hyaluronic acid in UV-blocking bottle.' }),
+  make('Eau de Parfum — Amber & Oud (100ml)', 'health-and-beauty', 15999, { compareAtPrice: 18999, unitsSold: 37, stock: 15, rating: 4.8, image: photos.perfume, description: 'Warm amber over rich oud and cedar with 8-hour wear.' }),
+  make('Argan Oil Repair Shampoo & Conditioner', 'health-and-beauty', 3299, { unitsSold: 64, rating: 4.6, image: photos.haircare, description: 'Sulphate-free pair for dry or colour-treated hair. Deeply moisturizing.' }),
 
-  // ---- Art & Craft ----
-  make('24 Colouring Pencils Tin', 'art-craft', 799, { compareAtPrice: 999, ageGroup: 'primary', unitsSold: 82, isFeatured: true, rating: 4.8, image: photos.colouring, description: 'Soft, break-resistant leads in a hinged tin. Bright enough to fill a page without pressing hard.' }),
-  make('Washable Poster Paint Set (12 Colours)', 'art-craft', 1099, { ageGroup: 'primary', unitsSold: 35, image: photos.artCraft, description: 'Thick, bright paints that wash out of uniforms and off tables. Screw-top pots so half-used colours do not dry out.' }),
-  make('Craft Kit: Safety Scissors, Glue & Tape', 'art-craft', 949, { ageGroup: 'pre-school', unitsSold: 41, stock: 10, image: photos.artCraft, description: 'Round-tip scissors, two glue sticks and coloured tape — everything a project-day assignment usually asks for.' }),
-
-  // ---- Educational Toys ----
-  make('Wooden Alphabet Puzzle Board', 'educational-toys', 1399, { compareAtPrice: 1699, ageGroup: 'pre-school', unitsSold: 57, isFeatured: true, rating: 4.8, image: photos.educationalToys, description: 'Chunky lift-out letters with pictures underneath. Builds letter recognition before school starts.' }),
-  make('Counting & Sorting Number Blocks', 'educational-toys', 1199, { ageGroup: 'pre-school', unitsSold: 31, image: photos.educationalToys, description: 'Match numbers to quantities and sort by colour and shape — early maths that plays like a game.' }),
-  make('Build-It Engineering Brick Set (120 pcs)', 'educational-toys', 2499, { ageGroup: 'primary', unitsSold: 19, stock: 10, image: photos.educationalToys, description: 'Open-ended bricks with an idea booklet, for children who would rather invent than follow instructions.' }),
-
-  // ---- Mobile Cases ----
-  make('Shockproof Kids Phone Case', 'mobile-cases', 899, { compareAtPrice: 1099, unitsSold: 40, rating: 4.4, image: photos.mobileCases, description: 'Raised bezel and cushioned corners that take the drop instead of the screen. Grippy edges for small hands.' }),
-  make('Cartoon Silicone Phone Case', 'mobile-cases', 649, { unitsSold: 26, image: photos.mobileCases, description: 'Soft silicone in bright character prints, slim enough to keep the phone pocket-sized.' }),
-  make('Kids Tablet Case with Stand', 'mobile-cases', 1799, { unitsSold: 9, stock: 4, image: photos.mobileCases, description: 'Foam bumper case with a fold-out handle that doubles as a stand for hands-free watching.' }),
+  // ---- Home & Garden ----
+  make('Three-Seater Fabric Sofa', 'home-and-garden', 89999, { compareAtPrice: 109999, unitsSold: 8, stock: 4, isFeatured: true, rating: 4.7, image: photos.sofa, description: 'Hardwood frame with high-resilience foam and removable, washable covers.' }),
+  make('Garden Tool Set with Carry Bag (8 pcs)', 'home-and-garden', 6499, { unitsSold: 52, rating: 4.6, image: photos.garden, description: 'Forged stainless heads on hardwood handles in a waxed canvas bag.' }),
+  make('Non-Stick Cookware Set (10 pcs)', 'home-and-garden', 18999, { compareAtPrice: 23999, unitsSold: 39, rating: 4.8, image: photos.kitchen, description: 'PFOA-free granite coating with induction bases and glass lids.' }),
+  make('Cotton Percale Bedding Set (King)', 'home-and-garden', 11499, { unitsSold: 47, stock: 18, rating: 4.7, image: photos.bedding, description: '300-thread-count long-staple cotton that breathes easily.' }),
 ];
 
-// Demo shoppers who leave the sample reviews.
 const reviewersSeed = [
   { name: 'Ayesha K.', email: 'ayesha@example.com' },
   { name: 'Bilal R.', email: 'bilal@example.com' },
@@ -110,14 +135,12 @@ const reviewersSeed = [
   { name: 'Hamza T.', email: 'hamza@example.com' },
 ];
 
-// [rating, comment] pairs, cycled across products so every item has a few.
 const reviewTexts = [
-  [5, 'Exactly as described and the quality is lovely. My son takes it to school every day.'],
-  [4, 'Good value for the price. Delivery took a couple of days but everything arrived safely.'],
-  [5, 'Bought this twice now. Easy to clean, and it has survived a full term already.'],
-  [3, 'Does the job, though it runs a little smaller than I expected. Still happy overall.'],
-  [5, 'Sturdy and well finished — no loose stitching or sharp edges anywhere.'],
-  [4, 'Nicely made and well packaged. Would recommend to other parents.'],
+  [5, 'Exactly as described and the quality is lovely! Arrived quickly.'],
+  [4, 'Good value for the price. Delivery took two days.'],
+  [5, 'Bought this twice now. High quality material, durable and sleek.'],
+  [4, 'Very pleased with the quality and finishing.'],
+  [5, 'Sturdy and well finished — high quality product!'],
 ];
 
 async function run() {
@@ -132,7 +155,7 @@ async function run() {
     Review.deleteMany({}),
   ]);
 
-  console.log('👤 Creating admin + demo client...');
+  console.log('👤 Creating admin, shop manager + demo client...');
   const admin = new User({
     name: process.env.ADMIN_NAME || 'Store Admin',
     email: process.env.ADMIN_EMAIL || 'admin@wondercart.pk',
@@ -140,6 +163,15 @@ async function run() {
   });
   await admin.setPassword(process.env.ADMIN_PASSWORD || 'admin12345');
   await admin.save();
+
+  const adminAhsan = new User({
+    name: 'Ahsan Admin',
+    email: 'ahsan@wondercart.pk',
+    role: 'admin',
+    phone: '03038164288',
+  });
+  await adminAhsan.setPassword('Ahsan@Ahmad123');
+  await adminAhsan.save();
 
   const client = new User({ name: 'Demo Customer', email: 'customer@wondercart.pk', role: 'client', phone: '03001234567' });
   await client.setPassword('customer123');
@@ -149,6 +181,17 @@ async function run() {
   const cats = await Category.insertMany(categoriesSeed);
   const catMap = Object.fromEntries(cats.map((c) => [c.slug, c._id]));
 
+  // Demo Shop Manager assigned to Electronics category
+  const manager = new User({
+    name: 'Demo Shop Manager',
+    email: 'manager@wondercart.pk',
+    role: 'shopmanager',
+    assignedCategories: [catMap['electronics']],
+    isActive: true,
+  });
+  await manager.setPassword('manager123');
+  await manager.save();
+
   console.log('📦 Creating products...');
   const docs = productsSeed.map((p) => ({
     name: p.name,
@@ -156,17 +199,16 @@ async function run() {
     description: p.description,
     brand: p.brand,
     category: catMap[p.catSlug],
-    ageGroup: p.ageGroup,
     price: p.price,
     compareAtPrice: p.compareAtPrice,
     images: [p.image],
+    colors: p.colors,
     stock: p.stock,
-    // rating / numReviews are derived from the seeded reviews below, so the
-    // stars a shopper sees always match the reviews actually on the page.
     rating: 0,
     numReviews: 0,
     unitsSold: p.unitsSold,
     isFeatured: p.isFeatured,
+    isFlashSale: p.isFlashSale ?? (p.compareAtPrice > p.price),
   }));
   const products = await Product.insertMany(docs);
 
@@ -181,8 +223,6 @@ async function run() {
 
   let cursor = 0;
   for (const [pIndex, product] of products.entries()) {
-    // 2–4 reviews per product. The reviewer index is offset by the product so
-    // no reviewer is used twice on the same product (the unique index forbids it).
     const howMany = 2 + (pIndex % 3);
     for (let i = 0; i < howMany; i++) {
       const reviewer = reviewers[(pIndex + i) % reviewers.length];
@@ -205,8 +245,9 @@ async function run() {
   console.log('\n✅ Seed complete!');
   console.log(`   ${products.length} products · ${reviewCount} reviews`);
   console.log('----------------------------------------');
-  console.log('Admin login   :', admin.email, '/', process.env.ADMIN_PASSWORD || 'admin12345');
-  console.log('Client login  : customer@wondercart.pk / customer123');
+  console.log('Admin login       :', admin.email, '/', process.env.ADMIN_PASSWORD || 'admin12345');
+  console.log('Shop Manager login: manager@wondercart.pk / manager123');
+  console.log('Client login      : customer@wondercart.pk / customer123');
   console.log('----------------------------------------');
 
   await mongoose.disconnect();

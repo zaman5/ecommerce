@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CartService } from '../../core/services/cart.service';
 import { ImgFallbackDirective } from '../../shared/directives/img-fallback.directive';
+import { SwatchPipe } from '../../shared/pipes/swatch.pipe';
+import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
 
 @Component({
   selector: 'app-cart',
   standalone: true,
-  imports: [CommonModule, RouterLink, ImgFallbackDirective],
+  imports: [CommonModule, RouterLink, ImgFallbackDirective, SwatchPipe, MediaUrlPipe],
   template: `
     <section class="section">
       <div class="container">
@@ -22,24 +24,29 @@ import { ImgFallbackDirective } from '../../shared/directives/img-fallback.direc
         } @else {
           <div class="cart-layout mt-lg">
             <div class="items">
-              @for (i of cart.items(); track i.product) {
+              @for (i of cart.items(); track cart.keyOf(i)) {
                 <div class="item card">
-                  <img [src]="i.image" [alt]="i.name" appImgFallback />
+                  <img [src]="i.image | mediaUrl" [alt]="i.name" appImgFallback />
                   <div class="item-info">
                     @if (i.slug) {
                       <a [routerLink]="['/product', i.slug]" class="name">{{ i.name }}</a>
                     } @else {
                       <span class="name">{{ i.name }}</span>
                     }
+                    @if (i.color) {
+                      <span class="colour">
+                        <img class="dot" [src]="i.colorHex | swatch" alt="" />{{ i.color }}
+                      </span>
+                    }
                     <span class="price">Rs {{ i.price | number }}</span>
                   </div>
                   <div class="qty">
-                    <button (click)="cart.setQty(i.product, i.qty-1)">−</button>
+                    <button (click)="cart.setQty(cart.keyOf(i), i.qty-1)">−</button>
                     <span>{{ i.qty }}</span>
-                    <button (click)="cart.setQty(i.product, i.qty+1)">+</button>
+                    <button (click)="cart.setQty(cart.keyOf(i), i.qty+1)">+</button>
                   </div>
                   <div class="line-total price">Rs {{ i.price * i.qty | number }}</div>
-                  <button class="remove" (click)="cart.remove(i.product)" aria-label="Remove">✕</button>
+                  <button class="remove" (click)="cart.remove(cart.keyOf(i))" aria-label="Remove">✕</button>
                 </div>
               }
             </div>
@@ -62,6 +69,10 @@ import { ImgFallbackDirective } from '../../shared/directives/img-fallback.direc
     .item { display:grid; grid-template-columns: 84px 1fr auto auto auto; gap:16px; align-items:center; padding:14px; margin-bottom:14px; }
     .item img { width:84px; height:84px; object-fit:cover; border-radius:12px; }
     .name { font-family: var(--font-display); font-weight:600; display:block; }
+    /* Column, so the colour line never runs into the price beside it. */
+    .item-info { display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:0; }
+    .colour { display:inline-flex; align-items:center; gap:6px; font-size:.83rem; color: var(--muted); font-weight:700; }
+    .colour .dot { width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.18); }
     .qty { display:flex; align-items:center; border:2px solid var(--line); border-radius:999px; }
     .qty button { width:34px; height:36px; border:none; background:#fff; font-size:1.2rem; cursor:pointer; }
     .qty span { width:34px; text-align:center; font-weight:800; }
