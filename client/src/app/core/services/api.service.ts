@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Banner, Category, ColorOption, ContactMessage, EmailAttachment, EmailTemplate, FlashSale, GuestOrderRef, JazzCashSettings, Order, Product, ProductPage, Review, ReviewSummary, ShopManager } from '../models/models';
 
@@ -85,17 +85,27 @@ export class UploadService {
 @Injectable({ providedIn: 'root' })
 export class CategoryService {
   private api = environment.apiUrl;
+  private cache$: Observable<Category[]> | null = null;
   constructor(private http: HttpClient) {}
-  list(): Observable<Category[]> {
-    return this.http.get<Category[]>(`${this.api}/categories`);
+
+  list(forceRefresh = false): Observable<Category[]> {
+    if (!this.cache$ || forceRefresh) {
+      this.cache$ = this.http.get<Category[]>(`${this.api}/categories`).pipe(
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.cache$;
   }
   create(data: Partial<Category> & { parent?: string | null }): Observable<Category> {
+    this.cache$ = null;
     return this.http.post<Category>(`${this.api}/categories`, data);
   }
   update(id: string, data: Partial<Category> & { parent?: string | null }): Observable<Category> {
+    this.cache$ = null;
     return this.http.put<Category>(`${this.api}/categories/${id}`, data);
   }
   remove(id: string): Observable<{ message: string }> {
+    this.cache$ = null;
     return this.http.delete<{ message: string }>(`${this.api}/categories/${id}`);
   }
 }
@@ -103,23 +113,32 @@ export class CategoryService {
 @Injectable({ providedIn: 'root' })
 export class BannerService {
   private api = environment.apiUrl;
+  private cache$: Observable<Banner[]> | null = null;
   constructor(private http: HttpClient) {}
 
   /** Public: active slides only, already in running order. */
-  list(): Observable<Banner[]> {
-    return this.http.get<Banner[]>(`${this.api}/banners`);
+  list(forceRefresh = false): Observable<Banner[]> {
+    if (!this.cache$ || forceRefresh) {
+      this.cache$ = this.http.get<Banner[]>(`${this.api}/banners`).pipe(
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.cache$;
   }
   /** Admin: includes switched-off slides. */
   adminAll(): Observable<Banner[]> {
     return this.http.get<Banner[]>(`${this.api}/banners/admin/all`);
   }
   create(data: Partial<Banner>): Observable<Banner> {
+    this.cache$ = null;
     return this.http.post<Banner>(`${this.api}/banners`, data);
   }
   update(id: string, data: Partial<Banner>): Observable<Banner> {
+    this.cache$ = null;
     return this.http.put<Banner>(`${this.api}/banners/${id}`, data);
   }
   remove(id: string): Observable<{ message: string }> {
+    this.cache$ = null;
     return this.http.delete<{ message: string }>(`${this.api}/banners/${id}`);
   }
 }
@@ -127,14 +146,21 @@ export class BannerService {
 @Injectable({ providedIn: 'root' })
 export class FlashSaleService {
   private api = environment.apiUrl;
+  private cache$: Observable<FlashSale> | null = null;
   constructor(private http: HttpClient) {}
 
   /** Public — the home page reads this before loading the deals. */
-  get(): Observable<FlashSale> {
-    return this.http.get<FlashSale>(`${this.api}/flash-sale`);
+  get(forceRefresh = false): Observable<FlashSale> {
+    if (!this.cache$ || forceRefresh) {
+      this.cache$ = this.http.get<FlashSale>(`${this.api}/flash-sale`).pipe(
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.cache$;
   }
   /** Admin. A singleton, so there is one PUT and no id. */
   update(data: Partial<FlashSale>): Observable<FlashSale> {
+    this.cache$ = null;
     return this.http.put<FlashSale>(`${this.api}/flash-sale`, data);
   }
 }

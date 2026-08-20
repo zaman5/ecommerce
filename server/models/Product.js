@@ -104,6 +104,15 @@ export function defineProduct(sequelize) {
       tableName: 'products',
       timestamps: true,
       underscored: true,
+      indexes: [
+        { fields: ['slug'], unique: true },
+        { fields: ['category_id'] },
+        { fields: ['is_active', 'stock'] },
+        { fields: ['is_featured'] },
+        { fields: ['is_flash_sale'] },
+        { fields: ['price'] },
+        { fields: ['created_at'] },
+      ],
     }
   );
 
@@ -139,7 +148,7 @@ export function defineProduct(sequelize) {
       },
       hex: {
         type: DataTypes.STRING(20),
-        defaultValue: '#cccccc',
+        defaultValue: '',
       },
       image: {
         type: DataTypes.STRING(1000),
@@ -150,6 +159,10 @@ export function defineProduct(sequelize) {
       tableName: 'product_colors',
       timestamps: false,
       underscored: true,
+      indexes: [
+        { fields: ['product_id'] },
+        { fields: ['name'] },
+      ],
     }
   );
 

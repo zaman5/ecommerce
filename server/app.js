@@ -19,6 +19,7 @@ import shopManagerRoutes from './routes/shopManagerRoutes.js';
 import settingRoutes from './routes/settingRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import uploadRoutes, { UPLOAD_DIR } from './routes/uploadRoutes.js';
+import compression from 'compression';
 import { notFound, errorHandler } from './middleware/error.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,6 +28,7 @@ const __dirname = path.dirname(__filename);
 export function createApp() {
   const app = express();
 
+  app.use(compression());
   app.use(cors({ origin: process.env.CLIENT_ORIGIN?.split(',') || '*' }));
   app.use(express.json({ limit: '2mb' }));
   if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));

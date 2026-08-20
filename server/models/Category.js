@@ -46,6 +46,10 @@ export function defineCategory(sequelize) {
       tableName: 'categories',
       timestamps: true,
       underscored: true,
+      indexes: [
+        { fields: ['slug'], unique: true },
+        { fields: ['parent_id'] },
+      ],
     }
   );
 
