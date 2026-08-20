@@ -1,0 +1,1 @@
+import{Ta as i,v as r}from"./chunk-EIYC64XE.js";var n=i.apiUrl.replace(/\/api\/?$/,""),o=(()=>{class e{transform(t){return t?/^(https?:)?\/\//i.test(t)||t.startsWith("data:")?t:t.startsWith("/uploads/")?n+t:t:""}static \u0275fac=function(a){return new(a||e)};static \u0275pipe=r({name:"mediaUrl",type:e,pure:!0,standalone:!0})}return e})();export{o as a};
