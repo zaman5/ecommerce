@@ -101,21 +101,25 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
                 <div class="line total"><span>Total</span><strong class="price">Rs {{ o.grandTotal | number }}</strong></div>
               </div>
 
-              <div class="card card-pad mt">
+                <div class="card card-pad mt">
                 <h3>Delivery</h3>
                 <p class="addr">
                   <strong>{{ o.shippingAddress.fullName }}</strong><br />
                   {{ o.shippingAddress.line1 }}<br />
                   {{ o.shippingAddress.city }}{{ o.shippingAddress.province ? ', ' + o.shippingAddress.province : '' }}
                   {{ o.shippingAddress.postalCode }}<br />
-                  📞 {{ o.shippingAddress.phone }}
+                  📞 {{ o.shippingAddress.phone }}<br />
+                  @if (custEmail(o)) {
+                    ✉️ {{ custEmail(o) }}
+                  }
                 </p>
                 <div class="line"><span>Payment</span><strong>{{ payLabel(o.paymentMethod) }}</strong></div>
                 <div class="line"><span>Payment status</span><span class="status" [class]="o.paymentStatus === 'paid' ? 'status-delivered' : 'status-pending'">{{ o.paymentStatus }}</span></div>
                 @if (o.paymentMethod === 'jazzcash' && o.paymentScreenshot) {
                   <div class="screenshot-section mt">
                     <strong>Payment screenshot</strong>
-                    <img [src]="o.paymentScreenshot | mediaUrl" alt="Payment screenshot" class="pay-screenshot" (click)="openScreenshot(o.paymentScreenshot!)" />
+                    <img [src]="o.paymentScreenshot | mediaUrl" alt="Payment screenshot" class="pay-screenshot" (click)="openScreenshot(o.paymentScreenshot!)" title="Click to view full size" />
+                    <button type="button" class="btn btn-sm btn-ghost mt-xs" (click)="openScreenshot(o.paymentScreenshot!)">🔍 View Full Screenshot</button>
                   </div>
                 }
               </div>
@@ -126,6 +130,24 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
           <div class="center mt-lg"><h2>Order not found</h2></div>
         }
       </div>
+
+      <!-- LIGHTBOX MODAL -->
+      @if (previewModalUrl()) {
+        <div class="lightbox-overlay" (click)="closeScreenshot()">
+          <div class="lightbox-modal" (click)="$event.stopPropagation()">
+            <div class="lightbox-header">
+              <h3>📷 Payment Screenshot</h3>
+              <div class="lightbox-controls">
+                <a [href]="previewModalUrl()" target="_blank" class="btn btn-sm btn-ghost">↗ New Tab</a>
+                <button class="close-btn" (click)="closeScreenshot()" aria-label="Close">✕</button>
+              </div>
+            </div>
+            <div class="lightbox-body">
+              <img [src]="previewModalUrl()" alt="Payment Screenshot" class="lightbox-image" />
+            </div>
+          </div>
+        </div>
+      }
     </section>
   `,
   styles: [`
@@ -155,8 +177,41 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
     .addr { line-height:1.7; color: var(--ink); }
     .screenshot-section { margin-top:12px; }
     .screenshot-section strong { display:block; margin-bottom:6px; font-size:.9rem; }
-    .pay-screenshot { width:140px; height:140px; object-fit:cover; border-radius:10px; border:2px solid var(--line); cursor:pointer; transition: transform .2s, box-shadow .2s; }
-    .pay-screenshot:hover { transform:scale(1.05); box-shadow: var(--shadow-md); }
+    .mt-xs { margin-top: 6px; }
+
+    /* Lightbox Modal */
+    .lightbox-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);
+      z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+      animation: fadeIn .15s ease-out;
+    }
+    .lightbox-modal {
+      background: var(--surface); border-radius: 16px; border: 1px solid var(--line);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); max-width: 90vw; max-height: 90vh;
+      display: flex; flex-direction: column; overflow: hidden; animation: scaleIn .15s ease-out;
+    }
+    .lightbox-header {
+      display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;
+      border-bottom: 1px solid var(--line); background: var(--cream-deep);
+    }
+    .lightbox-header h3 { margin: 0; font-size: 1.1rem; }
+    .lightbox-controls { display: flex; align-items: center; gap: 8px; }
+    .close-btn {
+      background: none; border: none; font-size: 1.3rem; color: var(--ink);
+      cursor: pointer; padding: 4px 8px; border-radius: 6px; line-height: 1;
+    }
+    .close-btn:hover { background: rgba(0,0,0,0.08); color: var(--accent); }
+    .lightbox-body {
+      padding: 16px; display: flex; align-items: center; justify-content: center;
+      overflow: auto; max-height: calc(90vh - 70px); background: #000;
+    }
+    .lightbox-image {
+      max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleIn { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
     @media (max-width: 860px) { .detail-grid { grid-template-columns: 1fr; } }
   `],
 })
@@ -165,6 +220,7 @@ export class OrderDetailComponent implements OnInit {
   loading = signal(true);
   cancelling = signal(false);
   justPlaced = signal(false);
+  previewModalUrl = signal<string | null>(null);
   /** Present when this browser placed the order as a guest. */
   private guestToken?: string;
 
@@ -183,8 +239,6 @@ export class OrderDetailComponent implements OnInit {
     this.justPlaced.set(this.route.snapshot.queryParams['placed'] === '1');
     this.route.paramMap.subscribe((p) => {
       const id = p.get('id')!;
-      // A guest proves ownership with the token saved at checkout; the ?token=
-      // query param also works so a confirmation link can be shared/bookmarked.
       this.guestToken = this.route.snapshot.queryParams['token'] || this.orderSvc.guestTokenFor(id);
       this.loading.set(true);
       this.orderSvc.get(id, this.guestToken).subscribe({
@@ -197,12 +251,17 @@ export class OrderDetailComponent implements OnInit {
   private rank(status: string) { return this.order_flow.indexOf(status); }
   isDone(o: Order, key: string) { return this.rank(o.status) >= this.rank(key); }
   isCurrent(o: Order, key: string) { return o.status === key; }
-  eventFor(o: Order, key: string) { return o.tracking.find((t) => t.status === key); }
-  reversed(arr: any[]) { return [...arr].reverse(); }
+  eventFor(o: Order, key: string) { return o.tracking?.find((t) => t.status === key); }
+  reversed(arr: any[]) { return arr ? [...arr].reverse() : []; }
   canCancel(o: Order) { return ['pending', 'confirmed'].includes(o.status); }
-  label(s: string) { return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
+  label(s: string) { return s ? s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : ''; }
   payLabel(m: string) {
     return ({ cod: 'Cash on delivery', card: 'Card', jazzcash: 'JazzCash', easypaisa: 'Easypaisa' } as any)[m] || m;
+  }
+
+  custEmail(o: Order) {
+    if (o.user && typeof o.user === 'object' && o.user.email) return o.user.email;
+    return o.guestEmail || '';
   }
 
   cancel(o: Order) {
@@ -217,12 +276,15 @@ export class OrderDetailComponent implements OnInit {
   getMediaUrl(url: string | undefined | null): string {
     if (!url) return '';
     if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:')) return url;
-    if (url.startsWith('/uploads/')) return 'http://localhost:5000' + url;
     return url;
   }
 
   openScreenshot(url: string) {
-    window.open(this.getMediaUrl(url), '_blank');
+    this.previewModalUrl.set(this.getMediaUrl(url));
+  }
+
+  closeScreenshot() {
+    this.previewModalUrl.set(null);
   }
 }
 
