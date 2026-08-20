@@ -1,4 +1,4 @@
-import EmailTemplate from '../models/EmailTemplate.js';
+import { getEmailTemplate, getEmailAttachment } from '../models/EmailTemplate.js';
 import { getAllTemplates, getTemplate, sendTestEmail } from '../utils/emailService.js';
 
 export async function getTemplates(req, res) {
@@ -26,6 +26,8 @@ export async function getTemplateByType(req, res) {
 export async function updateTemplate(req, res) {
   try {
     const { type } = req.params;
+    const EmailTemplate = getEmailTemplate();
+    const EmailAttachment = getEmailAttachment();
     const {
       title,
       subject,
@@ -40,25 +42,44 @@ export async function updateTemplate(req, res) {
       isActive,
     } = req.body;
 
-    let template = await EmailTemplate.findOne({ type });
+    let template = await EmailTemplate.findOne({ where: { type } });
     if (!template) {
-      template = new EmailTemplate({ type, title: title || type });
+      template = await EmailTemplate.create({ type, title: title || type, subject: subject || type });
     }
 
-    if (title !== undefined) template.title = title;
-    if (subject !== undefined) template.subject = subject;
-    if (heading !== undefined) template.heading = heading;
-    if (subtitle !== undefined) template.subtitle = subtitle;
-    if (customMessage !== undefined) template.customMessage = customMessage;
-    if (closingMessage !== undefined) template.closingMessage = closingMessage;
-    if (footerText !== undefined) template.footerText = footerText;
-    if (brandColor !== undefined) template.brandColor = brandColor;
-    if (headerBanner !== undefined) template.headerBanner = headerBanner;
-    if (attachments !== undefined) template.attachments = attachments;
-    if (isActive !== undefined) template.isActive = isActive;
+    const data = {};
+    if (title !== undefined) data.title = title;
+    if (subject !== undefined) data.subject = subject;
+    if (heading !== undefined) data.heading = heading;
+    if (subtitle !== undefined) data.subtitle = subtitle;
+    if (customMessage !== undefined) data.customMessage = customMessage;
+    if (closingMessage !== undefined) data.closingMessage = closingMessage;
+    if (footerText !== undefined) data.footerText = footerText;
+    if (brandColor !== undefined) data.brandColor = brandColor;
+    if (headerBanner !== undefined) data.headerBanner = headerBanner;
+    if (isActive !== undefined) data.isActive = isActive;
 
-    await template.save();
-    res.json(template);
+    await template.update(data);
+
+    if (attachments !== undefined) {
+      await EmailAttachment.destroy({ where: { templateId: template.id } });
+      if (Array.isArray(attachments) && attachments.length > 0) {
+        await EmailAttachment.bulkCreate(
+          attachments.map((att) => ({
+            templateId: template.id,
+            name: att.name || 'attachment',
+            url: att.url || '',
+            path: att.path || '',
+            size: att.size || 0,
+          }))
+        );
+      }
+    }
+
+    const reloaded = await EmailTemplate.findByPk(template.id, {
+      include: [{ association: 'attachments' }],
+    });
+    res.json(reloaded);
   } catch (err) {
     res.status(400).json({ message: err.message || 'Failed to update email template.' });
   }

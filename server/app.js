@@ -4,7 +4,7 @@ import morgan from 'morgan';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import mongoose from 'mongoose';
+import { getSequelize } from './config/db.js';
 
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -24,8 +24,6 @@ import { notFound, errorHandler } from './middleware/error.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// The Express app is built here (and exported) so tests can mount it with
-// supertest without opening a port. server.js owns the DB connect + listen.
 export function createApp() {
   const app = express();
 
@@ -33,23 +31,29 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
   if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
 
-  app.get('/api/health', (req, res) => {
-    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-    const dbState = states[mongoose.connection.readyState] || 'unknown';
+  app.get('/api/health', async (req, res) => {
+    const sequelize = getSequelize();
+    let isConnected = false;
+    if (sequelize) {
+      try {
+        await sequelize.authenticate();
+        isConnected = true;
+      } catch {
+        isConnected = false;
+      }
+    }
     res.json({
       status: 'ok',
       time: new Date(),
       database: {
-        status: dbState,
-        connected: mongoose.connection.readyState === 1,
-        hasMongoUri: Boolean(process.env.MONGO_URI),
+        status: isConnected ? 'connected' : 'disconnected',
+        connected: isConnected,
+        dialect: 'mysql',
+        database: process.env.DB_NAME || 'wondercart',
       },
     });
   });
 
-  // Uploaded product photos. Served from disk, which works for a normal Node
-  // host but NOT on a serverless platform like Vercel, where the filesystem is
-  // ephemeral — move to Cloudinary/S3 before deploying there.
   app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d' }));
 
   app.use('/api/auth', authRoutes);
@@ -79,7 +83,7 @@ export function createApp() {
 
   app.use(express.static(clientDist, { maxAge: '7d' }));
 
-  // SPA fallback: any non-API and non-uploads route returns index.html so Angular Router works
+  // SPA fallback
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return next();
     const indexPath = path.join(clientDist, 'index.html');
@@ -96,5 +100,3 @@ export function createApp() {
 }
 
 export default createApp;
-
-

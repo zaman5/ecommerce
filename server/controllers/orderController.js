@@ -1,14 +1,14 @@
 import crypto from 'crypto';
-import Order from '../models/Order.js';
-import Product from '../models/Product.js';
-import User from '../models/User.js';
+import { getOrder as getOrderModel, getOrderItem, getOrderTracking } from '../models/Order.js';
+import { getProduct } from '../models/Product.js';
+import { getUser } from '../models/User.js';
 import { sendOrderConfirmation, sendOrderDispatched, sendOrderDelivered } from '../utils/emailService.js';
 import { scopedProductIds } from '../middleware/auth.js';
+import { isValidEmail } from '../utils/email.js';
+import { Op } from 'sequelize';
 
-const SHIPPING_FEE = 250; // flat PKR shipping; adjust as needed
+const SHIPPING_FEE = 250; // flat PKR shipping
 
-// Everything a delivery actually needs. Province and postal code are optional
-// on purpose — guest checkout only asks for what's required.
 function validateAddress(address) {
   if (!address) return 'Please provide a complete shipping address.';
   if (!address.fullName?.trim()) return 'Please enter your full name.';
@@ -18,30 +18,28 @@ function validateAddress(address) {
   return null;
 }
 
-// A guest proves ownership of their order with this token instead of a login.
 function newGuestToken() {
   return crypto.randomBytes(24).toString('hex');
 }
 
-// True when the requester may see/act on this order: the owner, an admin, or a
-// guest presenting the matching token.
 function canAccess(order, req) {
   if (req.user) {
     if (req.user.role === 'admin') return true;
-    // `user` may be populated or a raw ObjectId depending on the caller.
-    const ownerId = order.user?._id || order.user;
-    if (ownerId && ownerId.toString() === req.user._id.toString()) return true;
-    // A logged-in user may still open a guest order they hold the token for.
+    const ownerId = order.userId || (order.user?.id);
+    if (ownerId && String(ownerId) === String(req.user.id)) return true;
   }
   const token = req.query.token || req.body?.token;
   return !!(token && order.guestToken && token === order.guestToken);
 }
 
 // POST /api/orders
-// Works signed-in *or* as a guest (optionalAuth): guests must supply an email
-// so they get a confirmation and a tracking link.
 export async function placeOrder(req, res, next) {
   try {
+    const Order = getOrderModel();
+    const OrderItem = getOrderItem();
+    const OrderTracking = getOrderTracking();
+    const Product = getProduct();
+
     const { items, shippingAddress, paymentMethod, email, paymentScreenshot } = req.body;
     if (!items || !items.length) return res.status(400).json({ message: 'Your cart is empty.' });
 
@@ -54,28 +52,25 @@ export async function placeOrder(req, res, next) {
       return res.status(400).json({ message: 'Please enter a valid email so we can send your order confirmation.' });
     }
 
-    // Rebuild the order from trusted DB prices (never trust client-sent prices)
     const orderItems = [];
     let itemsTotal = 0;
-    // Stock is held per product, not per colour, so the same product ordered in
-    // two colours arrives as two lines that must be counted against one pool.
     const claimed = new Map();
 
     for (const line of items) {
       const qty = Math.max(1, Number(line.qty) || 1);
-      const product = await Product.findById(line.product);
+      const product = await Product.findByPk(line.product, {
+        include: [{ association: 'colors' }],
+      });
       if (!product || !product.isActive) {
         return res.status(400).json({ message: `A product in your cart is no longer available.` });
       }
-      const key = product._id.toString();
+      const key = String(product.id);
       const totalWanted = (claimed.get(key) || 0) + qty;
       if (product.stock < totalWanted) {
         return res.status(400).json({ message: `Only ${product.stock} left of "${product.name}".` });
       }
       claimed.set(key, totalWanted);
 
-      // Colour is resolved against the product exactly like price is — the
-      // client may only name one of the colours the product actually offers.
       let color = '';
       if (product.colors?.length) {
         const wanted = (line.color || '').trim();
@@ -87,10 +82,10 @@ export async function placeOrder(req, res, next) {
       }
 
       orderItems.push({
-        product: product._id,
+        productId: product.id,
         name: product.name,
         slug: product.slug,
-        image: product.images?.[0] || '',
+        image: Array.isArray(product.images) ? product.images[0] || '' : '',
         color,
         price: product.price,
         qty,
@@ -102,38 +97,65 @@ export async function placeOrder(req, res, next) {
     const guestToken = isGuest ? newGuestToken() : '';
 
     const order = await Order.create({
-      user: req.user?._id || null,
+      userId: req.user?.id || null,
       isGuest,
       guestEmail: isGuest ? guestEmail : req.user.email,
       guestToken,
-      items: orderItems,
-      shippingAddress,
+      shippingFullName: shippingAddress.fullName?.trim() || '',
+      shippingLine1: shippingAddress.line1?.trim() || '',
+      shippingCity: shippingAddress.city?.trim() || '',
+      shippingProvince: shippingAddress.province?.trim() || '',
+      shippingPostalCode: shippingAddress.postalCode?.trim() || '',
+      shippingPhone: shippingAddress.phone?.trim() || '',
       itemsTotal,
       shippingFee: SHIPPING_FEE,
       grandTotal,
       paymentMethod: paymentMethod || 'cod',
       paymentScreenshot: paymentMethod === 'jazzcash' ? (paymentScreenshot || '') : '',
       status: 'pending',
-      tracking: [{ status: 'pending', note: 'Order placed successfully.', at: new Date() }],
     });
 
-    // Decrement stock and increment sales counters (for analytics)
+    // Create order items
+    await OrderItem.bulkCreate(
+      orderItems.map((item) => ({ ...item, orderId: order.id }))
+    );
+
+    // Create initial tracking
+    await OrderTracking.create({
+      orderId: order.id,
+      status: 'pending',
+      note: 'Order placed successfully.',
+      at: new Date(),
+    });
+
+    // Decrement stock and increment unitsSold
     for (const line of orderItems) {
-      await Product.findByIdAndUpdate(line.product, {
-        $inc: { stock: -line.qty, unitsSold: line.qty },
-      });
+      const p = await Product.findByPk(line.productId);
+      if (p) {
+        await p.decrement('stock', { by: line.qty });
+        await p.increment('unitsSold', { by: line.qty });
+      }
     }
 
+    // Reload order with items and tracking
+    const fullOrder = await Order.findByPk(order.id, {
+      include: [
+        { association: 'items' },
+        { association: 'tracking' },
+        { association: 'user', attributes: ['name', 'email'] },
+      ],
+    });
+
     // Trigger order confirmation email in background
-    sendOrderConfirmation(order).catch((err) => {
+    sendOrderConfirmation(fullOrder).catch((err) => {
       console.error('Failed to send order confirmation email:', err.message);
     });
 
-    // The token is returned exactly once — the browser stores it so the guest
-    // can reopen this order later.
-    const body = order.toObject();
-    delete body.guestToken;
-    res.status(201).json(isGuest ? { ...body, guestToken } : body);
+    const body = fullOrder.toJSON();
+    if (isGuest) {
+      body.guestToken = guestToken;
+    }
+    res.status(201).json(body);
   } catch (err) {
     next(err);
   }
@@ -142,37 +164,55 @@ export async function placeOrder(req, res, next) {
 // GET /api/orders/mine
 export async function myOrders(req, res, next) {
   try {
-    const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const Order = getOrderModel();
+    const orders = await Order.findAll({
+      where: { userId: req.user.id },
+      include: [
+        { association: 'items' },
+        { association: 'tracking' },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
     res.json(orders);
   } catch (err) {
     next(err);
   }
 }
 
-// GET /api/orders/:id?token=…  (owner, admin, or a guest with the token)
-export async function getOrder(req, res, next) {
+// GET /api/orders/:id?token=…
+export async function getOrderById(req, res, next) {
   try {
-    const order = await Order.findById(req.params.id)
-      .select('+guestToken')
-      .populate('user', 'name email');
+    const Order = getOrderModel();
+    const order = await Order.findByPk(req.params.id, {
+      include: [
+        { association: 'items' },
+        { association: 'tracking' },
+        { association: 'user', attributes: ['name', 'email'] },
+      ],
+    });
     if (!order) return res.status(404).json({ message: 'Order not found.' });
 
     if (!canAccess(order, req)) {
       return res.status(403).json({ message: 'Not allowed to view this order.' });
     }
 
-    const body = order.toObject();
-    delete body.guestToken;
-    res.json(body);
+    res.json(order);
   } catch (err) {
     next(err);
   }
 }
+export const getOrder = getOrderById;
 
-// PUT /api/orders/:id/cancel  (client cancels while still pending/confirmed)
+// PUT /api/orders/:id/cancel
 export async function cancelOrder(req, res, next) {
   try {
-    const order = await Order.findById(req.params.id).select('+guestToken');
+    const Order = getOrderModel();
+    const OrderTracking = getOrderTracking();
+    const Product = getProduct();
+
+    const order = await Order.findByPk(req.params.id, {
+      include: [{ association: 'items' }, { association: 'tracking' }],
+    });
     if (!order) return res.status(404).json({ message: 'Order not found.' });
     if (!canAccess(order, req)) {
       return res.status(403).json({ message: 'Not allowed.' });
@@ -180,39 +220,58 @@ export async function cancelOrder(req, res, next) {
     if (!['pending', 'confirmed'].includes(order.status)) {
       return res.status(400).json({ message: 'This order can no longer be cancelled.' });
     }
+
     order.status = 'cancelled';
-    order.tracking.push({ status: 'cancelled', note: 'Cancelled by customer.', at: new Date() });
-    // return stock
-    for (const line of order.items) {
-      await Product.findByIdAndUpdate(line.product, { $inc: { stock: line.qty, unitsSold: -line.qty } });
-    }
     await order.save();
 
-    const body = order.toObject();
-    delete body.guestToken;
-    res.json(body);
+    await OrderTracking.create({
+      orderId: order.id,
+      status: 'cancelled',
+      note: 'Cancelled by customer.',
+      at: new Date(),
+    });
+
+    // Return stock
+    for (const line of order.items) {
+      const p = await Product.findByPk(line.productId);
+      if (p) {
+        await p.increment('stock', { by: line.qty });
+        await p.decrement('unitsSold', { by: line.qty });
+      }
+    }
+
+    const updated = await Order.findByPk(order.id, {
+      include: [{ association: 'items' }, { association: 'tracking' }],
+    });
+    res.json(updated);
   } catch (err) {
     next(err);
   }
 }
 
-// POST /api/orders/lookup  (guest order tracking: order number + email)
-// Returns the order id + token so the client can open the normal tracking page.
+// POST /api/orders/lookup
 export async function lookupOrder(req, res, next) {
   try {
+    const Order = getOrderModel();
     const orderNumber = (req.body.orderNumber || '').trim().toUpperCase();
     const email = (req.body.email || '').trim().toLowerCase();
     if (!orderNumber || !email) {
       return res.status(400).json({ message: 'Please enter your order number and email.' });
     }
 
-    const order = await Order.findOne({ orderNumber, guestEmail: email }).select('+guestToken');
-    // Deliberately vague: don't reveal whether the number or the email was wrong.
+    const order = await Order.findOne({
+      where: { orderNumber, guestEmail: email },
+    });
     if (!order) {
       return res.status(404).json({ message: 'We could not find an order with those details.' });
     }
 
-    res.json({ id: order._id, orderNumber: order.orderNumber, token: order.guestToken || '' });
+    res.json({
+      id: String(order.id),
+      _id: String(order.id),
+      orderNumber: order.orderNumber,
+      token: order.guestToken || '',
+    });
   } catch (err) {
     next(err);
   }
@@ -220,38 +279,58 @@ export async function lookupOrder(req, res, next) {
 
 // ---- Admin ----
 
-// GET /api/orders  (admin/shop-manager, all orders — scoped for shop managers)
+// GET /api/orders
 export async function adminListOrders(req, res, next) {
   try {
+    const Order = getOrderModel();
+    const OrderItem = getOrderItem();
     const { status } = req.query;
-    const filter = {};
-    if (status) filter.status = status;
+    const where = {};
+    if (status) where.status = status;
 
-    // Shop managers only see orders that contain at least one of their products.
     const ids = await scopedProductIds(req.user);
     if (ids) {
-      filter['items.product'] = { $in: ids };
+      const matchingItems = await OrderItem.findAll({
+        where: { productId: { [Op.in]: ids.map(Number) } },
+        attributes: ['orderId'],
+        raw: true,
+      });
+      const orderIds = [...new Set(matchingItems.map((i) => i.orderId))];
+      where.id = { [Op.in]: orderIds };
     }
 
-    const orders = await Order.find(filter).populate('user', 'name email').sort({ createdAt: -1 });
+    const orders = await Order.findAll({
+      where,
+      include: [
+        { association: 'user', attributes: ['name', 'email'] },
+        { association: 'items' },
+        { association: 'tracking' },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
     res.json(orders);
   } catch (err) {
     next(err);
   }
 }
 
-// PUT /api/orders/:id/status  (admin updates status -> appends to tracking)
+// PUT /api/orders/:id/status
 export async function updateOrderStatus(req, res, next) {
   try {
+    const Order = getOrderModel();
+    const OrderTracking = getOrderTracking();
+    const Product = getProduct();
+
     const { status, note, paymentStatus } = req.body;
     const allowed = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findByPk(req.params.id, {
+      include: [{ association: 'items' }, { association: 'tracking' }, { association: 'user', attributes: ['name', 'email'] }],
+    });
     if (!order) return res.status(404).json({ message: 'Order not found.' });
 
-    // Shop managers may only update orders containing products in their assigned scope.
     if (req.user.role === 'shopmanager') {
       const ids = await scopedProductIds(req.user);
-      const hasItem = order.items.some((line) => ids.includes(line.product.toString()));
+      const hasItem = order.items.some((line) => ids.includes(String(line.productId)));
       if (!hasItem) {
         return res.status(403).json({ message: 'You do not have permission to manage this order.' });
       }
@@ -263,28 +342,20 @@ export async function updateOrderStatus(req, res, next) {
       const wasCancelled = order.status === 'cancelled';
       const nowCancelled = status === 'cancelled';
 
-      // Cancelling puts the goods back on the shelf, exactly as a customer-side
-      // cancel does. Guarded on the *previous* status so re-saving an already
-      // cancelled order can't credit the stock twice.
       if (nowCancelled && !wasCancelled) {
         for (const line of order.items) {
-          await Product.findByIdAndUpdate(line.product, {
-            $inc: { stock: line.qty, unitsSold: -line.qty },
-          });
+          const p = await Product.findByPk(line.productId);
+          if (p) {
+            await p.increment('stock', { by: line.qty });
+            await p.decrement('unitsSold', { by: line.qty });
+          }
         }
       }
 
-      // Reopening a cancelled order has to take the goods off the shelf again.
-      // Without this the credit from cancelling is never undone, so every
-      // cancel/reopen cycle invents stock that was already promised to someone
-      // — and the shop oversells. Checked before anything is written, so a
-      // rejected reopen leaves both the order and the stock untouched.
       if (wasCancelled && !nowCancelled) {
         const short = [];
         for (const line of order.items) {
-          const product = await Product.findById(line.product).select('name stock');
-          // A product deleted since the order was placed holds no stock to
-          // reclaim; the order line keeps its own price/name snapshot.
+          const product = await Product.findByPk(line.productId);
           if (product && product.stock < line.qty) {
             short.push(`${product.name} (${product.stock} left, needs ${line.qty})`);
           }
@@ -295,47 +366,66 @@ export async function updateOrderStatus(req, res, next) {
           });
         }
         for (const line of order.items) {
-          await Product.findByIdAndUpdate(line.product, {
-            $inc: { stock: -line.qty, unitsSold: line.qty },
-          });
+          const p = await Product.findByPk(line.productId);
+          if (p) {
+            await p.decrement('stock', { by: line.qty });
+            await p.increment('unitsSold', { by: line.qty });
+          }
         }
       }
 
       order.status = status;
-      order.tracking.push({ status, note: note || '', at: new Date() });
+      await OrderTracking.create({
+        orderId: order.id,
+        status,
+        note: note || '',
+        at: new Date(),
+      });
+
       if (status === 'delivered') order.paymentStatus = 'paid';
     }
     if (paymentStatus) order.paymentStatus = paymentStatus;
 
     await order.save();
 
-    // Trigger emails on status change
+    const reloaded = await Order.findByPk(order.id, {
+      include: [
+        { association: 'items' },
+        { association: 'tracking' },
+        { association: 'user', attributes: ['name', 'email'] },
+      ],
+    });
+
     if (status === 'shipped') {
-      sendOrderDispatched(order).catch((err) => {
+      sendOrderDispatched(reloaded).catch((err) => {
         console.error('Failed to send order dispatched email:', err.message);
       });
     } else if (status === 'delivered') {
-      sendOrderDelivered(order).catch((err) => {
+      sendOrderDelivered(reloaded).catch((err) => {
         console.error('Failed to send order delivered email:', err.message);
       });
     }
 
-    res.json(order);
+    res.json(reloaded);
   } catch (err) {
     next(err);
   }
 }
 
-// PUT /api/orders/:id/verify-payment  (admin/shop-manager verifies a JazzCash screenshot)
+// PUT /api/orders/:id/verify-payment
 export async function verifyPayment(req, res, next) {
   try {
-    const order = await Order.findById(req.params.id);
+    const Order = getOrderModel();
+    const OrderTracking = getOrderTracking();
+
+    const order = await Order.findByPk(req.params.id, {
+      include: [{ association: 'items' }, { association: 'tracking' }],
+    });
     if (!order) return res.status(404).json({ message: 'Order not found.' });
 
-    // Shop managers may only verify orders containing products in their scope.
     if (req.user.role === 'shopmanager') {
       const ids = await scopedProductIds(req.user);
-      const hasItem = order.items.some((line) => ids.includes(line.product.toString()));
+      const hasItem = order.items.some((line) => ids.includes(String(line.productId)));
       if (!hasItem) {
         return res.status(403).json({ message: 'You do not have permission to manage this order.' });
       }
@@ -346,13 +436,19 @@ export async function verifyPayment(req, res, next) {
     }
 
     order.paymentStatus = 'paid';
-    order.tracking.push({
+    await order.save();
+
+    await OrderTracking.create({
+      orderId: order.id,
       status: order.status,
       note: 'Payment verified by admin.',
       at: new Date(),
     });
-    await order.save();
-    res.json(order);
+
+    const reloaded = await Order.findByPk(order.id, {
+      include: [{ association: 'items' }, { association: 'tracking' }],
+    });
+    res.json(reloaded);
   } catch (err) {
     next(err);
   }

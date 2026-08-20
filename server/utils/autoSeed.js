@@ -1,7 +1,7 @@
-import Category from '../models/Category.js';
-import Product from '../models/Product.js';
-import User from '../models/User.js';
-import Banner from '../models/Banner.js';
+import { getCategory } from '../models/Category.js';
+import { getProduct } from '../models/Product.js';
+import { getUser } from '../models/User.js';
+import { getProductColor } from '../models/Product.js';
 
 const IMG = 'https://images.unsplash.com/photo-';
 const img = (id) => `${IMG}${id}?w=600&q=80`;
@@ -32,21 +32,28 @@ const initialCategories = [
 
 export async function autoSeedIfEmpty() {
   try {
-    const catCount = await Category.countDocuments();
+    const Category = getCategory();
+    const Product = getProduct();
+    const User = getUser();
+
+    if (!Category) return; // models not initialised yet
+
+    const catCount = await Category.count();
     if (catCount === 0) {
       console.log('🌱 Database is empty. Seeding initial categories and admin...');
-      
+
       // Seed Categories
-      const createdCats = await Category.insertMany(initialCategories);
+      await Category.bulkCreate(initialCategories);
+      const allCats = await Category.findAll();
       const catMap = {};
-      createdCats.forEach((c) => {
-        catMap[c.slug] = c._id;
+      allCats.forEach((c) => {
+        catMap[c.slug] = c.id;
       });
 
       // Seed Admin user
-      const existingAdmin = await User.findOne({ email: 'ahsan@wondercart.pk' });
+      const existingAdmin = await User.findOne({ where: { email: 'ahsan@wondercart.pk' } });
       if (!existingAdmin) {
-        const admin = new User({
+        const admin = User.build({
           name: 'Ahsan Ahmad',
           email: 'ahsan@wondercart.pk',
           role: 'admin',
@@ -62,7 +69,7 @@ export async function autoSeedIfEmpty() {
         {
           name: 'Wireless Over-Ear Headphones (ANC)',
           slug: 'wireless-over-ear-headphones-anc',
-          category: catMap['electronics'],
+          categoryId: catMap['electronics'],
           price: 12999,
           compareAtPrice: 15999,
           images: [photos.headphones],
@@ -76,7 +83,7 @@ export async function autoSeedIfEmpty() {
         {
           name: '14" Thin & Light Laptop (16GB RAM)',
           slug: '14-thin-light-laptop-16gb-ram',
-          category: catMap['electronics'],
+          categoryId: catMap['electronics'],
           price: 149999,
           compareAtPrice: 169999,
           images: [photos.laptop],
@@ -90,7 +97,7 @@ export async function autoSeedIfEmpty() {
         {
           name: 'Everyday Cotton Crew T-Shirt',
           slug: 'everyday-cotton-crew-t-shirt',
-          category: catMap['fashion'],
+          categoryId: catMap['fashion'],
           price: 1899,
           compareAtPrice: 2499,
           images: [photos.clothing],
@@ -103,7 +110,7 @@ export async function autoSeedIfEmpty() {
         },
       ];
 
-      await Product.insertMany(demoProducts);
+      await Product.bulkCreate(demoProducts);
       console.log('✅ Initial database seed completed automatically.');
     }
   } catch (err) {

@@ -1,11 +1,10 @@
 import 'dotenv/config';
-import mongoose from 'mongoose';
-import { connectDB } from './config/db.js';
-import User from './models/User.js';
-import Category from './models/Category.js';
-import Product from './models/Product.js';
-import Order from './models/Order.js';
-import Review from './models/Review.js';
+import { connectDB, getSequelize } from './config/db.js';
+import { getUser } from './models/User.js';
+import { getCategory } from './models/Category.js';
+import { getProduct, getProductColor } from './models/Product.js';
+import { getOrder, getOrderItem, getOrderTracking } from './models/Order.js';
+import { getReview } from './models/Review.js';
 import { recalcProductRating } from './controllers/reviewController.js';
 
 const IMG = 'https://images.unsplash.com/photo-';
@@ -91,37 +90,31 @@ function make(name, catSlug, price, opts = {}) {
 }
 
 const productsSeed = [
-  // ---- Electronics ----
   make('Wireless Over-Ear Headphones (ANC)', 'electronics', 12999, { compareAtPrice: 15999, unitsSold: 74, isFeatured: true, rating: 4.8, image: photos.headphones, description: 'Active noise cancelling with 40 hours of playback on one charge. Folds flat into a hard case.' }),
   make('14" Thin & Light Laptop (16GB RAM)', 'electronics', 149999, { compareAtPrice: 169999, unitsSold: 18, stock: 9, rating: 4.7, image: photos.laptop, description: '16GB RAM and a 512GB SSD in a 1.3kg aluminium body. All-day battery and backlit keyboard.' }),
   make('5G Smartphone 128GB (Dual SIM)', 'electronics', 84999, { unitsSold: 42, rating: 4.6, image: photos.smartphone, description: '6.5" AMOLED display, triple camera and 5000mAh battery. Dual SIM with dedicated microSD slot.' }),
   make('Fitness Smartwatch with GPS', 'electronics', 18999, { compareAtPrice: 22999, unitsSold: 56, rating: 4.5, image: photos.smartwatch, description: 'Built-in GPS, heart-rate and sleep tracking with 10-day battery life.' }),
 
-  // ---- Fashion ----
   make('Everyday Cotton Crew T-Shirt', 'fashion', 1899, { compareAtPrice: 2499, unitsSold: 132, isFeatured: true, rating: 4.6, image: photos.clothing, description: 'Mid-weight combed cotton that keeps its shape after washing. Pre-shrunk ribbed collar.' }),
   make('Low-Top Canvas Sneakers', 'fashion', 4999, { unitsSold: 67, rating: 4.5, image: photos.sneakers, description: 'Cushioned insole and a vulcanised rubber sole with great grip. Goes with any casual outfit.' }),
   make('Stainless Steel Analogue Watch', 'fashion', 11999, { compareAtPrice: 14999, unitsSold: 34, stock: 14, rating: 4.8, image: photos.watch, description: 'Sapphire-coated crystal, 5ATM water resistance and solid link bracelet.' }),
   make('Structured Leather Shoulder Bag', 'fashion', 8499, { unitsSold: 45, rating: 4.6, image: photos.handbag, description: 'Full-grain leather with suede-lined interior, laptop sleeve and adjustable strap.' }),
 
-  // ---- Collectibles & Art ----
   make('Vintage 35mm Film Camera (Refurbished)', 'collectibles-and-art', 24999, { compareAtPrice: 29999, unitsSold: 11, stock: 5, isFeatured: true, rating: 4.9, image: photos.vintageCamera, description: 'Serviced, light-sealed and test-rolled before dispatch. Includes original 50mm lens.' }),
   make('Framed Abstract Canvas Print (60x90cm)', 'collectibles-and-art', 13999, { unitsSold: 16, rating: 4.7, image: photos.painting, description: 'Giclée print on cotton canvas in a solid oak float frame. Ready to hang.' }),
   make('Rare Coin Collector Starter Album', 'collectibles-and-art', 5499, { unitsSold: 22, rating: 4.8, image: photos.coins, description: 'Acid-free album with 240 labelled pockets, magnifier and cotton handling gloves.' }),
   make('Classic Rock Vinyl LP Bundle (3 Records)', 'collectibles-and-art', 9999, { compareAtPrice: 11999, unitsSold: 27, stock: 8, rating: 4.9, image: photos.vinyl, description: 'Three remastered 180g pressings in sealed anti-static sleeves.' }),
 
-  // ---- Sports ----
   make('Match-Grade Football (Size 5)', 'sports', 3999, { compareAtPrice: 4999, unitsSold: 88, isFeatured: true, rating: 4.7, image: photos.football, description: 'Thermally bonded panels that hold shape and stay light in wet conditions. FIFA-standard.' }),
   make('Adjustable Dumbbell Set (2–24kg)', 'sports', 34999, { unitsSold: 19, stock: 7, rating: 4.8, image: photos.dumbbells, description: 'One dial swaps 15 weight settings, replacing a full rack. Non-slip grip.' }),
   make('21-Speed Aluminium Mountain Bike', 'sports', 62999, { compareAtPrice: 74999, unitsSold: 9, stock: 4, rating: 4.6, image: photos.bicycle, description: 'Lightweight alloy frame, front suspension and dual disc brakes.' }),
   make('Non-Slip Yoga Mat (6mm)', 'sports', 4499, { unitsSold: 73, rating: 4.7, image: photos.yoga, description: 'Closed-cell surface that grips well during intense sessions. Comes with carry strap.' }),
 
-  // ---- Health & Beauty ----
   make('Everyday Makeup Starter Palette', 'health-and-beauty', 6999, { compareAtPrice: 8499, unitsSold: 91, isFeatured: true, rating: 4.8, image: photos.cosmetics, description: 'Twelve blendable neutrals in matte and shimmer, plus a dual-ended brush.' }),
   make('Vitamin C Brightening Serum (30ml)', 'health-and-beauty', 4299, { unitsSold: 118, rating: 4.9, image: photos.skincare, description: '15% stabilised vitamin C with hyaluronic acid in UV-blocking bottle.' }),
   make('Eau de Parfum — Amber & Oud (100ml)', 'health-and-beauty', 15999, { compareAtPrice: 18999, unitsSold: 37, stock: 15, rating: 4.8, image: photos.perfume, description: 'Warm amber over rich oud and cedar with 8-hour wear.' }),
   make('Argan Oil Repair Shampoo & Conditioner', 'health-and-beauty', 3299, { unitsSold: 64, rating: 4.6, image: photos.haircare, description: 'Sulphate-free pair for dry or colour-treated hair. Deeply moisturizing.' }),
 
-  // ---- Home & Garden ----
   make('Three-Seater Fabric Sofa', 'home-and-garden', 89999, { compareAtPrice: 109999, unitsSold: 8, stock: 4, isFeatured: true, rating: 4.7, image: photos.sofa, description: 'Hardwood frame with high-resilience foam and removable, washable covers.' }),
   make('Garden Tool Set with Carry Bag (8 pcs)', 'home-and-garden', 6499, { unitsSold: 52, rating: 4.6, image: photos.garden, description: 'Forged stainless heads on hardwood handles in a waxed canvas bag.' }),
   make('Non-Stick Cookware Set (10 pcs)', 'home-and-garden', 18999, { compareAtPrice: 23999, unitsSold: 39, rating: 4.8, image: photos.kitchen, description: 'PFOA-free granite coating with induction bases and glass lids.' }),
@@ -144,19 +137,33 @@ const reviewTexts = [
 ];
 
 async function run() {
-  await connectDB(process.env.MONGO_URI);
+  const sequelize = await connectDB({ skipAutoSeed: true });
+  if (!sequelize) {
+    console.error('Could not connect to database.');
+    process.exit(1);
+  }
+
+  const User = getUser();
+  const Category = getCategory();
+  const Product = getProduct();
+  const ProductColor = getProductColor();
+  const Order = getOrder();
+  const OrderItem = getOrderItem();
+  const OrderTracking = getOrderTracking();
+  const Review = getReview();
 
   console.log('🧹 Clearing existing data...');
-  await Promise.all([
-    User.deleteMany({}),
-    Category.deleteMany({}),
-    Product.deleteMany({}),
-    Order.deleteMany({}),
-    Review.deleteMany({}),
-  ]);
+  await Review.destroy({ where: {}, truncate: { cascade: true } }).catch(() => {});
+  await OrderItem.destroy({ where: {} }).catch(() => {});
+  await OrderTracking.destroy({ where: {} }).catch(() => {});
+  await Order.destroy({ where: {}, truncate: { cascade: true } }).catch(() => {});
+  await ProductColor.destroy({ where: {} }).catch(() => {});
+  await Product.destroy({ where: {}, truncate: { cascade: true } }).catch(() => {});
+  await Category.destroy({ where: {}, truncate: { cascade: true } }).catch(() => {});
+  await User.destroy({ where: {}, truncate: { cascade: true } }).catch(() => {});
 
   console.log('👤 Creating admin, shop manager + demo client...');
-  const admin = new User({
+  const admin = User.build({
     name: process.env.ADMIN_NAME || 'Store Admin',
     email: process.env.ADMIN_EMAIL || 'admin@wondercart.pk',
     role: 'admin',
@@ -164,7 +171,7 @@ async function run() {
   await admin.setPassword(process.env.ADMIN_PASSWORD || 'admin12345');
   await admin.save();
 
-  const adminAhsan = new User({
+  const adminAhsan = User.build({
     name: 'Ahsan Admin',
     email: 'ahsan@wondercart.pk',
     role: 'admin',
@@ -173,63 +180,75 @@ async function run() {
   await adminAhsan.setPassword('Ahsan@Ahmad123');
   await adminAhsan.save();
 
-  const client = new User({ name: 'Demo Customer', email: 'customer@wondercart.pk', role: 'client', phone: '03001234567' });
+  const client = User.build({ name: 'Demo Customer', email: 'customer@wondercart.pk', role: 'client', phone: '03001234567' });
   await client.setPassword('customer123');
   await client.save();
 
   console.log('🏷️  Creating categories...');
-  const cats = await Category.insertMany(categoriesSeed);
-  const catMap = Object.fromEntries(cats.map((c) => [c.slug, c._id]));
+  await Category.bulkCreate(categoriesSeed);
+  const allCats = await Category.findAll();
+  const catMap = Object.fromEntries(allCats.map((c) => [c.slug, c.id]));
 
   // Demo Shop Manager assigned to Electronics category
-  const manager = new User({
+  const manager = User.build({
     name: 'Demo Shop Manager',
     email: 'manager@wondercart.pk',
     role: 'shopmanager',
-    assignedCategories: [catMap['electronics']],
     isActive: true,
   });
   await manager.setPassword('manager123');
   await manager.save();
+  if (catMap['electronics']) {
+    await manager.setAssignedCategories([catMap['electronics']]);
+  }
 
   console.log('📦 Creating products...');
-  const docs = productsSeed.map((p) => ({
-    name: p.name,
-    slug: p.slug,
-    description: p.description,
-    brand: p.brand,
-    category: catMap[p.catSlug],
-    price: p.price,
-    compareAtPrice: p.compareAtPrice,
-    images: [p.image],
-    colors: p.colors,
-    stock: p.stock,
-    rating: 0,
-    numReviews: 0,
-    unitsSold: p.unitsSold,
-    isFeatured: p.isFeatured,
-    isFlashSale: p.isFlashSale ?? (p.compareAtPrice > p.price),
-  }));
-  const products = await Product.insertMany(docs);
+  const createdProducts = [];
+  for (const p of productsSeed) {
+    const isFlash = p.isFlashSale ?? (p.compareAtPrice > p.price);
+    const prod = await Product.create({
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      brand: p.brand,
+      categoryId: catMap[p.catSlug],
+      price: p.price,
+      compareAtPrice: p.compareAtPrice,
+      images: [p.image],
+      stock: p.stock,
+      rating: 0,
+      numReviews: 0,
+      unitsSold: p.unitsSold,
+      isFeatured: p.isFeatured,
+      isFlashSale: isFlash,
+    });
+
+    if (p.colors?.length) {
+      await ProductColor.bulkCreate(
+        p.colors.map((c) => ({ ...c, productId: prod.id }))
+      );
+    }
+    createdProducts.push(prod);
+  }
 
   console.log('⭐ Creating reviewers + reviews...');
   const reviewers = [];
   for (const r of reviewersSeed) {
-    const u = new User({ name: r.name, email: r.email, role: 'client' });
+    const u = User.build({ name: r.name, email: r.email, role: 'client' });
     await u.setPassword('reviewer123');
     await u.save();
     reviewers.push(u);
   }
 
   let cursor = 0;
-  for (const [pIndex, product] of products.entries()) {
+  for (const [pIndex, product] of createdProducts.entries()) {
     const howMany = 2 + (pIndex % 3);
     for (let i = 0; i < howMany; i++) {
       const reviewer = reviewers[(pIndex + i) % reviewers.length];
       const [rating, comment] = reviewTexts[cursor % reviewTexts.length];
       await Review.create({
-        product: product._id,
-        user: reviewer._id,
+        productId: product.id,
+        userId: reviewer.id,
         name: reviewer.name,
         rating,
         comment,
@@ -237,20 +256,19 @@ async function run() {
       });
       cursor++;
     }
-    await recalcProductRating(product._id);
+    await recalcProductRating(product.id);
   }
 
-  const reviewCount = await Review.countDocuments();
+  const reviewCount = await Review.count();
 
   console.log('\n✅ Seed complete!');
-  console.log(`   ${products.length} products · ${reviewCount} reviews`);
+  console.log(`   ${createdProducts.length} products · ${reviewCount} reviews`);
   console.log('----------------------------------------');
   console.log('Admin login       :', admin.email, '/', process.env.ADMIN_PASSWORD || 'admin12345');
   console.log('Shop Manager login: manager@wondercart.pk / manager123');
   console.log('Client login      : customer@wondercart.pk / customer123');
   console.log('----------------------------------------');
 
-  await mongoose.disconnect();
   process.exit(0);
 }
 

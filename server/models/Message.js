@@ -1,28 +1,78 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+
+let Message;
 
 /**
  * A message sent from the public "Contact us" form.
- *
- * Anyone can write one, so every field is length-capped at the schema as well
- * as in the controller — the cap is the last line of defence if another caller
- * is ever added.
  */
-const messageSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true, maxlength: 120 },
-    email: { type: String, required: true, trim: true, lowercase: true, maxlength: 200 },
-    subject: { type: String, required: true, trim: true, maxlength: 160 },
-    body: { type: String, required: true, trim: true, maxlength: 4000 },
-    /** Optional — lets a shopper point at the order they are asking about. */
-    orderNumber: { type: String, default: '', trim: true, maxlength: 40 },
-    isRead: { type: Boolean, default: false },
-    /** Set when a signed-in customer writes, so the admin knows who they are. */
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  },
-  { timestamps: true }
-);
+export function defineMessage(sequelize) {
+  Message = sequelize.define(
+    'Message',
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      name: {
+        type: DataTypes.STRING(120),
+        allowNull: false,
+      },
+      email: {
+        type: DataTypes.STRING(200),
+        allowNull: false,
+        set(val) {
+          this.setDataValue('email', String(val || '').toLowerCase().trim());
+        },
+      },
+      subject: {
+        type: DataTypes.STRING(160),
+        allowNull: false,
+      },
+      body: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      /** Optional — lets a shopper point at the order they are asking about. */
+      orderNumber: {
+        type: DataTypes.STRING(40),
+        defaultValue: '',
+        field: 'order_number',
+      },
+      isRead: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        field: 'is_read',
+      },
+      /** Set when a signed-in customer writes, so the admin knows who they are. */
+      userId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        defaultValue: null,
+        field: 'user_id',
+      },
+    },
+    {
+      tableName: 'messages',
+      timestamps: true,
+      underscored: true,
+    }
+  );
 
-// The inbox is read newest-first, usually filtered to unread.
-messageSchema.index({ isRead: 1, createdAt: -1 });
+  const originalToJSON = Message.prototype.toJSON;
+  Message.prototype.toJSON = function () {
+    const json = originalToJSON.call(this);
+    if (json.id) {
+      json._id = json.id.toString();
+    }
+    json.user = json.userId;
+    return json;
+  };
 
-export default mongoose.model('Message', messageSchema);
+  return Message;
+}
+
+export function getMessage() {
+  return Message;
+}
+
+export default defineMessage;

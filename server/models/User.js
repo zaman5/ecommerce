@@ -1,62 +1,127 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
 import bcrypt from 'bcryptjs';
 
-const addressSchema = new mongoose.Schema(
-  {
-    line1: String,
-    city: String,
-    province: String,
-    postalCode: String,
-    phone: String,
-  },
-  { _id: false }
-);
+let User;
 
-const userSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true },
-    role: { type: String, enum: ['client', 'admin', 'shopmanager'], default: 'client' },
-    phone: { type: String, default: '' },
-    address: { type: addressSchema, default: {} },
-    // Shop manager scoping — only meaningful when role === 'shopmanager'.
-    // The admin assigns one or both: categories give broad access to every
-    // product filed under them, while assignedProducts grants item-level access.
-    assignedCategories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
-    assignedProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
-    // Admin can disable a shop manager without deleting the account.
-    isActive: { type: Boolean, default: true },
-  },
-  { timestamps: true }
-);
+export function defineUser(sequelize) {
+  User = sequelize.define(
+    'User',
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      name: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+      email: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        unique: true,
+        set(val) {
+          this.setDataValue('email', String(val || '').toLowerCase().trim());
+        },
+      },
+      passwordHash: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        field: 'password_hash',
+      },
+      role: {
+        type: DataTypes.ENUM('client', 'admin', 'shopmanager'),
+        defaultValue: 'client',
+      },
+      phone: {
+        type: DataTypes.STRING(50),
+        defaultValue: '',
+      },
+      // Address fields flattened (was embedded sub-document)
+      addressLine1: {
+        type: DataTypes.STRING(500),
+        defaultValue: '',
+        field: 'address_line1',
+      },
+      addressCity: {
+        type: DataTypes.STRING(255),
+        defaultValue: '',
+        field: 'address_city',
+      },
+      addressProvince: {
+        type: DataTypes.STRING(255),
+        defaultValue: '',
+        field: 'address_province',
+      },
+      addressPostalCode: {
+        type: DataTypes.STRING(20),
+        defaultValue: '',
+        field: 'address_postal_code',
+      },
+      addressPhone: {
+        type: DataTypes.STRING(50),
+        defaultValue: '',
+        field: 'address_phone',
+      },
+      // Admin can disable a shop manager without deleting the account.
+      isActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        field: 'is_active',
+      },
+    },
+    {
+      tableName: 'users',
+      timestamps: true,
+      underscored: true,
+    }
+  );
 
-// Virtual: set a plain password, get it hashed automatically
-userSchema.methods.setPassword = async function (plain) {
-  const salt = await bcrypt.genSalt(10);
-  this.passwordHash = await bcrypt.hash(plain, salt);
-};
-
-userSchema.methods.comparePassword = function (plain) {
-  return bcrypt.compare(plain, this.passwordHash);
-};
-
-userSchema.methods.toSafeJSON = function () {
-  const safe = {
-    id: this._id.toString(),
-    name: this.name,
-    email: this.email,
-    role: this.role,
-    phone: this.phone,
-    address: this.address,
-    createdAt: this.createdAt,
+  // Virtual: set a plain password, get it hashed automatically
+  User.prototype.setPassword = async function (plain) {
+    const salt = await bcrypt.genSalt(10);
+    this.passwordHash = await bcrypt.hash(plain, salt);
   };
-  if (this.role === 'shopmanager') {
-    safe.assignedCategories = (this.assignedCategories || []).map((id) => (id._id || id).toString());
-    safe.assignedProducts = (this.assignedProducts || []).map((id) => (id._id || id).toString());
-    safe.isActive = this.isActive;
-  }
-  return safe;
-};
 
-export default mongoose.model('User', userSchema);
+  User.prototype.comparePassword = function (plain) {
+    return bcrypt.compare(plain, this.passwordHash);
+  };
+
+  User.prototype.toSafeJSON = function () {
+    const idStr = this.id.toString();
+    const safe = {
+      id: idStr,
+      _id: idStr,
+      name: this.name,
+      email: this.email,
+      role: this.role,
+      phone: this.phone,
+      address: {
+        line1: this.addressLine1 || '',
+        city: this.addressCity || '',
+        province: this.addressProvince || '',
+        postalCode: this.addressPostalCode || '',
+        phone: this.addressPhone || '',
+      },
+      createdAt: this.createdAt,
+    };
+    if (this.role === 'shopmanager') {
+      safe.assignedCategories = (this.assignedCategories || []).map((c) =>
+        (c.id || c._id || c).toString()
+      );
+      safe.assignedProducts = (this.assignedProducts || []).map((p) =>
+        (p.id || p._id || p).toString()
+      );
+      safe.isActive = this.isActive;
+    }
+    return safe;
+  };
+
+  return User;
+}
+
+export function getUser() {
+  return User;
+}
+
+export default defineUser;

@@ -1,8 +1,9 @@
-import Setting from '../models/Setting.js';
+import { getSetting } from '../models/Setting.js';
 
 // GET /api/settings/jazzcash  (public — shown at checkout)
 export async function getJazzCash(req, res, next) {
   try {
+    const Setting = getSetting();
     const settings = await Setting.getInstance();
     res.json({
       phone: settings.jazzcashPhone,
@@ -16,6 +17,7 @@ export async function getJazzCash(req, res, next) {
 // PUT /api/settings/jazzcash  (admin only)
 export async function updateJazzCash(req, res, next) {
   try {
+    const Setting = getSetting();
     const { phone, qrImage } = req.body;
     const settings = await Setting.getInstance();
 

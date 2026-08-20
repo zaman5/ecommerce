@@ -1,42 +1,66 @@
-import mongoose from 'mongoose';
-import Review from '../models/Review.js';
-import Product from '../models/Product.js';
-import Order from '../models/Order.js';
+import { getReview } from '../models/Review.js';
+import { getProduct } from '../models/Product.js';
+import { getOrder, getOrderItem } from '../models/Order.js';
 import { canManageProduct } from '../middleware/auth.js';
+import { fn, col } from 'sequelize';
 
 // Recalculates a product's average rating + review count from its reviews.
-// Called after every create/update/delete so the two never drift apart.
 export async function recalcProductRating(productId) {
-  const [agg] = await Review.aggregate([
-    { $match: { product: new mongoose.Types.ObjectId(String(productId)) } },
-    { $group: { _id: '$product', avg: { $avg: '$rating' }, count: { $sum: 1 } } },
-  ]);
+  const Review = getReview();
+  const Product = getProduct();
 
-  await Product.findByIdAndUpdate(productId, {
-    rating: agg ? Math.round(agg.avg * 10) / 10 : 0,
-    numReviews: agg ? agg.count : 0,
+  const stats = await Review.findAll({
+    where: { productId },
+    attributes: [
+      [fn('AVG', col('rating')), 'avgRating'],
+      [fn('COUNT', col('id')), 'numReviews'],
+    ],
+    raw: true,
   });
+
+  const avg = stats[0]?.avgRating ? Math.round(parseFloat(stats[0].avgRating) * 10) / 10 : 0;
+  const count = stats[0]?.numReviews ? parseInt(stats[0].numReviews) : 0;
+
+  const product = await Product.findByPk(productId);
+  if (product) {
+    await product.update({ rating: avg, numReviews: count });
+  }
 }
 
 // Has this customer received this product in a delivered order?
 async function hasPurchased(userId, productId) {
-  const count = await Order.countDocuments({
-    user: userId,
-    status: 'delivered',
-    'items.product': productId,
+  const Order = getOrder();
+  const OrderItem = getOrderItem();
+
+  const count = await Order.count({
+    where: { userId, status: 'delivered' },
+    include: [
+      {
+        association: 'items',
+        where: { productId },
+      },
+    ],
   });
   return count > 0;
 }
 
-// GET /api/products/:slug/reviews  (public)
+// GET /api/products/:slug/reviews
 export async function listReviews(req, res, next) {
   try {
-    const product = await Product.findOne({ slug: req.params.slug }).select('_id rating numReviews');
+    const Product = getProduct();
+    const Review = getReview();
+
+    const product = await Product.findOne({
+      where: { slug: req.params.slug },
+      attributes: ['id', 'rating', 'numReviews'],
+    });
     if (!product) return res.status(404).json({ message: 'Product not found.' });
 
-    const reviews = await Review.find({ product: product._id }).sort({ createdAt: -1 });
+    const reviews = await Review.findAll({
+      where: { productId: product.id },
+      order: [['createdAt', 'DESC']],
+    });
 
-    // Star histogram (5 → 1) so the UI can draw a breakdown bar.
     const breakdown = [5, 4, 3, 2, 1].map((star) => ({
       star,
       count: reviews.filter((r) => r.rating === star).length,
@@ -53,60 +77,76 @@ export async function listReviews(req, res, next) {
   }
 }
 
-// POST /api/products/:slug/reviews  (logged-in customers)
-// Posting again replaces your existing review rather than adding a second one.
+// POST /api/products/:slug/reviews
 export async function upsertReview(req, res, next) {
   try {
+    const Product = getProduct();
+    const Review = getReview();
+
     const { rating, comment } = req.body;
     const numeric = Number(rating);
     if (!numeric || numeric < 1 || numeric > 5) {
       return res.status(400).json({ message: 'Please give a rating between 1 and 5 stars.' });
     }
 
-    const product = await Product.findOne({ slug: req.params.slug }).select('_id');
+    const product = await Product.findOne({
+      where: { slug: req.params.slug },
+      attributes: ['id'],
+    });
     if (!product) return res.status(404).json({ message: 'Product not found.' });
 
-    const verifiedPurchase = await hasPurchased(req.user._id, product._id);
+    const verifiedPurchase = await hasPurchased(req.user.id, product.id);
 
-    const review = await Review.findOneAndUpdate(
-      { product: product._id, user: req.user._id },
-      {
-        product: product._id,
-        user: req.user._id,
+    let review = await Review.findOne({
+      where: { productId: product.id, userId: req.user.id },
+    });
+
+    if (review) {
+      await review.update({
         name: req.user.name,
         rating: numeric,
         comment: (comment || '').trim(),
         verifiedPurchase,
-      },
-      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
-    );
+      });
+    } else {
+      review = await Review.create({
+        productId: product.id,
+        userId: req.user.id,
+        name: req.user.name,
+        rating: numeric,
+        comment: (comment || '').trim(),
+        verifiedPurchase,
+      });
+    }
 
-    await recalcProductRating(product._id);
+    await recalcProductRating(product.id);
     res.status(201).json(review);
   } catch (err) {
     next(err);
   }
 }
 
-// DELETE /api/reviews/:id  (the author, admin, or a shop manager who manages the product)
+// DELETE /api/reviews/:id
 export async function deleteReview(req, res, next) {
   try {
-    const review = await Review.findById(req.params.id);
+    const Review = getReview();
+    const review = await Review.findByPk(req.params.id);
     if (!review) return res.status(404).json({ message: 'Review not found.' });
 
-    const isAuthor = review.user.toString() === req.user._id.toString();
+    const isAuthor = String(review.userId) === String(req.user.id);
     const isAdmin = req.user.role === 'admin';
     let isManagerOfProduct = false;
     if (req.user.role === 'shopmanager') {
-      isManagerOfProduct = await canManageProduct(req.user, review.product);
+      isManagerOfProduct = await canManageProduct(req.user, review.productId);
     }
 
     if (!isAuthor && !isAdmin && !isManagerOfProduct) {
       return res.status(403).json({ message: 'You do not have permission to delete this review.' });
     }
 
-    await review.deleteOne();
-    await recalcProductRating(review.product);
+    const productId = review.productId;
+    await review.destroy();
+    await recalcProductRating(productId);
     res.json({ message: 'Review deleted.' });
   } catch (err) {
     next(err);

@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import nodemailer from 'nodemailer';
-import EmailTemplate from '../models/EmailTemplate.js';
+import { getEmailTemplate } from '../models/EmailTemplate.js';
 import { UPLOAD_DIR } from '../routes/uploadRoutes.js';
 
 const DEFAULT_TEMPLATES = {
@@ -16,7 +16,6 @@ const DEFAULT_TEMPLATES = {
     footerText: 'Need help? Contact us at orders@wondercart.pk or WhatsApp 0303-8164288.',
     brandColor: '#1f6b60',
     headerBanner: '',
-    attachments: [],
     isActive: true,
   },
   order_shipped: {
@@ -30,7 +29,6 @@ const DEFAULT_TEMPLATES = {
     footerText: 'Have questions about delivery? Reply to this email or contact support@wondercart.pk.',
     brandColor: '#2563eb',
     headerBanner: '',
-    attachments: [],
     isActive: true,
   },
   order_delivered: {
@@ -44,7 +42,6 @@ const DEFAULT_TEMPLATES = {
     footerText: 'Thank you for shopping with Wondercart.',
     brandColor: '#16a34a',
     headerBanner: '',
-    attachments: [],
     isActive: true,
   },
 };
@@ -74,7 +71,11 @@ function getTransporter() {
 
 export async function getTemplate(type) {
   try {
-    let t = await EmailTemplate.findOne({ type });
+    const EmailTemplate = getEmailTemplate();
+    let t = await EmailTemplate.findOne({
+      where: { type },
+      include: [{ association: 'attachments' }],
+    });
     if (!t) {
       const def = DEFAULT_TEMPLATES[type];
       if (def) {
@@ -105,22 +106,27 @@ export function buildEmailHtml(template, order, sampleMode = false) {
   const brandColor = template.brandColor || '#1f6b60';
   const orderNum = order?.orderNumber || (sampleMode ? '#BS-SAMPLE-999' : '—');
   const customerName =
+    order?.shippingFullName ||
     order?.shippingAddress?.fullName ||
     order?.user?.name ||
     (sampleMode ? 'Valued Customer' : 'Customer');
-  const phone = order?.shippingAddress?.phone || (sampleMode ? '0303-8164288' : '—');
-  const address = order?.shippingAddress
+  const phone = order?.shippingPhone || order?.shippingAddress?.phone || (sampleMode ? '0303-8164288' : '—');
+  
+  const addressParts = order?.shippingAddress
     ? [
         order.shippingAddress.line1,
         order.shippingAddress.city,
         order.shippingAddress.province,
         order.shippingAddress.postalCode,
       ]
-        .filter(Boolean)
-        .join(', ')
-    : sampleMode
-    ? 'House 123, Street 4, Sector F-7/2, Islamabad'
-    : '—';
+    : [
+        order?.shippingLine1,
+        order?.shippingCity,
+        order?.shippingProvince,
+        order?.shippingPostalCode,
+      ];
+  
+  const address = addressParts.filter(Boolean).join(', ') || (sampleMode ? 'House 123, Street 4, Sector F-7/2, Islamabad' : '—');
 
   const payMethod = (order?.paymentMethod || 'cod').toUpperCase();
   const payStatus = (order?.paymentStatus || 'unpaid').toUpperCase();
@@ -137,20 +143,19 @@ export function buildEmailHtml(template, order, sampleMode = false) {
           color: 'Sky Blue',
           qty: 2,
           price: 1250,
-          image: '',
         },
         {
           name: 'Toddler Learning Soft Blocks Set',
           color: '',
           qty: 1,
           price: 1000,
-          image: '',
         },
       ]
     : [];
 
+  const trackingList = order?.tracking || [];
   const trackingNote =
-    order?.timeline?.filter((t) => t.status === 'shipped')?.slice(-1)[0]?.note ||
+    trackingList.filter((t) => t.status === 'shipped')?.slice(-1)[0]?.note ||
     (sampleMode ? 'Dispatched via Leopard Courier tracking #LEO98471294' : '');
 
   const replaceTags = (text) => {
@@ -434,7 +439,7 @@ export async function sendOrderDelivered(order) {
 
 export async function sendTestEmail({ to, type, templateOverrides }) {
   const baseTpl = await getTemplate(type || 'order_confirmation');
-  const tpl = { ...baseTpl.toObject?.() || baseTpl, ...(templateOverrides || {}) };
+  const tpl = { ...(baseTpl.toJSON?.() || baseTpl), ...(templateOverrides || {}) };
 
   const html = buildEmailHtml(tpl, null, true);
   const attachments = resolveAttachments(tpl);

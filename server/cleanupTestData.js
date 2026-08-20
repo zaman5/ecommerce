@@ -1,54 +1,56 @@
-/**
- * Removes the accounts, orders and reviews left behind by the QA scripts.
- *
- * The end-to-end tests register a throwaway shopper (`qa-flow-<stamp>@…`) and
- * place real orders as them. Their own cleanup step restores stock and deletes
- * the review, but an interrupted run — or one that asserts before reaching the
- * end — leaves the account and its orders in the database, where they inflate
- * the admin dashboard's revenue and customer counts.
- *
- * Matches only the generated test addresses, so real customers are never
- * touched. Safe to run repeatedly.
- *
- *   npm run cleanup:test
- */
 import 'dotenv/config';
-import mongoose from 'mongoose';
 import { connectDB } from './config/db.js';
-import User from './models/User.js';
-import Order from './models/Order.js';
-import Review from './models/Review.js';
+import { getUser } from './models/User.js';
+import { getOrder, getOrderItem, getOrderTracking } from './models/Order.js';
+import { getReview } from './models/Review.js';
+import { Op } from 'sequelize';
 
-// Every address the QA scripts generate. Anchored so a real customer who
-// happens to have "qa" in their address is never caught by it.
 const TEST_EMAIL = /^(qa-flow-\d+|qa-admin-\d+|x\d+|dup\d*)@(example\.com|e\.com)$/i;
 
 async function run() {
-  await connectDB(process.env.MONGO_URI);
+  const sequelize = await connectDB();
+  if (!sequelize) {
+    console.error('Could not connect to database.');
+    process.exit(1);
+  }
+  const User = getUser();
+  const Order = getOrder();
+  const OrderItem = getOrderItem();
+  const OrderTracking = getOrderTracking();
+  const Review = getReview();
 
-  const users = (await User.find().select('_id email')).filter((u) => TEST_EMAIL.test(u.email));
-  const ids = users.map((u) => u._id);
+  const allUsers = await User.findAll({ attributes: ['id', 'email'] });
+  const users = allUsers.filter((u) => TEST_EMAIL.test(u.email));
+  const userIds = users.map((u) => u.id);
 
-  // Guest checkouts placed by the tests carry the same addresses but no account.
-  const guestOrders = (await Order.find().select('_id guestEmail user')).filter(
-    (o) => o.guestEmail && TEST_EMAIL.test(o.guestEmail)
+  const allOrders = await Order.findAll({ attributes: ['id', 'guestEmail', 'userId'] });
+  const testOrders = allOrders.filter(
+    (o) => (o.userId && userIds.includes(o.userId)) || (o.guestEmail && TEST_EMAIL.test(o.guestEmail))
   );
+  const orderIds = testOrders.map((o) => o.id);
 
-  const orderIds = [
-    ...(await Order.find({ user: { $in: ids } }).select('_id')).map((o) => o._id),
-    ...guestOrders.map((o) => o._id),
-  ];
+  let reviewsDeleted = 0;
+  if (userIds.length) {
+    reviewsDeleted = await Review.destroy({ where: { userId: { [Op.in]: userIds } } });
+  }
 
-  const reviews = await Review.deleteMany({ user: { $in: ids } });
-  const orders = await Order.deleteMany({ _id: { $in: orderIds } });
-  const accounts = await User.deleteMany({ _id: { $in: ids } });
+  let ordersDeleted = 0;
+  if (orderIds.length) {
+    await OrderItem.destroy({ where: { orderId: { [Op.in]: orderIds } } });
+    await OrderTracking.destroy({ where: { orderId: { [Op.in]: orderIds } } });
+    ordersDeleted = await Order.destroy({ where: { id: { [Op.in]: orderIds } } });
+  }
+
+  let accountsDeleted = 0;
+  if (userIds.length) {
+    accountsDeleted = await User.destroy({ where: { id: { [Op.in]: userIds } } });
+  }
 
   console.log('\n✅ Test data cleaned');
-  console.log(`   ${accounts.deletedCount} account(s), ${orders.deletedCount} order(s), ${reviews.deletedCount} review(s)`);
+  console.log(`   ${accountsDeleted} account(s), ${ordersDeleted} order(s), ${reviewsDeleted} review(s)`);
   if (users.length) console.log(`   removed: ${users.map((u) => u.email).join(', ')}`);
-  if (!accounts.deletedCount && !orders.deletedCount) console.log('   (nothing to do — already clean)');
+  if (!accountsDeleted && !ordersDeleted) console.log('   (nothing to do — already clean)');
 
-  await mongoose.disconnect();
   process.exit(0);
 }
 

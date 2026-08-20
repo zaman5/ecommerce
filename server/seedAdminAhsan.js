@@ -1,15 +1,17 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import User from './models/User.js';
+import { connectDB } from './config/db.js';
+import { getUser } from './models/User.js';
 
 async function seedAdminAhsan() {
-  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/wondercart';
-  console.log('Connecting to MongoDB...');
-  await mongoose.connect(uri);
-  console.log('MongoDB connected.');
+  const sequelize = await connectDB();
+  if (!sequelize) {
+    console.error('Could not connect to database.');
+    process.exit(1);
+  }
+  const User = getUser();
 
   const email = 'ahsan@wondercart.pk';
   const password = 'Ahsan@Ahmad123';
@@ -18,7 +20,7 @@ async function seedAdminAhsan() {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  let user = await User.findOne({ email });
+  let user = await User.findOne({ where: { email } });
   if (user) {
     user.name = name;
     user.role = 'admin';
@@ -39,8 +41,8 @@ async function seedAdminAhsan() {
     console.log(`✅ Admin user "${email}" created successfully!`);
   }
 
-  await mongoose.disconnect();
   console.log('Done.');
+  process.exit(0);
 }
 
 seedAdminAhsan().catch((err) => {

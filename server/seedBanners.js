@@ -1,18 +1,6 @@
-/**
- * Puts three starter slides in the home page carousel.
- *
- * ADDITIVE and idempotent — it inserts only when the collection is empty, so
- * running it twice never duplicates a slide and it will not overwrite banners
- * an admin has since written. Unlike `npm run seed`, it touches nothing else in
- * the database.
- *
- *   npm run seed:banners
- *
- * These are placeholders. Replace them from Admin → Banners.
- */
 import 'dotenv/config';
-import mongoose from 'mongoose';
-import Banner from './models/Banner.js';
+import { connectDB } from './config/db.js';
+import { getBanner } from './models/Banner.js';
 
 const STARTERS = [
   {
@@ -45,22 +33,25 @@ const STARTERS = [
 ];
 
 async function run() {
-  await mongoose.connect(process.env.MONGO_URI);
+  const sequelize = await connectDB();
+  if (!sequelize) {
+    console.error('Could not connect to database.');
+    process.exit(1);
+  }
+  const Banner = getBanner();
 
-  const existing = await Banner.countDocuments();
+  const existing = await Banner.count();
   if (existing > 0) {
     console.log(`ℹ️  ${existing} banner(s) already exist — nothing to do.`);
     console.log('   Manage them in the admin panel under Banners.');
-    await mongoose.disconnect();
     process.exit(0);
   }
 
-  const created = await Banner.insertMany(STARTERS);
+  const created = await Banner.bulkCreate(STARTERS);
   console.log(`✅ ${created.length} starter banners added`);
   for (const b of created) console.log(`   ${b.order + 1}. ${b.title}`);
   console.log('\n   Edit or replace them in the admin panel under Banners.');
 
-  await mongoose.disconnect();
   process.exit(0);
 }
 

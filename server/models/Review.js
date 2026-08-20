@@ -1,19 +1,76 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
 
-const reviewSchema = new mongoose.Schema(
-  {
-    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true, index: true },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    name: { type: String, required: true }, // snapshotted so the list renders without a join
-    rating: { type: Number, required: true, min: 1, max: 5 },
-    comment: { type: String, default: '', trim: true, maxlength: 1000 },
-    // True when this reviewer actually bought the product (delivered order).
-    verifiedPurchase: { type: Boolean, default: false },
-  },
-  { timestamps: true }
-);
+let Review;
 
-// One review per product per customer — a second POST edits the first.
-reviewSchema.index({ product: 1, user: 1 }, { unique: true });
+export function defineReview(sequelize) {
+  Review = sequelize.define(
+    'Review',
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      productId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+        field: 'product_id',
+      },
+      userId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+        field: 'user_id',
+      },
+      name: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+      rating: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: { min: 1, max: 5 },
+      },
+      comment: {
+        type: DataTypes.TEXT,
+        defaultValue: '',
+      },
+      // True when this reviewer actually bought the product (delivered order).
+      verifiedPurchase: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        field: 'verified_purchase',
+      },
+    },
+    {
+      tableName: 'reviews',
+      timestamps: true,
+      underscored: true,
+      // One review per product per customer
+      indexes: [
+        {
+          unique: true,
+          fields: ['product_id', 'user_id'],
+        },
+      ],
+    }
+  );
 
-export default mongoose.model('Review', reviewSchema);
+  const originalToJSON = Review.prototype.toJSON;
+  Review.prototype.toJSON = function () {
+    const json = originalToJSON.call(this);
+    if (json.id) {
+      json._id = json.id.toString();
+    }
+    json.product = json.productId;
+    json.user = json.userId;
+    return json;
+  };
+
+  return Review;
+}
+
+export function getReview() {
+  return Review;
+}
+
+export default defineReview;

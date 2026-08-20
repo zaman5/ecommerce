@@ -1,11 +1,12 @@
-import FlashSale from '../models/FlashSale.js';
+import { getFlashSale as getFlashSaleModel } from '../models/FlashSale.js';
 
 const SORTS = ['popular', 'newest', 'priceLow', 'priceHigh', 'rating'];
 const MODES = ['midnight', 'endsAt', 'none'];
 
 // GET /api/flash-sale  (public)
-export async function getFlashSale(req, res, next) {
+export async function getFlashSaleSettings(req, res, next) {
   try {
+    const FlashSale = getFlashSaleModel();
     res.json(await FlashSale.getSettings());
   } catch (err) {
     console.error('Error fetching flash sale:', err.message);
@@ -22,11 +23,12 @@ export async function getFlashSale(req, res, next) {
     });
   }
 }
-
+export const getFlashSale = getFlashSaleSettings;
 
 // PUT /api/flash-sale  (admin)
 export async function updateFlashSale(req, res, next) {
   try {
+    const FlashSale = getFlashSaleModel();
     const b = req.body;
     const data = {};
     const str = (v, max) => String(v ?? '').trim().slice(0, max);
@@ -62,10 +64,9 @@ export async function updateFlashSale(req, res, next) {
       }
     }
 
-    // A fixed-end sale with no end date would render a countdown to nothing and
-    // then hide itself immediately — reject it rather than quietly misbehave.
-    const mode = data.countdownMode ?? (await FlashSale.getSettings()).countdownMode;
-    const endsAt = 'endsAt' in data ? data.endsAt : (await FlashSale.getSettings()).endsAt;
+    const current = await FlashSale.getSettings();
+    const mode = data.countdownMode ?? current.countdownMode;
+    const endsAt = 'endsAt' in data ? data.endsAt : current.endsAt;
     if (mode === 'endsAt' && !endsAt) {
       return res.status(400).json({
         message: 'Pick the date and time the sale ends, or switch the countdown to daily.',
@@ -84,12 +85,8 @@ export async function updateFlashSale(req, res, next) {
       data.sort = b.sort;
     }
 
-    const saved = await FlashSale.findOneAndUpdate({ key: 'default' }, data, {
-      new: true,
-      upsert: true,
-      runValidators: true,
-    });
-    res.json(saved);
+    await current.update(data);
+    res.json(current);
   } catch (err) {
     next(err);
   }

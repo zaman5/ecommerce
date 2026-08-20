@@ -1,51 +1,78 @@
-import Order from '../models/Order.js';
-import Product from '../models/Product.js';
-import User from '../models/User.js';
+import { getOrder, getOrderItem } from '../models/Order.js';
+import { getProduct } from '../models/Product.js';
+import { getUser } from '../models/User.js';
+import { getCategory } from '../models/Category.js';
 import { scopedProductIds } from '../middleware/auth.js';
-import mongoose from 'mongoose';
+import { Op, fn, col, literal } from 'sequelize';
 
-// GET /api/analytics/overview  (admin / shop-manager)
+// GET /api/analytics/overview
 export async function overview(req, res, next) {
   try {
+    const Order = getOrder();
+    const OrderItem = getOrderItem();
+    const Product = getProduct();
+    const User = getUser();
+
     const ids = await scopedProductIds(req.user);
 
-    // When scoped, only count products and orders in scope.
-    const productFilter = ids
-      ? { _id: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } }
-      : {};
     const scopedProductFilter = ids
-      ? { isActive: true, _id: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } }
+      ? { isActive: true, id: { [Op.in]: ids.map(Number) } }
       : { isActive: true };
 
-    const orderMatch = { status: { $ne: 'cancelled' } };
-    if (ids) orderMatch['items.product'] = { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
+    const orderMatch = { status: { [Op.ne]: 'cancelled' } };
 
-    const revenueAggregation = ids
-      ? [
-          { $match: { status: { $ne: 'cancelled' } } },
-          { $unwind: '$items' },
-          { $match: { 'items.product': { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } } },
-          { $group: { _id: null, total: { $sum: { $multiply: ['$items.price', '$items.qty'] } } } },
-        ]
-      : [
-          { $match: orderMatch },
-          { $group: { _id: null, total: { $sum: '$grandTotal' } } },
-        ];
+    let totalRevenue = 0;
+    let orders = 0;
+    let pending = 0;
 
-    const [orders, revenueAgg, customers, products, lowStock] = await Promise.all([
-      Order.countDocuments(orderMatch),
-      Order.aggregate(revenueAggregation),
-      ids ? Promise.resolve(0) : User.countDocuments({ role: 'client' }),
-      Product.countDocuments(scopedProductFilter),
-      Product.countDocuments({ ...scopedProductFilter, stock: { $lte: 5 } }),
-    ]);
+    if (ids) {
+      const orderItems = await OrderItem.findAll({
+        where: { productId: { [Op.in]: ids.map(Number) } },
+        include: [
+          {
+            association: 'Order',
+            where: orderMatch,
+            attributes: ['id', 'status'],
+          },
+        ],
+        raw: true,
+      });
 
-    const pendingMatch = { status: 'pending' };
-    if (ids) pendingMatch['items.product'] = { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
-    const pending = await Order.countDocuments(pendingMatch);
+      const uniqueOrderIds = new Set(orderItems.map((i) => i['Order.id']));
+      orders = uniqueOrderIds.size;
+      totalRevenue = orderItems.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * (item.qty || 1), 0);
+
+      const pendingOrderItems = await OrderItem.findAll({
+        where: { productId: { [Op.in]: ids.map(Number) } },
+        include: [
+          {
+            association: 'Order',
+            where: { status: 'pending' },
+            attributes: ['id'],
+          },
+        ],
+        raw: true,
+      });
+      pending = new Set(pendingOrderItems.map((i) => i['Order.id'])).size;
+    } else {
+      orders = await Order.count({ where: orderMatch });
+      const revRes = await Order.findAll({
+        where: orderMatch,
+        attributes: [[fn('SUM', col('grand_total')), 'total']],
+        raw: true,
+      });
+      totalRevenue = parseFloat(revRes[0]?.total) || 0;
+      pending = await Order.count({ where: { status: 'pending' } });
+    }
+
+    const customers = ids ? 0 : await User.count({ where: { role: 'client' } });
+    const products = await Product.count({ where: scopedProductFilter });
+    const lowStock = await Product.count({
+      where: { ...scopedProductFilter, stock: { [Op.lte]: 5 } },
+    });
 
     res.json({
-      totalRevenue: revenueAgg[0]?.total || 0,
+      totalRevenue,
       totalOrders: orders,
       totalCustomers: customers,
       totalProducts: products,
@@ -57,123 +84,131 @@ export async function overview(req, res, next) {
   }
 }
 
-// GET /api/analytics/sales?days=30  (revenue + order count per day)
+// GET /api/analytics/sales?days=30
 export async function salesTrend(req, res, next) {
   try {
+    const Order = getOrder();
+    const OrderItem = getOrderItem();
     const days = Math.min(180, Number(req.query.days) || 30);
     const since = new Date();
     since.setDate(since.getDate() - days);
 
     const ids = await scopedProductIds(req.user);
 
-    let data;
+    let result = [];
     if (ids) {
-      const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
-      data = await Order.aggregate([
-        { $match: { createdAt: { $gte: since }, status: { $ne: 'cancelled' } } },
-        { $unwind: '$items' },
-        { $match: { 'items.product': { $in: objectIds } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            revenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } },
-            ordersSet: { $addToSet: '$_id' },
+      const orderItems = await OrderItem.findAll({
+        where: { productId: { [Op.in]: ids.map(Number) } },
+        include: [
+          {
+            association: 'Order',
+            where: { createdAt: { [Op.gte]: since }, status: { [Op.ne]: 'cancelled' } },
+            attributes: ['id', 'createdAt'],
           },
-        },
-        {
-          $project: {
-            _id: 1,
-            revenue: 1,
-            orders: { $size: '$ordersSet' },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]);
+        ],
+        raw: true,
+      });
+
+      const dayMap = new Map();
+      for (const item of orderItems) {
+        const d = new Date(item['Order.createdAt']).toISOString().slice(0, 10);
+        if (!dayMap.has(d)) dayMap.set(d, { orders: new Set(), revenue: 0 });
+        const entry = dayMap.get(d);
+        entry.orders.add(item['Order.id']);
+        entry.revenue += (parseFloat(item.price) || 0) * (item.qty || 1);
+      }
+
+      result = Array.from(dayMap.entries())
+        .map(([date, data]) => ({ date, revenue: data.revenue, orders: data.orders.size }))
+        .sort((a, b) => a.date.localeCompare(b.date));
     } else {
-      data = await Order.aggregate([
-        { $match: { createdAt: { $gte: since }, status: { $ne: 'cancelled' } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            revenue: { $sum: '$grandTotal' },
-            orders: { $sum: 1 },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]);
+      const data = await Order.findAll({
+        where: { createdAt: { [Op.gte]: since }, status: { [Op.ne]: 'cancelled' } },
+        attributes: [
+          [fn('DATE_FORMAT', col('created_at'), '%Y-%m-%d'), 'date'],
+          [fn('SUM', col('grand_total')), 'revenue'],
+          [fn('COUNT', col('id')), 'orders'],
+        ],
+        group: [fn('DATE_FORMAT', col('created_at'), '%Y-%m-%d')],
+        order: [[fn('DATE_FORMAT', col('created_at'), '%Y-%m-%d'), 'ASC']],
+        raw: true,
+      });
+
+      result = data.map((d) => ({
+        date: d.date,
+        revenue: parseFloat(d.revenue) || 0,
+        orders: parseInt(d.orders) || 0,
+      }));
     }
 
-    res.json(data.map((d) => ({ date: d._id, revenue: d.revenue, orders: d.orders })));
+    res.json(result);
   } catch (err) {
     next(err);
   }
 }
 
-// GET /api/analytics/top-products  (best sellers)
+// GET /api/analytics/top-products
 export async function topProducts(req, res, next) {
   try {
+    const Product = getProduct();
     const ids = await scopedProductIds(req.user);
-    const filter = { unitsSold: { $gt: 0 } };
-    if (ids) filter._id = { $in: ids };
+    const where = { unitsSold: { [Op.gt]: 0 } };
+    if (ids) where.id = { [Op.in]: ids.map(Number) };
 
-    const items = await Product.find(filter)
-      .sort({ unitsSold: -1 })
-      .limit(10)
-      .populate('category', 'name')
-      .select('name unitsSold price stock images category rating');
+    const items = await Product.findAll({
+      where,
+      order: [['unitsSold', 'DESC']],
+      limit: 10,
+      include: [{ association: 'category', attributes: ['name'] }],
+      attributes: ['id', 'name', 'unitsSold', 'price', 'stock', 'images', 'categoryId', 'rating'],
+    });
     res.json(items);
   } catch (err) {
     next(err);
   }
 }
 
-// GET /api/analytics/by-category  (revenue share by category)
+// GET /api/analytics/by-category
 export async function revenueByCategory(req, res, next) {
   try {
+    const Product = getProduct();
+    const OrderItem = getOrderItem();
+    const Category = getCategory();
     const ids = await scopedProductIds(req.user);
-    const orderMatch = { status: { $ne: 'cancelled' } };
 
-    const pipeline = [
-      { $match: orderMatch },
-      { $unwind: '$items' },
-    ];
+    const itemWhere = {};
+    if (ids) itemWhere.productId = { [Op.in]: ids.map(Number) };
 
-    // Scope to the shop manager's products.
-    if (ids) {
-      pipeline.push({ $match: { 'items.product': { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } } });
+    const items = await OrderItem.findAll({
+      where: itemWhere,
+      include: [
+        {
+          association: 'Order',
+          where: { status: { [Op.ne]: 'cancelled' } },
+          attributes: ['id'],
+        },
+        {
+          model: Product,
+          attributes: ['categoryId'],
+          include: [{ model: Category, as: 'category', attributes: ['name'] }],
+        },
+      ],
+    });
+
+    const catMap = new Map();
+    for (const item of items) {
+      const catName = item.Product?.category?.name || 'Uncategorized';
+      if (!catMap.has(catName)) catMap.set(catName, { revenue: 0, units: 0 });
+      const entry = catMap.get(catName);
+      entry.revenue += (parseFloat(item.price) || 0) * (item.qty || 1);
+      entry.units += item.qty || 1;
     }
 
-    pipeline.push(
-      {
-        $lookup: {
-          from: 'products',
-          localField: 'items.product',
-          foreignField: '_id',
-          as: 'prod',
-        },
-      },
-      { $unwind: '$prod' },
-      {
-        $lookup: {
-          from: 'categories',
-          localField: 'prod.category',
-          foreignField: '_id',
-          as: 'cat',
-        },
-      },
-      { $unwind: '$cat' },
-      {
-        $group: {
-          _id: '$cat.name',
-          revenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } },
-          units: { $sum: '$items.qty' },
-        },
-      },
-      { $sort: { revenue: -1 } }
-    );
+    const data = Array.from(catMap.entries())
+      .map(([category, stats]) => ({ category, revenue: stats.revenue, units: stats.units }))
+      .sort((a, b) => b.revenue - a.revenue);
 
-    const data = await Order.aggregate(pipeline);
-    res.json(data.map((d) => ({ category: d._id, revenue: d.revenue, units: d.units })));
+    res.json(data);
   } catch (err) {
     next(err);
   }
@@ -182,36 +217,43 @@ export async function revenueByCategory(req, res, next) {
 // GET /api/analytics/recommendations
 export async function recommendations(req, res, next) {
   try {
+    const Product = getProduct();
     const ids = await scopedProductIds(req.user);
     const base = { isActive: true };
-    if (ids) base._id = { $in: ids };
+    if (ids) base.id = { [Op.in]: ids.map(Number) };
 
     const [restock, promote, slowMovers] = await Promise.all([
-      Product.find({ ...base, unitsSold: { $gte: 5 }, stock: { $lte: 5 } })
-        .sort({ unitsSold: -1 })
-        .limit(6)
-        .select('name stock unitsSold price images'),
-      Product.find({ ...base, unitsSold: { $gte: 10 }, stock: { $gt: 5 } })
-        .sort({ unitsSold: -1 })
-        .limit(6)
-        .select('name stock unitsSold price images'),
-      Product.find({ ...base, unitsSold: { $lte: 2 } })
-        .sort({ createdAt: 1 })
-        .limit(6)
-        .select('name stock unitsSold price images createdAt'),
+      Product.findAll({
+        where: { ...base, unitsSold: { [Op.gte]: 5 }, stock: { [Op.lte]: 5 } },
+        order: [['unitsSold', 'DESC']],
+        limit: 6,
+        attributes: ['id', 'name', 'stock', 'unitsSold', 'price', 'images'],
+      }),
+      Product.findAll({
+        where: { ...base, unitsSold: { [Op.gte]: 10 }, stock: { [Op.gt]: 5 } },
+        order: [['unitsSold', 'DESC']],
+        limit: 6,
+        attributes: ['id', 'name', 'stock', 'unitsSold', 'price', 'images'],
+      }),
+      Product.findAll({
+        where: { ...base, unitsSold: { [Op.lte]: 2 } },
+        order: [['createdAt', 'ASC']],
+        limit: 6,
+        attributes: ['id', 'name', 'stock', 'unitsSold', 'price', 'images', 'createdAt'],
+      }),
     ]);
 
     res.json({
       restock: restock.map((p) => ({
-        ...p.toObject(),
+        ...p.toJSON(),
         reason: `Sold ${p.unitsSold} units but only ${p.stock} left — restock soon.`,
       })),
       promote: promote.map((p) => ({
-        ...p.toObject(),
+        ...p.toJSON(),
         reason: `Strong seller (${p.unitsSold} sold) — feature it on the homepage.`,
       })),
       slowMovers: slowMovers.map((p) => ({
-        ...p.toObject(),
+        ...p.toJSON(),
         reason: `Only ${p.unitsSold} sold — consider a discount or bundle.`,
       })),
     });
@@ -219,4 +261,3 @@ export async function recommendations(req, res, next) {
     next(err);
   }
 }
-

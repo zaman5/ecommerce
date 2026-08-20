@@ -1,17 +1,68 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
 
-const categorySchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true },
-    description: { type: String, default: '' },
-    image: { type: String, default: '' },
-    // Null for a top-level department. The tree is deliberately only two deep —
-    // products always hang off a leaf, so "browse a department" means "this
-    // category plus its children" and never needs a recursive walk.
-    parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
-  },
-  { timestamps: true }
-);
+let Category;
 
-export default mongoose.model('Category', categorySchema);
+export function defineCategory(sequelize) {
+  Category = sequelize.define(
+    'Category',
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      name: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+      slug: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        unique: true,
+        set(val) {
+          this.setDataValue('slug', String(val || '').toLowerCase().trim());
+        },
+      },
+      description: {
+        type: DataTypes.TEXT,
+        defaultValue: '',
+      },
+      image: {
+        type: DataTypes.STRING(1000),
+        defaultValue: '',
+      },
+      // Null for a top-level department.
+      parentId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        defaultValue: null,
+        field: 'parent_id',
+        references: {
+          model: 'categories',
+          key: 'id',
+        },
+      },
+    },
+    {
+      tableName: 'categories',
+      timestamps: true,
+      underscored: true,
+    }
+  );
+
+  const originalToJSON = Category.prototype.toJSON;
+  Category.prototype.toJSON = function () {
+    const json = originalToJSON.call(this);
+    if (json.id) {
+      json._id = json.id.toString();
+    }
+    return json;
+  };
+
+  return Category;
+}
+
+export function getCategory() {
+  return Category;
+}
+
+export default defineCategory;

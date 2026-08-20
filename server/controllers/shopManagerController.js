@@ -1,10 +1,12 @@
-import User from '../models/User.js';
-import { signToken } from '../utils/token.js';
+import { getUser } from '../models/User.js';
+import { getCategory } from '../models/Category.js';
+import { getProduct } from '../models/Product.js';
 import { isValidEmail } from '../utils/email.js';
 
 // POST /api/shop-managers  (admin creates a shop manager account)
 export async function createShopManager(req, res, next) {
   try {
+    const User = getUser();
     const { name, email, password, phone, assignedCategories, assignedProducts } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email and password are required.' });
@@ -19,22 +21,34 @@ export async function createShopManager(req, res, next) {
       return res.status(400).json({ message: 'Assign at least one category or product to this shop manager.' });
     }
 
-    const exists = await User.findOne({ email: email.toLowerCase() });
+    const exists = await User.findOne({ where: { email: email.toLowerCase() } });
     if (exists) return res.status(409).json({ message: 'An account with this email already exists.' });
 
-    const user = new User({
+    const user = User.build({
       name,
-      email,
+      email: email.toLowerCase(),
       phone: phone || '',
       role: 'shopmanager',
-      assignedCategories: assignedCategories || [],
-      assignedProducts: assignedProducts || [],
       isActive: true,
     });
     await user.setPassword(password);
     await user.save();
 
-    res.status(201).json(user.toSafeJSON());
+    if (assignedCategories?.length) {
+      await user.setAssignedCategories(assignedCategories.map(Number));
+    }
+    if (assignedProducts?.length) {
+      await user.setAssignedProducts(assignedProducts.map(Number));
+    }
+
+    const fullUser = await User.findByPk(user.id, {
+      include: [
+        { association: 'assignedCategories', attributes: ['id', 'name', 'slug'] },
+        { association: 'assignedProducts', attributes: ['id', 'name', 'slug', 'images'] },
+      ],
+    });
+
+    res.status(201).json(fullUser.toSafeJSON());
   } catch (err) {
     next(err);
   }
@@ -43,13 +57,18 @@ export async function createShopManager(req, res, next) {
 // GET /api/shop-managers  (admin lists all shop managers)
 export async function listShopManagers(req, res, next) {
   try {
-    const managers = await User.find({ role: 'shopmanager' })
-      .populate('assignedCategories', 'name slug')
-      .populate('assignedProducts', 'name slug images')
-      .sort({ createdAt: -1 });
+    const User = getUser();
+    const managers = await User.findAll({
+      where: { role: 'shopmanager' },
+      include: [
+        { association: 'assignedCategories', attributes: ['id', 'name', 'slug'] },
+        { association: 'assignedProducts', attributes: ['id', 'name', 'slug', 'images'] },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
 
     res.json(managers.map((m) => ({
-      id: m._id,
+      id: m.id,
       name: m.name,
       email: m.email,
       phone: m.phone,
@@ -67,13 +86,18 @@ export async function listShopManagers(req, res, next) {
 // GET /api/shop-managers/:id  (admin views one shop manager)
 export async function getShopManager(req, res, next) {
   try {
-    const manager = await User.findOne({ _id: req.params.id, role: 'shopmanager' })
-      .populate('assignedCategories', 'name slug')
-      .populate('assignedProducts', 'name slug images');
+    const User = getUser();
+    const manager = await User.findOne({
+      where: { id: req.params.id, role: 'shopmanager' },
+      include: [
+        { association: 'assignedCategories', attributes: ['id', 'name', 'slug'] },
+        { association: 'assignedProducts', attributes: ['id', 'name', 'slug', 'images'] },
+      ],
+    });
     if (!manager) return res.status(404).json({ message: 'Shop manager not found.' });
 
     res.json({
-      id: manager._id,
+      id: manager.id,
       name: manager.name,
       email: manager.email,
       phone: manager.phone,
@@ -91,14 +115,15 @@ export async function getShopManager(req, res, next) {
 // PUT /api/shop-managers/:id  (admin updates scope, status, or password)
 export async function updateShopManager(req, res, next) {
   try {
-    const manager = await User.findOne({ _id: req.params.id, role: 'shopmanager' });
+    const User = getUser();
+    const manager = await User.findOne({
+      where: { id: req.params.id, role: 'shopmanager' },
+    });
     if (!manager) return res.status(404).json({ message: 'Shop manager not found.' });
 
     const { name, phone, password, assignedCategories, assignedProducts, isActive } = req.body;
     if (name) manager.name = name;
     if (phone !== undefined) manager.phone = phone;
-    if (assignedCategories !== undefined) manager.assignedCategories = assignedCategories;
-    if (assignedProducts !== undefined) manager.assignedProducts = assignedProducts;
     if (isActive !== undefined) manager.isActive = isActive;
     if (password) {
       if (password.length < 6) {
@@ -106,23 +131,32 @@ export async function updateShopManager(req, res, next) {
       }
       await manager.setPassword(password);
     }
-
     await manager.save();
 
-    // Re-populate for the response.
-    await manager.populate('assignedCategories', 'name slug');
-    await manager.populate('assignedProducts', 'name slug images');
+    if (assignedCategories !== undefined) {
+      await manager.setAssignedCategories(assignedCategories.map(Number));
+    }
+    if (assignedProducts !== undefined) {
+      await manager.setAssignedProducts(assignedProducts.map(Number));
+    }
+
+    const full = await User.findByPk(manager.id, {
+      include: [
+        { association: 'assignedCategories', attributes: ['id', 'name', 'slug'] },
+        { association: 'assignedProducts', attributes: ['id', 'name', 'slug', 'images'] },
+      ],
+    });
 
     res.json({
-      id: manager._id,
-      name: manager.name,
-      email: manager.email,
-      phone: manager.phone,
-      role: manager.role,
-      assignedCategories: manager.assignedCategories,
-      assignedProducts: manager.assignedProducts,
-      isActive: manager.isActive,
-      createdAt: manager.createdAt,
+      id: full.id,
+      name: full.name,
+      email: full.email,
+      phone: full.phone,
+      role: full.role,
+      assignedCategories: full.assignedCategories,
+      assignedProducts: full.assignedProducts,
+      isActive: full.isActive,
+      createdAt: full.createdAt,
     });
   } catch (err) {
     next(err);
@@ -132,8 +166,12 @@ export async function updateShopManager(req, res, next) {
 // DELETE /api/shop-managers/:id  (admin removes a shop manager)
 export async function deleteShopManager(req, res, next) {
   try {
-    const manager = await User.findOneAndDelete({ _id: req.params.id, role: 'shopmanager' });
+    const User = getUser();
+    const manager = await User.findOne({
+      where: { id: req.params.id, role: 'shopmanager' },
+    });
     if (!manager) return res.status(404).json({ message: 'Shop manager not found.' });
+    await manager.destroy();
     res.json({ message: 'Shop manager deleted.' });
   } catch (err) {
     next(err);

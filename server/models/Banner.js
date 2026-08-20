@@ -1,34 +1,78 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+
+let Banner;
 
 /**
  * A promotional slide on the home page carousel.
- *
- * `order` decides the running order and `isActive` takes a slide off the site
- * without deleting it — a seasonal banner can be switched back on next year
- * rather than retyped.
  */
-const bannerSchema = new mongoose.Schema(
-  {
-    title: { type: String, required: true, trim: true },
-    subtitle: { type: String, default: '' },
-    /** Background photo. An uploaded "/uploads/…" path or an external URL. */
-    image: { type: String, default: '' },
-    /** Where the button goes. Internal route ("/shop?deals=true") or full URL. */
-    link: { type: String, default: '/shop' },
-    ctaLabel: { type: String, default: 'Shop now' },
-    /**
-     * Which way the text is painted. A banner sitting on a dark photo needs
-     * light text and vice versa — the photo decides, so it is stored per slide
-     * rather than derived.
-     */
-    theme: { type: String, enum: ['dark', 'light'], default: 'dark' },
-    isActive: { type: Boolean, default: true },
-    order: { type: Number, default: 0 },
-  },
-  { timestamps: true }
-);
+export function defineBanner(sequelize) {
+  Banner = sequelize.define(
+    'Banner',
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      title: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+      subtitle: {
+        type: DataTypes.STRING(500),
+        defaultValue: '',
+      },
+      /** Background photo. An uploaded "/uploads/…" path or an external URL. */
+      image: {
+        type: DataTypes.STRING(1000),
+        defaultValue: '',
+      },
+      /** Where the button goes. Internal route ("/shop?deals=true") or full URL. */
+      link: {
+        type: DataTypes.STRING(1000),
+        defaultValue: '/shop',
+      },
+      ctaLabel: {
+        type: DataTypes.STRING(255),
+        defaultValue: 'Shop now',
+        field: 'cta_label',
+      },
+      theme: {
+        type: DataTypes.ENUM('dark', 'light'),
+        defaultValue: 'dark',
+      },
+      isActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        field: 'is_active',
+      },
+      order: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        field: 'display_order',
+      },
+    },
+    {
+      tableName: 'banners',
+      timestamps: true,
+      underscored: true,
+    }
+  );
 
-// The storefront's only query is "active slides in running order".
-bannerSchema.index({ isActive: 1, order: 1 });
+  const originalToJSON = Banner.prototype.toJSON;
+  Banner.prototype.toJSON = function () {
+    const json = originalToJSON.call(this);
+    if (json.id) {
+      json._id = json.id.toString();
+    }
+    return json;
+  };
 
-export default mongoose.model('Banner', bannerSchema);
+  return Banner;
+}
+
+export function getBanner() {
+  return Banner;
+}
+
+export default defineBanner;

@@ -1,29 +1,9 @@
-/**
- * Builds the second level of the category tree and re-files every product onto
- * a leaf, so browsing "Electronics" shows Phones / Laptops / Headphones /
- * Watches beneath it.
- *
- * ADDITIVE and idempotent — it never deletes, and re-running it is safe. Run it
- * after the catalogue seeds:
- *
- *   npm run seed               # school catalogue (wipes)
- *   npm run seed:marketplace   # marketplace departments
- *   npm run seed:subcategories # this file
- */
 import 'dotenv/config';
-import mongoose from 'mongoose';
 import { connectDB } from './config/db.js';
-import Category from './models/Category.js';
-import Product from './models/Product.js';
+import { getCategory } from './models/Category.js';
+import { getProduct } from './models/Product.js';
 
-/**
- * parent slug -> sub-categories, each listing the products that belong to it.
- * Product slugs are the source of truth for the re-filing; anything not named
- * here simply stays on its department, which is why the script is safe to run
- * against a catalogue that has grown since.
- */
 const TREE = {
-  // ---------- marketplace departments ----------
   electronics: [
     { name: 'Phones', products: ['5g-smartphone-128gb-dual-sim'] },
     { name: 'Laptops', products: ['14-thin-light-laptop-16gb-ram'] },
@@ -62,7 +42,6 @@ const TREE = {
     { name: 'Bedding', products: ['cotton-percale-bedding-set-king'] },
   ],
 
-  // ---------- school departments ----------
   'school-bags': [
     { name: 'Backpacks', products: ['classic-two-pocket-school-backpack'] },
     { name: 'Trolley Bags', products: ['wheeled-trolley-school-bag'] },
@@ -108,51 +87,61 @@ const TREE = {
 const slugify = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
 async function run() {
-  await connectDB(process.env.MONGO_URI);
+  const sequelize = await connectDB();
+  if (!sequelize) {
+    console.error('Could not connect to database.');
+    process.exit(1);
+  }
+  const Category = getCategory();
+  const Product = getProduct();
 
   let subsMade = 0;
   let moved = 0;
   const missing = [];
 
   for (const [parentSlug, subs] of Object.entries(TREE)) {
-    const parent = await Category.findOne({ slug: parentSlug });
+    const parent = await Category.findOne({ where: { slug: parentSlug } });
     if (!parent) {
       console.log(`skip "${parentSlug}" — no such department`);
       continue;
     }
-    // A department must not also be someone's child.
-    await Category.updateOne({ _id: parent._id }, { $set: { parent: null } });
+    await parent.update({ parentId: null });
 
     for (const sub of subs) {
-      // Namespaced so "Phones" under Electronics can't collide with a "Phones"
-      // added under another department later.
       const subSlug = `${parentSlug}-${slugify(sub.name)}`;
-      await Category.updateOne(
-        { slug: subSlug },
-        {
-          $set: {
-            name: sub.name,
-            slug: subSlug,
-            parent: parent._id,
-            image: parent.image,
-            description: `${sub.name} in ${parent.name}.`,
-          },
-        },
-        { upsert: true }
-      );
+      let subCat = await Category.findOne({ where: { slug: subSlug } });
+      if (subCat) {
+        await subCat.update({
+          name: sub.name,
+          parentId: parent.id,
+          image: parent.image,
+          description: `${sub.name} in ${parent.name}.`,
+        });
+      } else {
+        subCat = await Category.create({
+          name: sub.name,
+          slug: subSlug,
+          parentId: parent.id,
+          image: parent.image,
+          description: `${sub.name} in ${parent.name}.`,
+        });
+      }
       subsMade++;
 
-      const subCat = await Category.findOne({ slug: subSlug });
       for (const productSlug of sub.products) {
-        const r = await Product.updateOne({ slug: productSlug }, { $set: { category: subCat._id } });
-        if (r.matchedCount === 0) missing.push(productSlug);
-        else moved++;
+        const prod = await Product.findOne({ where: { slug: productSlug } });
+        if (prod) {
+          await prod.update({ categoryId: subCat.id });
+          moved++;
+        } else {
+          missing.push(productSlug);
+        }
       }
     }
   }
 
-  const totalCats = await Category.countDocuments();
-  const tops = await Category.countDocuments({ parent: null });
+  const totalCats = await Category.count();
+  const tops = await Category.count({ where: { parentId: null } });
 
   console.log('\n✅ Sub-categories ready');
   console.log(`   ${subsMade} sub-categories upserted · ${moved} products re-filed`);
@@ -162,7 +151,6 @@ async function run() {
     missing.forEach((s) => console.log(`   ${s}`));
   }
 
-  await mongoose.disconnect();
   process.exit(0);
 }
 

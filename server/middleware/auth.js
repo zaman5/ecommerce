@@ -1,17 +1,19 @@
 import { verifyToken } from '../utils/token.js';
-import User from '../models/User.js';
-import Product from '../models/Product.js';
-import Category from '../models/Category.js';
+import { getUser } from '../models/User.js';
+import { getProduct } from '../models/Product.js';
+import { getCategory } from '../models/Category.js';
+import { Op } from 'sequelize';
 
 // Attaches req.user if a valid Bearer token is present
 export async function protect(req, res, next) {
   try {
+    const User = getUser();
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (!token) return res.status(401).json({ message: 'Not authorized. Please log in.' });
 
     const decoded = verifyToken(token);
-    const user = await User.findById(decoded.id);
+    const user = await User.findByPk(decoded.id);
     if (!user) return res.status(401).json({ message: 'User no longer exists.' });
 
     // A disabled shop manager cannot use the system even if their token is valid.
@@ -27,15 +29,15 @@ export async function protect(req, res, next) {
 }
 
 // Like `protect`, but never rejects: attaches req.user when a valid token is
-// present and simply moves on when it isn't. Used by routes that serve both
-// signed-in customers and guests (e.g. placing or viewing an order).
+// present and simply moves on when it isn't.
 export async function optionalAuth(req, res, next) {
   try {
+    const User = getUser();
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (token) {
       const decoded = verifyToken(token);
-      const user = await User.findById(decoded.id);
+      const user = await User.findByPk(decoded.id);
       if (user) req.user = user;
     }
   } catch {
@@ -59,28 +61,39 @@ export function restrictTo(...roles) {
 /**
  * All product IDs a shop manager is authorised to touch.
  *
- * The scope is the union of:
- *   • every product filed under one of their assigned categories (including
- *     sub-categories of those categories), and
- *   • every individually assigned product.
- *
  * Admins get `null`, meaning "no restriction".
  */
 export async function scopedProductIds(user) {
+  const Product = getProduct();
+  const Category = getCategory();
+
   if (user.role === 'admin') return null; // unrestricted
   if (user.role !== 'shopmanager') return []; // clients can't manage anything
 
-  const catIds = user.assignedCategories || [];
-  const prodIds = (user.assignedProducts || []).map((id) => id.toString());
+  // Load assigned categories and products for this user
+  const fullUser = await getUser().findByPk(user.id, {
+    include: [
+      { association: 'assignedCategories', attributes: ['id'] },
+      { association: 'assignedProducts', attributes: ['id'] },
+    ],
+  });
+
+  const catIds = (fullUser.assignedCategories || []).map((c) => c.id);
+  const prodIds = (fullUser.assignedProducts || []).map((p) => p.id.toString());
 
   if (catIds.length) {
-    // Include sub-categories of the assigned departments, so assigning
-    // "Electronics" also covers "Phones" and "Laptops" beneath it.
-    const children = await Category.find({ parent: { $in: catIds } }).select('_id');
-    const allCatIds = [...catIds.map((id) => id.toString()), ...children.map((c) => c._id.toString())];
-    const catProducts = await Product.find({ category: { $in: allCatIds } }).select('_id');
+    // Include sub-categories of the assigned departments
+    const children = await Category.findAll({
+      where: { parentId: { [Op.in]: catIds } },
+      attributes: ['id'],
+    });
+    const allCatIds = [...catIds, ...children.map((c) => c.id)];
+    const catProducts = await Product.findAll({
+      where: { categoryId: { [Op.in]: allCatIds } },
+      attributes: ['id'],
+    });
     for (const p of catProducts) {
-      if (!prodIds.includes(p._id.toString())) prodIds.push(p._id.toString());
+      if (!prodIds.includes(p.id.toString())) prodIds.push(p.id.toString());
     }
   }
 
@@ -95,4 +108,3 @@ export async function canManageProduct(user, productId) {
   const ids = await scopedProductIds(user);
   return ids.includes(productId.toString());
 }
-

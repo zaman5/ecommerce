@@ -1,50 +1,56 @@
 // Connection helper for serverless (Vercel) invocations.
 //
-// This lives inside server/ on purpose. If the API entry point imported
-// 'mongoose' itself it could resolve a *different* copy than the one
-// server/models/*.js resolve (root node_modules vs server/node_modules) —
-// leaving the models attached to an unconnected instance, where every query
-// silently buffers until it times out. Importing from here guarantees the
-// connection and the models share one mongoose instance.
-//
-// config/db.js remains the local-dev equivalent; it calls process.exit(1) on
-// failure, which is correct for `npm run dev` but would take down a whole
-// serverless container.
-import mongoose from 'mongoose';
+// Replaces the old mongoose-based helper. Uses a cached Sequelize instance so
+// the pool is reused across warm invocations.
+import { Sequelize } from 'sequelize';
 
-mongoose.set('strictQuery', true);
-// Cap how long a query waits for a live connection. Must stay comfortably
-// under the platform's function timeout so a database outage surfaces as our
-// own 503 rather than an opaque gateway timeout.
-mongoose.set('bufferTimeoutMS', 5000);
-
-// The Node process is reused across invocations, so the connection is cached
-// on globalThis and re-awaited rather than reopened per request — otherwise a
-// traffic burst opens a pool per request and exhausts the Atlas limit.
-const cache = (globalThis.__wondercartMongo ??= { promise: null });
+const cache = (globalThis.__wondercartMySQL ??= { sequelize: null, ready: null });
 
 export function connectServerless() {
-  if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose.connection);
+  if (cache.sequelize) return cache.ready;
 
-  if (!cache.promise) {
-    const uri = process.env.MONGO_URI;
-    if (!uri) {
-      return Promise.reject(new Error('MONGO_URI is not set in the Vercel project environment variables.'));
-    }
+  const host = process.env.DB_HOST || 'localhost';
+  const port = parseInt(process.env.DB_PORT || '3306', 10);
+  const user = process.env.DB_USER || 'root';
+  const pass = process.env.DB_PASS || '';
+  const name = process.env.DB_NAME || 'wondercart';
 
-    cache.promise = mongoose
-      .connect(uri, {
-        // The driver's connect() resolves before any handshake, so this is what
-        // actually bounds the wait when the cluster is unreachable.
-        serverSelectionTimeoutMS: 8000,
-      })
-      // Drop a rejected promise so the next request retries instead of
-      // replaying the cached failure forever.
-      .catch((err) => {
-        cache.promise = null;
-        throw err;
-      });
+  if (!name) {
+    return Promise.reject(new Error('DB_NAME is not set in the Vercel project environment variables.'));
   }
 
-  return cache.promise;
+  cache.sequelize = new Sequelize(name, user, pass, {
+    host,
+    port,
+    dialect: 'mysql',
+    logging: false,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 8000,
+      idle: 5000,
+    },
+  });
+
+  cache.ready = (async () => {
+    try {
+      await cache.sequelize.authenticate();
+
+      const { initModels } = await import('../models/index.js');
+      initModels(cache.sequelize);
+      await cache.sequelize.sync();
+
+      return cache.sequelize;
+    } catch (err) {
+      cache.sequelize = null;
+      cache.ready = null;
+      throw err;
+    }
+  })();
+
+  return cache.ready;
+}
+
+export function getSequelize() {
+  return cache.sequelize;
 }
