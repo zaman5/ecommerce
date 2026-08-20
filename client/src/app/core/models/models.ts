@@ -41,6 +41,7 @@ export interface Category {
   image?: string;
   /** Slug of the parent department, or null for a top-level one. */
   parent?: string | null;
+  parentId?: number | string | null;
   /** For a department this includes everything in its sub-categories. */
   productCount?: number;
 }
