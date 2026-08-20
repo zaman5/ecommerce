@@ -8,10 +8,16 @@ export default async function handler(req, res) {
   try {
     await connectServerless();
   } catch (err) {
-    console.error('MySQL connection failed:', err);
+    console.error('Database connection failed:', err.message);
     res.statusCode = 503;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ message: 'Database unavailable. Check DB_HOST, DB_USER, DB_NAME settings.' }));
+    res.end(
+      JSON.stringify({
+        message: 'Database unavailable.',
+        error: err.message,
+        hint: 'Check DB_HOST, DB_USER, DB_PASS, DB_NAME in your hosting environment variables.',
+      })
+    );
     return;
   }
 

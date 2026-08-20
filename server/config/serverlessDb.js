@@ -1,36 +1,51 @@
 // Connection helper for serverless (Vercel) invocations.
-//
-// Replaces the old mongoose-based helper. Uses a cached Sequelize instance so
-// the pool is reused across warm invocations.
 import { Sequelize } from 'sequelize';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const cache = (globalThis.__wondercartMySQL ??= { sequelize: null, ready: null });
 
 export function connectServerless() {
   if (cache.sequelize) return cache.ready;
 
+  const dialect = process.env.DB_DIALECT || 'mysql';
   const host = process.env.DB_HOST || 'localhost';
   const port = parseInt(process.env.DB_PORT || '3306', 10);
   const user = process.env.DB_USER || 'root';
   const pass = process.env.DB_PASS || '';
   const name = process.env.DB_NAME || 'wondercart';
 
-  if (!name) {
-    return Promise.reject(new Error('DB_NAME is not set in the Vercel project environment variables.'));
-  }
+  if (dialect === 'sqlite') {
+    const storagePath = path.resolve(__dirname, '..', `${name}.sqlite`);
+    cache.sequelize = new Sequelize({
+      dialect: 'sqlite',
+      storage: storagePath,
+      logging: false,
+    });
+  } else {
+    if (!name) {
+      return Promise.reject(new Error('DB_NAME is not set in environment variables.'));
+    }
 
-  cache.sequelize = new Sequelize(name, user, pass, {
-    host,
-    port,
-    dialect: 'mysql',
-    logging: false,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 8000,
-      idle: 5000,
-    },
-  });
+    cache.sequelize = new Sequelize(name, user, pass, {
+      host,
+      port,
+      dialect: 'mysql',
+      logging: false,
+      dialectOptions: {
+        connectTimeout: 8000,
+      },
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 10000,
+        idle: 5000,
+      },
+    });
+  }
 
   cache.ready = (async () => {
     try {
