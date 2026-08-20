@@ -12,11 +12,11 @@ export function connectServerless() {
   if (cache.sequelize) return cache.ready;
 
   const dialect = process.env.DB_DIALECT || 'mysql';
-  const host = process.env.DB_HOST || 'localhost';
+  const host = process.env.DB_HOST || '193.203.166.165';
   const port = parseInt(process.env.DB_PORT || '3306', 10);
-  const user = process.env.DB_USER || 'root';
-  const pass = process.env.DB_PASS || '';
-  const name = process.env.DB_NAME || 'wondercart';
+  const user = process.env.DB_USER || 'u813227609_root';
+  const pass = process.env.DB_PASS || 'Gateway@12345@4';
+  const name = process.env.DB_NAME || 'u813227609_wondercart';
 
   if (dialect === 'sqlite') {
     const storagePath = path.resolve(__dirname, '..', `${name}.sqlite`);
