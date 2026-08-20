@@ -95,13 +95,28 @@ export function createApp() {
   ];
   const clientDist = possibleDistPaths.find((p) => fs.existsSync(path.join(p, 'index.html'))) || possibleDistPaths[0];
 
-  app.use(express.static(clientDist, { maxAge: '7d' }));
+  app.use(
+    express.static(clientDist, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        } else if (/\.(js|css|woff2?|png|jpe?g|gif|svg|ico)$/i.test(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      },
+    })
+  );
 
-  // SPA fallback
+  // SPA fallback ONLY for HTML navigation routes (do NOT serve index.html for missing .js/.css/.json files!)
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return next();
+    // If request has a file extension (e.g. .js, .css, .ico, .png), do NOT serve index.html
+    if (/\.[a-zA-Z0-9]+$/.test(req.path)) {
+      return res.status(404).type('text/plain').send('Not found');
+    }
     const indexPath = path.join(clientDist, 'index.html');
     if (fs.existsSync(indexPath)) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       return res.sendFile(indexPath);
     }
     next();
