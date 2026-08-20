@@ -48,7 +48,7 @@ async function buildProductFilter(query, { ignoreColor = false } = {}) {
   if (onSale === 'true' || flashSale === 'true') {
     where[Op.and] = [
       ...(where[Op.and] || []),
-      literal('`Product`.`compare_at_price` > `Product`.`price`'),
+      literal('compare_at_price > price'),
     ];
   }
   if (flashSale === 'true') where.isFlashSale = true;
@@ -198,13 +198,14 @@ export async function listColors(req, res, next) {
         'hex',
         [fn('COUNT', col('id')), 'count'],
       ],
-      group: [fn('LOWER', col('name'))],
+      group: ['name', 'hex'],
       raw: true,
     });
 
-    res.json(rows.map((r) => ({ name: r.name, hex: r.hex, count: parseInt(r.count) })));
+    res.json(rows.map((r) => ({ name: r.name, hex: r.hex, count: parseInt(r.count, 10) || 1 })));
   } catch (err) {
-    next(err);
+    console.error('Error fetching colors:', err.message);
+    res.json([]);
   }
 }
 
