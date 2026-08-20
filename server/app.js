@@ -54,6 +54,20 @@ export function createApp() {
     });
   });
 
+  // Remote database seed endpoint (can be called via browser or API)
+  app.all('/api/seed', async (req, res) => {
+    try {
+      const { populateFullDatabase } = await import('./utils/autoSeed.js');
+      await populateFullDatabase();
+      res.json({
+        success: true,
+        message: 'Database populated with all products, categories, colors, banners, and admin accounts!',
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d' }));
 
   app.use('/api/auth', authRoutes);

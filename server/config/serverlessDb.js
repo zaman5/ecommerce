@@ -55,6 +55,9 @@ export function connectServerless() {
       initModels(cache.sequelize);
       await cache.sequelize.sync();
 
+      const { autoSeedIfEmpty } = await import('../utils/autoSeed.js');
+      autoSeedIfEmpty().catch(() => {});
+
       return cache.sequelize;
     } catch (err) {
       cache.sequelize = null;
