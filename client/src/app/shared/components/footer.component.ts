@@ -1,62 +1,181 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-footer',
   standalone: true,
-  imports: [RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <footer class="footer">
-      <div class="container foot-grid">
-        <div>
-          <img src="assets/logo.png" alt="Wondercart" class="brand-img" width="480" height="341" />
-          <p class="text-muted">Everything your child needs for school — trusted quality, fair prices, and fast delivery across Pakistan.</p>
+      <div class="container">
+        <!-- 5-Column Grid -->
+        <div class="footer-grid">
+          <!-- Brand Info -->
+          <div class="footer-col brand-col">
+            <a routerLink="/" class="footer-brand" aria-label="WonderCart Home">
+              <img src="assets/WonderCart.png" alt="WonderCart" class="footer-logo-img" />
+            </a>
+            <p class="brand-desc">
+              One Stop. Every Need. Every Age. Quality products for every stage of your child's life.
+            </p>
+          </div>
+
+          <!-- Quick Links -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Quick Links</h4>
+            <ul class="footer-links">
+              <li><a routerLink="/">Home</a></li>
+              <li><a routerLink="/shop">Shop</a></li>
+              <li><a [routerLink]="['/shop']" [queryParams]="{ sort: 'newest' }">New Arrivals</a></li>
+              <li><a [routerLink]="['/shop']" [queryParams]="{ sort: 'popular' }">Best Sellers</a></li>
+              <li><a [routerLink]="['/shop']" [queryParams]="{ deals: 'true' }">Deals</a></li>
+              <li><a routerLink="/terms" fragment="about">About Us</a></li>
+              <li><a routerLink="/contact">Contact Us</a></li>
+            </ul>
+          </div>
+
+          <!-- My Account -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">My Account</h4>
+            <ul class="footer-links">
+              <li><a routerLink="/account/orders">My Orders</a></li>
+              <li><a routerLink="/saved">Wishlist</a></li>
+              <li><a routerLink="/account/orders">Track Order</a></li>
+              <li><a routerLink="/terms" fragment="returns">Returns</a></li>
+              <li><a routerLink="/login">Sign In</a></li>
+            </ul>
+          </div>
+
+          <!-- Customer Service -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Customer Service</h4>
+            <ul class="footer-links">
+              <li><a routerLink="/contact">Help Center</a></li>
+              <li><a routerLink="/terms" fragment="shipping">Shipping Policy</a></li>
+              <li><a routerLink="/terms" fragment="returns">Return Policy</a></li>
+              <li><a routerLink="/terms">Terms &amp; Conditions</a></li>
+            </ul>
+          </div>
         </div>
-        <div>
-          <h4>Shop</h4>
-          <a routerLink="/shop">All products</a>
-          <a routerLink="/shop">New arrivals</a>
-          <a routerLink="/shop">Best sellers</a>
-        </div>
-        <div>
-          <h4>Account</h4>
-          <a routerLink="/login">Log in</a>
-          <a routerLink="/register">Create account</a>
-          <a routerLink="/account/orders">Track order</a>
-        </div>
-        <div>
-          <h4>Help</h4>
-          <a routerLink="/contact">Contact us</a>
-          <a routerLink="/terms" fragment="returns">Shipping &amp; returns</a>
-          <a routerLink="/terms">Terms &amp; Conditions</a>
+
+        <!-- Newsletter & Social Media Bar -->
+        <div class="footer-middle">
+          <div class="newsletter-wrap">
+            <div>
+              <h4 class="newsletter-title">Stay Connected</h4>
+              <p class="newsletter-desc">Subscribe to get special offers, new arrivals &amp; more!</p>
+            </div>
+            <form class="newsletter-form" (ngSubmit)="subscribe()">
+              <input
+                type="email"
+                [(ngModel)]="email"
+                name="email"
+                placeholder="Enter your email"
+                class="newsletter-input"
+                required
+              />
+              <button type="submit" class="newsletter-btn" aria-label="Subscribe">
+                <i class="far fa-paper-plane"></i>
+              </button>
+            </form>
+            @if (subscribed) {
+              <span class="sub-msg">Thank you for subscribing!</span>
+            }
+          </div>
+
+          <!-- Social Links -->
+          <div class="social-links">
+            <a href="#" class="social-btn facebook" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" class="social-btn instagram" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-btn tiktok" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+            <a href="#" class="social-btn youtube" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+          </div>
         </div>
       </div>
-      <div class="foot-bottom">
-        <div class="container foot-bottom-inner">
-          <span>© {{ year }} Wondercart. Packed with care for every school day.</span>
-          <span class="foot-links">
-            <a routerLink="/terms">Terms &amp; Conditions</a>
-            <a routerLink="/contact">Contact us</a>
-          </span>
+
+      <!-- Bottom Navy Footer -->
+      <div class="bottom-footer">
+        <div class="container bottom-inner">
+          <p class="copyright">© {{ year }} WonderCart. All Rights Reserved.</p>
+          <div class="payment-badges">
+            <span class="pay-badge"><i class="fab fa-cc-visa"></i> Visa</span>
+            <span class="pay-badge"><i class="fab fa-cc-mastercard"></i> Mastercard</span>
+            <span class="pay-badge"><i class="fab fa-cc-paypal"></i> PayPal</span>
+            <span class="pay-badge"><i class="fab fa-cc-apple-pay"></i> Apple Pay</span>
+            <span class="pay-badge"><i class="fas fa-money-bill-wave"></i> Cash on Delivery</span>
+          </div>
         </div>
       </div>
     </footer>
   `,
   styles: [`
-    .footer { background: #fff; border-top: 1px solid var(--line); margin-top: 40px; }
-    .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; padding: 48px 20px 28px; }
-    .brand-img { height: 76px; width: auto; display: block; margin-bottom: 12px; }
-    .footer h4 { font-size: 1rem; margin-bottom: 12px; }
-    .footer a { display: block; color: var(--muted); padding: 5px 0; }
-    .footer a:hover { color: var(--brand); }
-    .foot-bottom { border-top: 1px solid var(--line); padding: 18px 0; color: var(--muted); font-size: .9rem; }
-    .foot-bottom-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .foot-links { display: flex; gap: 18px; }
-    .foot-links a { display: inline; padding: 0; }
-    @media (max-width: 720px) { .foot-grid { grid-template-columns: 1fr 1fr; gap: 24px; } }
-    @media (max-width: 560px) { .foot-bottom-inner { flex-direction: column; text-align: center; } }
+    .footer { background: #ffffff; border-top: 1px solid var(--line); padding-top: 56px; margin-top: 48px; }
+
+    /* 5-Column Grid */
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+
+    .footer-brand { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; margin-bottom: 14px; }
+    .footer-logo-img { height: 50px; width: auto; object-fit: contain; }
+    .brand-desc { font-size: 0.85rem; color: #6b7280; line-height: 1.6; max-width: 320px; }
+
+    .footer-col-title { font-family: var(--font-body); font-weight: 700; font-size: 0.95rem; color: #1f2937; margin: 0 0 16px; }
+    .footer-links { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+    .footer-links a { font-size: 0.85rem; color: #6b7280; text-decoration: none; transition: color .15s; }
+    .footer-links a:hover { color: var(--primary); }
+
+    /* Newsletter & Social */
+    .footer-middle { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding: 28px 0; gap: 24px; flex-wrap: wrap; }
+    .newsletter-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .newsletter-title { font-weight: 700; font-size: 0.95rem; color: #1f2937; margin: 0 0 2px; }
+    .newsletter-desc { font-size: 0.78rem; color: #6b7280; margin: 0; }
+
+    .newsletter-form { position: relative; width: 320px; }
+    .newsletter-input { width: 100%; padding: 10px 48px 10px 16px; border-radius: 999px; border: 1px solid #d1d5db; background: #f9fafb; font-size: 0.85rem; color: #1f2937; outline: none; }
+    .newsletter-input:focus { border-color: var(--primary); background: #ffffff; }
+    .newsletter-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6b7280; cursor: pointer; padding: 6px 10px; font-size: 0.95rem; transition: color .15s; }
+    .newsletter-btn:hover { color: var(--primary); }
+    .sub-msg { font-size: 0.78rem; color: #10b981; font-weight: 600; }
+
+    .social-links { display: flex; gap: 10px; }
+    .social-btn { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ffffff; text-decoration: none; font-size: 0.85rem; transition: opacity .15s, transform .12s; }
+    .social-btn:hover { opacity: 0.85; transform: translateY(-2px); }
+    .social-btn.facebook { background: #1877f2; }
+    .social-btn.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+    .social-btn.tiktok { background: #000000; }
+    .social-btn.youtube { background: #ff0000; }
+
+    /* Bottom Navy Footer */
+    .bottom-footer { background: var(--primary); color: rgba(255,255,255,0.85); padding: 14px 0; font-size: 0.78rem; margin-top: 10px; }
+    .bottom-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .copyright { margin: 0; }
+    .payment-badges { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .pay-badge { background: #ffffff; color: #1f2937; padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+
+    @media (max-width: 860px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+      .brand-col { grid-column: span 2; }
+      .footer-middle { flex-direction: column; align-items: flex-start; }
+      .newsletter-form { width: 100%; max-width: 360px; }
+    }
+    @media (max-width: 540px) {
+      .footer-grid { grid-template-columns: 1fr; }
+      .brand-col { grid-column: span 1; }
+      .bottom-inner { flex-direction: column; text-align: center; justify-content: center; }
+    }
   `],
 })
 export class FooterComponent {
   year = new Date().getFullYear();
+  email = '';
+  subscribed = false;
+
+  subscribe() {
+    if (this.email) {
+      this.subscribed = true;
+      this.email = '';
+      setTimeout(() => (this.subscribed = false), 4000);
+    }
+  }
 }

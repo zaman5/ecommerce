@@ -1,47 +1,57 @@
 :root {
-  /* Brand colors */
-  --brand: #2563eb;
-  --brand-dark: #1d4ed8;
+  /* WonderCart Brand colors matching precision design */
+  --brand: #1e3a8a;
+  --brand-dark: #172554;
   --brand-soft: #eff6ff;
-  --brand-glow: rgba(37, 99, 235, 0.15);
+  --brand-glow: rgba(30, 58, 138, 0.15);
 
-  --accent: #f43f5e;
-  --accent-dark: #e11d48;
-  --accent-soft: #fff1f2;
+  --primary: #1e3a8a;
+  --secondary: #facc15;
+  --accent: #ec4899;
+  --accent-dark: #db2777;
+  --accent-soft: #fce7f3;
 
-  --sun: #fbbf24;
-  --sun-deep: #d97706;
-  --sun-soft: #fffbeb;
-  --sun-ink: #92400e;
+  --sun: #facc15;
+  --sun-deep: #ca8a04;
+  --sun-soft: #fef9c3;
+  --sun-ink: #854d0e;
+
+  /* Pastel Palette */
+  --pastel-blue: #e0f2fe;
+  --pastel-pink: #fce7f3;
+  --pastel-green: #dcfce7;
+  --pastel-purple: #f3e8ff;
+  --pastel-yellow: #fef08a;
+  --pastel-red: #fee2e2;
 
   /* Typography & neutrals — LIGHT MODE DEFAULT */
-  --ink: #1e293b;
-  --ink-light: #334155;
-  --muted: #64748b;
-  --line: #e2e8f0;
+  --ink: #1f2937;
+  --ink-light: #374151;
+  --muted: #6b7280;
+  --line: #e5e7eb;
 
   /* Surfaces & Backgrounds */
   --cream: #ffffff;
-  --cream-deep: #f8fafc;
+  --cream-deep: #f9fafb;
   --surface: #ffffff;
-  --soft: #f8fafc;
+  --soft: #fdf8f5;
   --card-bg: #ffffff;
   --input-bg: #ffffff;
-  --price-color: #0f172a;
+  --price-color: #1e3a8a;
 
-  --danger: #f43f5e;
+  --danger: #ef4444;
   --success: #10b981;
 
-  --radius-sm: 10px;
-  --radius: 16px;
-  --radius-lg: 24px;
-  --shadow-sm: 0 2px 10px rgba(51, 65, 85, 0.04);
-  --shadow: 0 8px 24px rgba(51, 65, 85, 0.07);
-  --shadow-lg: 0 16px 36px rgba(51, 65, 85, 0.1);
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
 
-  --font-display: 'Baloo 2', system-ui, sans-serif;
-  --font-body: 'Nunito', system-ui, sans-serif;
-  --maxw: 1200px;
+  --font-display: 'Nunito', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
+  --maxw: 1240px;
   --listing-cols: 4;
 }
 
@@ -165,6 +175,21 @@ textarea.input { min-height: 110px; resize: vertical; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 
 /* utilities */
+.font-nunito { font-family: var(--font-display) !important; }
+.font-poppins { font-family: var(--font-body) !important; }
+.text-primary { color: var(--primary) !important; }
+.bg-primary { background-color: var(--primary) !important; }
+.text-secondary { color: var(--secondary) !important; }
+.bg-secondary { background-color: var(--secondary) !important; }
+.text-accent { color: var(--accent) !important; }
+.bg-accent { background-color: var(--accent) !important; }
+.bg-pastel-blue { background-color: var(--pastel-blue) !important; }
+.bg-pastel-pink { background-color: var(--pastel-pink) !important; }
+.bg-pastel-green { background-color: var(--pastel-green) !important; }
+.bg-pastel-purple { background-color: var(--pastel-purple) !important; }
+.bg-pastel-yellow { background-color: var(--pastel-yellow) !important; }
+.bg-pastel-red { background-color: var(--pastel-red) !important; }
+
 .flex { display: flex; }
 .between { justify-content: space-between; }
 .items-center { align-items: center; }

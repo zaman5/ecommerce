@@ -8,6 +8,8 @@ node_modules/
 
 # build output
 .angular/
+dist/
+client/dist/
 
 # logs
 *.log
