@@ -94,24 +94,10 @@ import { RouterLink } from '@angular/router';
           </div>
         </div>
       </div>
-
-      <!-- Bottom Navy Footer -->
-      <div class="bottom-footer">
-        <div class="container bottom-inner">
-          <p class="copyright">© {{ year }} WonderCart. All Rights Reserved.</p>
-          <div class="payment-badges">
-            <span class="pay-badge"><i class="fab fa-cc-visa"></i> Visa</span>
-            <span class="pay-badge"><i class="fab fa-cc-mastercard"></i> Mastercard</span>
-            <span class="pay-badge"><i class="fab fa-cc-paypal"></i> PayPal</span>
-            <span class="pay-badge"><i class="fab fa-cc-apple-pay"></i> Apple Pay</span>
-            <span class="pay-badge"><i class="fas fa-money-bill-wave"></i> Cash on Delivery</span>
-          </div>
-        </div>
-      </div>
     </footer>
   `,
   styles: [`
-    .footer { background: #ffffff; border-top: 1px solid var(--line); padding-top: 56px; margin-top: 48px; }
+    .footer { background: #ffffff; border-top: 1px solid var(--line); padding-top: 56px; padding-bottom: 40px; margin-top: 48px; }
 
     /* 5-Column Grid */
     .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
@@ -126,7 +112,7 @@ import { RouterLink } from '@angular/router';
     .footer-links a:hover { color: var(--primary); }
 
     /* Newsletter & Social */
-    .footer-middle { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding: 28px 0; gap: 24px; flex-wrap: wrap; }
+    .footer-middle { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 28px; gap: 24px; flex-wrap: wrap; }
     .newsletter-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
     .newsletter-title { font-weight: 700; font-size: 0.95rem; color: #1f2937; margin: 0 0 2px; }
     .newsletter-desc { font-size: 0.78rem; color: #6b7280; margin: 0; }
@@ -146,13 +132,6 @@ import { RouterLink } from '@angular/router';
     .social-btn.tiktok { background: #000000; }
     .social-btn.youtube { background: #ff0000; }
 
-    /* Bottom Navy Footer */
-    .bottom-footer { background: var(--primary); color: rgba(255,255,255,0.85); padding: 14px 0; font-size: 0.78rem; margin-top: 10px; }
-    .bottom-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-    .copyright { margin: 0; }
-    .payment-badges { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .pay-badge { background: #ffffff; color: #1f2937; padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-
     @media (max-width: 860px) {
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
       .brand-col { grid-column: span 2; }
@@ -162,7 +141,6 @@ import { RouterLink } from '@angular/router';
     @media (max-width: 540px) {
       .footer-grid { grid-template-columns: 1fr; }
       .brand-col { grid-column: span 1; }
-      .bottom-inner { flex-direction: column; text-align: center; justify-content: center; }
     }
   `],
 })
