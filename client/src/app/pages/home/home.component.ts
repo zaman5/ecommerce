@@ -18,6 +18,7 @@ interface VisualCategory {
   icon: string;
   bgClass: string;
   iconColor: string;
+  emoji?: string;
 }
 
 @Component({
@@ -81,7 +82,11 @@ interface VisualCategory {
           @for (cat of visualCategories; track cat.slug) {
             <a [routerLink]="['/shop']" [queryParams]="{ category: cat.slug }" class="cat-circle-card group">
               <div class="cat-circle-avatar" [ngClass]="cat.bgClass">
-                <i [class]="cat.icon" [style.color]="cat.iconColor"></i>
+                @if (cat.emoji) {
+                  <span class="cat-circle-emoji">{{ cat.emoji }}</span>
+                } @else {
+                  <i [class]="cat.icon" [style.color]="cat.iconColor"></i>
+                }
               </div>
               <h3 class="cat-circle-title">{{ cat.name }}</h3>
               <p class="cat-circle-sub">{{ cat.sub }}</p>
@@ -372,9 +377,18 @@ interface VisualCategory {
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       transition: transform .2s ease, box-shadow .2s ease;
     }
+    .cat-circle-emoji {
+      font-size: 2.4rem;
+      line-height: 1;
+      display: inline-block;
+      transition: transform .2s ease;
+    }
     .cat-circle-card:hover .cat-circle-avatar {
       transform: scale(1.08);
       box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+    .cat-circle-card:hover .cat-circle-emoji {
+      transform: scale(1.12);
     }
     .cat-circle-title {
       font-family: var(--font-body);
@@ -505,7 +519,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private timer?: ReturnType<typeof setInterval>;
 
   visualCategories: VisualCategory[] = [
-    { name: 'School Essentials', sub: 'Smart supplies', slug: 'school-essentials', icon: 'fas fa-backpack', bgClass: 'bg-pastel-yellow', iconColor: '#ca8a04' },
+    { name: 'School Essentials', sub: 'Smart supplies', slug: 'school-essentials', icon: 'fas fa-backpack', bgClass: 'bg-pastel-yellow', iconColor: '#ca8a04', emoji: '🎒' },
     { name: 'Toys & Fun', sub: 'Play, learn & grow', slug: 'toys-fun', icon: 'fas fa-puzzle-piece', bgClass: 'bg-pastel-green', iconColor: '#16a34a' },
     { name: 'Lunch & Mealtime', sub: 'Happy meal times', slug: 'lunch-mealtime', icon: 'fas fa-utensils', bgClass: 'bg-pastel-blue', iconColor: '#0284c7' },
     { name: 'Learning & Stationery', sub: 'Creativity & craft', slug: 'learning-stationery', icon: 'fas fa-pencil-alt', bgClass: 'bg-pastel-purple', iconColor: '#9333ea' },
