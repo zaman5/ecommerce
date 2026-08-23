@@ -7,10 +7,11 @@ import {
   recommendations,
 } from '../controllers/analyticsController.js';
 import { protect, restrictTo } from '../middleware/auth.js';
+import { authenticatedRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-router.use(protect, restrictTo('admin', 'shopmanager'));
+router.use(protect, restrictTo('admin', 'shopmanager'), authenticatedRateLimiter);
 
 router.get('/overview', overview);
 router.get('/sales', salesTrend);

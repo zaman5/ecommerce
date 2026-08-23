@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { getFlashSale, updateFlashSale } from '../controllers/flashSaleController.js';
 import { protect, restrictTo } from '../middleware/auth.js';
+import { publicRateLimiter, authenticatedRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-// A singleton resource, so there is no :id and no POST — PUT edits the one row.
-router.get('/', getFlashSale);
-router.put('/', protect, restrictTo('admin'), updateFlashSale);
+router.get('/', publicRateLimiter, getFlashSale);
+router.put('/', protect, restrictTo('admin'), authenticatedRateLimiter, updateFlashSale);
 
 export default router;

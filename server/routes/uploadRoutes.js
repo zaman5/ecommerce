@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import multer from 'multer';
 import { protect, restrictTo } from '../middleware/auth.js';
+import { authenticatedRateLimiter } from '../middleware/rateLimiter.js';
 
 export const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 try {
@@ -69,6 +70,7 @@ const videoUpload = multer({
 });
 
 const router = Router();
+router.use(authenticatedRateLimiter);
 
 // POST /api/uploads/image  (admin + shop manager) — returns the URL to store on the product.
 router.post('/image', protect, restrictTo('admin', 'shopmanager'), (req, res) => {

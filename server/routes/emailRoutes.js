@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import multer from 'multer';
 import { protect, restrictTo } from '../middleware/auth.js';
+import { authenticatedRateLimiter } from '../middleware/rateLimiter.js';
 import { UPLOAD_DIR } from './uploadRoutes.js';
 import {
   getTemplates,
@@ -28,6 +29,7 @@ const router = Router();
 
 router.use(protect);
 router.use(restrictTo('admin', 'shopmanager'));
+router.use(authenticatedRateLimiter);
 
 router.get('/', getTemplates);
 router.get('/:type', getTemplateByType);

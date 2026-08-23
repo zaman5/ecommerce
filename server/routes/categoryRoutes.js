@@ -6,12 +6,13 @@ import {
   deleteCategory,
 } from '../controllers/categoryController.js';
 import { protect, restrictTo } from '../middleware/auth.js';
+import { publicRateLimiter, authenticatedRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-router.get('/', listCategories);
-router.post('/', protect, restrictTo('admin'), createCategory);
-router.put('/:id', protect, restrictTo('admin'), updateCategory);
-router.delete('/:id', protect, restrictTo('admin'), deleteCategory);
+router.get('/', publicRateLimiter, listCategories);
+router.post('/', protect, restrictTo('admin'), authenticatedRateLimiter, createCategory);
+router.put('/:id', protect, restrictTo('admin'), authenticatedRateLimiter, updateCategory);
+router.delete('/:id', protect, restrictTo('admin'), authenticatedRateLimiter, deleteCategory);
 
 export default router;
