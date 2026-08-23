@@ -228,15 +228,46 @@ import { Category } from '../../core/models/models';
     .dropdown-popover a:hover, .dropdown-link-btn:hover { background: var(--cream-deep); color: var(--primary); }
 
     /* NAVIGATION BAR */
-    .nav-bar { background: var(--surface); border-bottom: 1px solid var(--line); }
+    .nav-bar { background: var(--surface); border-bottom: 1px solid var(--line); padding: 8px 0; }
     .nav-inner { display: flex; align-items: center; gap: 32px; }
 
     .category-dropdown-wrap { position: relative; }
-    .cat-btn { background: var(--primary); color: #ffffff; padding: 12px 20px; font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; border: none; border-radius: 6px 6px 0 0; display: flex; align-items: center; justify-content: space-between; width: 240px; cursor: pointer; transition: background .15s; }
-    .cat-btn:hover { background: #172554; }
-    .cat-btn-left { display: flex; align-items: center; gap: 10px; }
+    .cat-btn {
+      background: var(--primary);
+      color: #ffffff;
+      padding: 10px 24px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.92rem;
+      border: none;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(30, 58, 138, 0.2);
+      transition: transform .15s, background .15s, box-shadow .15s;
+    }
+    .cat-btn:hover {
+      background: #172554;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(30, 58, 138, 0.3);
+    }
+    .cat-btn-left { display: inline-flex; align-items: center; gap: 10px; }
 
-    .cat-menu-popover { position: absolute; top: 100%; left: 0; width: 260px; background: var(--surface); border: 1px solid var(--line); border-top: none; box-shadow: var(--shadow-lg); z-index: 55; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+    .cat-menu-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 260px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      z-index: 55;
+      border-radius: 14px;
+      overflow: hidden;
+    }
     .cat-menu-item { position: relative; }
     .cat-menu-link { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 0.88rem; font-weight: 600; color: var(--ink); text-decoration: none; transition: background .15s, color .15s; border-bottom: 1px solid rgba(0,0,0,0.03); }
     .cat-menu-link:hover, .cat-menu-item:hover > .cat-menu-link { background: var(--cream-deep); color: var(--primary); }
