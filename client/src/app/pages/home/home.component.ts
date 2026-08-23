@@ -210,38 +210,6 @@ interface VisualCategory {
         </div>
       </div>
     </section>
-
-    <!-- ================= 6. JUST FOR YOU FEED ================= -->
-    <section class="jfy-section">
-      <div class="container">
-        <div class="jfy-head-wrap">
-          <h2 class="font-nunito jfy-title">Just For You</h2>
-        </div>
-
-        @if (loading()) {
-          <div class="spinner"></div>
-        } @else {
-          <div class="dense-product-grid">
-            @for (p of visibleFeed(); track p._id) {
-              <app-product-card [product]="p" [dense]="true" />
-            }
-          </div>
-
-          @if (loadingMore()) {
-            <div class="spinner"></div>
-          }
-          @if (hasMore()) {
-            <div class="load-more-wrap">
-              <button class="btn btn-ghost load-more-btn" [disabled]="loadingMore()" (click)="loadMore()">
-                {{ loadingMore() ? 'Loading…' : 'Load More Products' }}
-              </button>
-            </div>
-          } @else if (visibleFeed().length) {
-            <p class="feed-end-msg">You've reached the end — {{ visibleFeed().length }} products shown.</p>
-          }
-        }
-      </div>
-    </section>
   `,
   styles: [`
     /* ================= 1. HERO SECTION ================= */
@@ -467,20 +435,6 @@ interface VisualCategory {
       transition: background .15s;
     }
     .btn-promo-cta:hover { background: #172554; }
-
-    /* ================= 6. JUST FOR YOU FEED ================= */
-    .jfy-section { padding: 48px 0 64px; background: #ffffff; }
-    .jfy-head-wrap { margin-bottom: 24px; border-bottom: 3px solid var(--primary); display: inline-block; padding-bottom: 6px; }
-    .jfy-title { font-size: 1.6rem; font-weight: 800; color: var(--primary); margin: 0; }
-    .dense-product-grid {
-      display: grid;
-      grid-template-columns: repeat(var(--listing-cols), minmax(0, 1fr));
-      gap: 16px;
-    }
-    .load-more-wrap { display: flex; justify-content: center; margin-top: 36px; }
-    .load-more-btn { padding: 12px 32px; border-radius: 999px; font-weight: 700; font-size: 0.95rem; border: 2px solid var(--line); color: var(--primary); cursor: pointer; }
-    .load-more-btn:hover { border-color: var(--primary); background: var(--brand-soft); }
-    .feed-end-msg { text-align: center; color: #9ca3af; margin-top: 32px; font-size: 0.88rem; }
 
     @media (max-width: 960px) {
       .hero-container { flex-direction: column; text-align: center; }
