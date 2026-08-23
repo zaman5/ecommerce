@@ -209,12 +209,18 @@ export async function listColors(req, res, next) {
   }
 }
 
-// GET /api/products/:slug
+// GET /api/products/:slugOrId
 export async function getProduct(req, res, next) {
   try {
     const Product = getProductModel();
+    const param = req.params.slug;
+    const isNumeric = /^\d+$/.test(param);
+    const where = isNumeric
+      ? { [Op.or]: [{ id: parseInt(param, 10) }, { slug: param }] }
+      : { slug: param };
+
     const product = await Product.findOne({
-      where: { slug: req.params.slug },
+      where,
       include: [
         { association: 'category', attributes: ['id', 'name', 'slug'] },
         { association: 'colors', attributes: ['name', 'hex', 'image'] },
