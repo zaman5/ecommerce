@@ -89,8 +89,6 @@ import { RouterLink } from '@angular/router';
           <div class="social-links">
             <a href="#" class="social-btn facebook" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
             <a href="#" class="social-btn instagram" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="social-btn tiktok" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
-            <a href="#" class="social-btn youtube" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
           </div>
         </div>
       </div>
@@ -129,8 +127,6 @@ import { RouterLink } from '@angular/router';
     .social-btn:hover { opacity: 0.85; transform: translateY(-2px); }
     .social-btn.facebook { background: #1877f2; }
     .social-btn.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
-    .social-btn.tiktok { background: #000000; }
-    .social-btn.youtube { background: #ff0000; }
 
     @media (max-width: 860px) {
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
