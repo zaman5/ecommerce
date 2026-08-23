@@ -219,8 +219,26 @@ import { Category } from '../../core/models/models';
     .action-text { display: flex; flex-direction: column; font-size: 0.78rem; line-height: 1.2; }
     .action-sub { color: var(--muted); font-size: 0.72rem; }
     .action-main { font-weight: 700; color: var(--ink); }
-
-    .bubble-badge { position: absolute; -top: 3px; -right: 3px; font-size: 0.65rem; font-weight: 800; color: #fff; padding: 1px 5px; border-radius: 999px; min-width: 16px; text-align: center; }
+    .bubble-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #ffffff;
+      padding: 1px 5px;
+      border-radius: 999px;
+      min-width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      line-height: 1;
+    }
+    .bubble-badge.bg-primary { background: var(--primary); }
+    .bubble-badge.bg-accent { background: var(--accent); }
 
     /* Dropdown Popover */
     .dropdown-popover { position: absolute; top: calc(100% + 10px); right: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); padding: 8px 0; min-width: 180px; z-index: 60; }
