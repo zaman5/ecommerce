@@ -238,37 +238,6 @@ interface VisualCategory {
         </div>
       </div>
     </section>
-
-    <!-- ================= 6. EXPLORE OUR PRODUCTS GRID ================= -->
-    <section class="explore-section">
-      <div class="container">
-        <div class="section-heading-between">
-          <div class="heading-left">
-            <h2 class="font-nunito section-title">Explore Our Products 🎒</h2>
-            <p class="section-subtitle">Quality essentials &amp; trending gear for happy kids</p>
-          </div>
-          <a routerLink="/shop" class="see-all-link">View Full Catalog ›</a>
-        </div>
-
-        @if (loading()) {
-          <div class="spinner"></div>
-        } @else if (feed().length > 0) {
-          <div class="feed-grid">
-            @for (p of visibleFeed(); track p._id) {
-              <app-product-card [product]="p" [dense]="true" />
-            }
-          </div>
-
-          @if (hasMore()) {
-            <div class="load-more-wrap center mt-lg">
-              <button class="btn btn-ghost btn-load-more" (click)="loadMore()" [disabled]="loadingMore()">
-                {{ loadingMore() ? 'Loading products…' : 'Show More Products ▾' }}
-              </button>
-            </div>
-          }
-        }
-      </div>
-    </section>
   `,
   styles: [`
     /* ================= 1. HERO SECTION ================= */
