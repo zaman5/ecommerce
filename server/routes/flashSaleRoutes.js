@@ -2,10 +2,12 @@ import { Router } from 'express';
 import { getFlashSale, updateFlashSale } from '../controllers/flashSaleController.js';
 import { protect, restrictTo } from '../middleware/auth.js';
 import { publicRateLimiter, authenticatedRateLimiter } from '../middleware/rateLimiter.js';
+import { validateBody } from '../middleware/validator.js';
+import { flashSaleSchema } from '../validators/schemas.js';
 
 const router = Router();
 
 router.get('/', publicRateLimiter, getFlashSale);
-router.put('/', protect, restrictTo('admin'), authenticatedRateLimiter, updateFlashSale);
+router.put('/', protect, restrictTo('admin'), authenticatedRateLimiter, validateBody(flashSaleSchema), updateFlashSale);
 
 export default router;

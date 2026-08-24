@@ -14,9 +14,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
            which is where the decision to run one actually gets made. -->
       <a routerLink="/admin/banners" routerLinkActive="active">🖼️ Banners</a>
       <a routerLink="/admin/orders" routerLinkActive="active">🧾 Orders</a>
-      <a routerLink="/admin/jazzcash" routerLinkActive="active">📱 JazzCash</a>
-      <a routerLink="/admin/emails" routerLinkActive="active">📧 Emails</a>
-      <a routerLink="/admin/messages" routerLinkActive="active">✉️ Messages</a>
+      <a routerLink="/admin/accounts" routerLinkActive="active">🔗 Accounts Attachment</a>
       <a routerLink="/admin/analytics" routerLinkActive="active">📈 Analytics</a>
       <a routerLink="/admin/shop-managers" routerLinkActive="active">👥 Shop Managers</a>
     </div>

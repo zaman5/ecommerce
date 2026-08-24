@@ -2,8 +2,8 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ProductService, CategoryService, UploadService } from '../../../core/services/api.service';
-import { Category, Product, ProductColor } from '../../../core/models/models';
+import { ProductService, CategoryService, UploadService, SettingsService } from '../../../core/services/api.service';
+import { Category, Product, ProductColor, SocialSettings } from '../../../core/models/models';
 import { AdminNavComponent } from '../admin-nav.component';
 import { FALLBACK_IMAGE, ImgFallbackDirective } from '../../../shared/directives/img-fallback.directive';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
@@ -40,6 +40,7 @@ import { RichTextEditorComponent } from '../../../shared/components/rich-text-ed
                     <td>{{ p.unitsSold }}</td>
                     <td><span class="status" [class]="p.isActive ? 'status-delivered' : 'status-cancelled'">{{ p.isActive ? 'Active' : 'Hidden' }}</span></td>
                     <td class="actions">
+                      <button class="icon-btn" (click)="openQuickShare(p)" title="Post to Facebook & Instagram">📢</button>
                       <button class="icon-btn" (click)="edit(p)" title="Edit">✏️</button>
                       <button class="icon-btn" (click)="remove(p)" title="Delete">🗑️</button>
                     </td>
@@ -51,6 +52,64 @@ import { RichTextEditorComponent } from '../../../shared/components/rich-text-ed
         }
       </div>
     </section>
+
+    <!-- Quick Share Modal -->
+    @if (showQuickShareModal() && sharingProduct(); as prod) {
+      <div class="overlay" (click)="closeQuickShare()">
+        <div class="modal card quick-share-box" (click)="$event.stopPropagation()">
+          <div class="modal-head">
+            <h2>📢 Share to Social Media</h2>
+            <button class="icon-btn" (click)="closeQuickShare()">✕</button>
+          </div>
+          @if (sharingSuccessMessage()) { <div class="alert alert-success m-pad">{{ sharingSuccessMessage() }}</div> }
+          @if (sharingErrorMessage()) { <div class="alert alert-error m-pad">{{ sharingErrorMessage() }}</div> }
+          <div class="modal-body">
+            <div class="quick-prod-card">
+              <img [src]="(prod.images[0] | mediaUrl) || fallback" [alt]="prod.name" appImgFallback class="quick-prod-thumb" />
+              <div>
+                <strong class="quick-prod-title">{{ prod.name }}</strong>
+                <div class="text-muted quick-prod-meta">Rs {{ prod.price | number }} · {{ catName(prod) }}</div>
+              </div>
+            </div>
+
+            @if (!socialConfigured()) {
+              <div class="social-panel-notice mt">
+                <span>⚠️ Facebook & Instagram credentials are not configured yet.</span>
+                <a routerLink="/admin/social" (click)="closeQuickShare()">Open Social Settings &rarr;</a>
+              </div>
+            }
+
+            <div class="field mt">
+              <label>Select Destinations</label>
+              <div class="social-checkboxes">
+                <label class="social-btn" [class.on]="quickShareFb">
+                  <input type="checkbox" [(ngModel)]="quickShareFb" [ngModelOptions]="{standalone:true}" />
+                  <span class="soc-icon fb">📘</span>
+                  <span class="soc-name">Facebook Page</span>
+                </label>
+
+                <label class="social-btn" [class.on]="quickShareIg">
+                  <input type="checkbox" [(ngModel)]="quickShareIg" [ngModelOptions]="{standalone:true}" />
+                  <span class="soc-icon ig">📸</span>
+                  <span class="soc-name">Instagram Feed</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="field mt">
+              <label>Custom Caption <span class="hint">(optional — leave blank for default)</span></label>
+              <textarea class="input" rows="4" [(ngModel)]="quickShareMessage" [ngModelOptions]="{standalone:true}" placeholder="Leave empty to use default caption template..."></textarea>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-ghost" (click)="closeQuickShare()">Cancel</button>
+            <button class="btn btn-primary" [disabled]="isSharingNow() || (!quickShareFb && !quickShareIg)" (click)="submitQuickShare()">
+              {{ isSharingNow() ? 'Publishing…' : '🚀 Publish Now' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- Modal -->
     @if (showForm()) {
@@ -228,6 +287,52 @@ import { RichTextEditorComponent } from '../../../shared/components/rich-text-ed
               <label class="check"><input type="checkbox" [(ngModel)]="form.isFeatured" /> Featured</label>
               <label class="check"><input type="checkbox" [(ngModel)]="form.isActive" /> Active (visible in shop)</label>
             </div>
+
+            <!-- Social Media Auto-Publish Section -->
+            <div class="social-panel mt">
+              <div class="social-panel-head">
+                <span class="social-panel-icon">📢</span>
+                <div>
+                  <strong>Social Media Auto-Publish</strong>
+                  <span class="social-panel-desc">Publish directly to your connected social channels when saving this product.</span>
+                </div>
+              </div>
+
+              @if (!socialConfigured()) {
+                <div class="social-panel-notice">
+                  <span>ℹ️ Facebook & Instagram integration is not configured yet.</span>
+                  <a routerLink="/admin/social" (click)="close()">Configure in Settings &rarr;</a>
+                </div>
+              }
+
+              <div class="social-checkboxes">
+                <label class="social-btn" [class.on]="postToFacebook()" [class.disabled]="!socialConfigured()">
+                  <input type="checkbox" [ngModel]="postToFacebook()" (ngModelChange)="postToFacebook.set($event)" [ngModelOptions]="{standalone:true}" [disabled]="!socialConfigured()" />
+                  <span class="soc-icon fb">📘</span>
+                  <span class="soc-name">Post on Facebook Page</span>
+                </label>
+
+                <label class="social-btn" [class.on]="postToInstagram()" [class.disabled]="!socialConfigured()">
+                  <input type="checkbox" [ngModel]="postToInstagram()" (ngModelChange)="postToInstagram.set($event)" [ngModelOptions]="{standalone:true}" [disabled]="!socialConfigured()" />
+                  <span class="soc-icon ig">📸</span>
+                  <span class="soc-name">Post on Instagram</span>
+                </label>
+              </div>
+
+              @if ((postToFacebook() || postToInstagram()) && socialConfigured()) {
+                <div class="social-caption-opt mt-xs">
+                  <button type="button" class="btn-caption-toggle" (click)="showSocialDetails.set(!showSocialDetails())">
+                    {{ showSocialDetails() ? '▼ Hide custom social caption' : '▶ Customize social caption (optional)' }}
+                  </button>
+
+                  @if (showSocialDetails()) {
+                    <div class="mt-xs">
+                      <textarea class="input soc-text" rows="3" [ngModel]="customSocialMessage()" (ngModelChange)="customSocialMessage.set($event)" [ngModelOptions]="{standalone:true}" placeholder="Leave empty to use your default template from Settings..."></textarea>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
           </div>
           <div class="modal-foot">
             <button class="btn btn-ghost" (click)="close()">Cancel</button>
@@ -306,12 +411,37 @@ import { RichTextEditorComponent } from '../../../shared/components/rich-text-ed
       .img-row { flex-wrap:wrap; }
       .img-row .input { flex:1 1 100%; }
     }
-    .modal-head { display:flex; justify-content:space-between; align-items:center; padding:20px 24px; border-bottom:1px solid var(--line); }
-    .modal-head h2 { margin:0; }
-    .modal-body { padding:20px 24px; overflow-y:auto; }
-    .modal-foot { display:flex; justify-content:flex-end; gap:12px; padding:16px 24px; border-top:1px solid var(--line); }
+    .modal-head { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--line); flex-shrink:0; }
+    .modal-head h2 { margin:0; font-size:1.15rem; }
+    .modal-body { padding:18px 20px; overflow-y:auto; flex:1; min-height:0; }
+    .modal-foot { display:flex; justify-content:flex-end; gap:10px; padding:14px 20px; border-top:1px solid var(--line); flex-shrink:0; }
     .check { display:flex; align-items:center; gap:8px; font-weight:700; }
     .check input { accent-color: var(--ink); width:18px; height:18px; }
+
+    /* Social Media Section & Quick Share */
+    .m-pad { margin: 12px 20px 0; }
+    .social-panel { background: #fdfdfd; border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+    .social-panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .social-panel-icon { font-size: 1.2rem; }
+    .social-panel-head strong { font-size: .95rem; display: block; }
+    .social-panel-desc { font-size: .8rem; color: var(--muted); }
+    .social-panel-notice { font-size: .82rem; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 6px 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .social-panel-notice a { color: #92400e; font-weight: 700; text-decoration: underline; }
+    .social-checkboxes { display: flex; gap: 10px; flex-wrap: wrap; }
+    .social-btn { flex: 1; min-width: 180px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; transition: all .15s ease; }
+    .social-btn:hover:not(.disabled) { border-color: var(--brand); }
+    .social-btn.on { border-color: var(--brand); background: #fff6f4; }
+    .social-btn.disabled { opacity: .5; cursor: not-allowed; }
+    .social-btn input { accent-color: var(--brand); width: 18px; height: 18px; }
+    .soc-icon { font-size: 1.1rem; }
+    .soc-name { font-weight: 700; font-size: .88rem; color: var(--ink); }
+    .btn-caption-toggle { background: none; border: none; font-size: .82rem; font-weight: 700; color: var(--brand); cursor: pointer; padding: 0; }
+    .soc-text { font-family: monospace; font-size: .84rem; }
+    .quick-share-box { width: min(520px, 100%); }
+    .quick-prod-card { display: flex; align-items: center; gap: 12px; background: var(--cream); border: 1px solid var(--line); padding: 10px 14px; border-radius: 10px; }
+    .quick-prod-thumb { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; border: 1px solid var(--line); }
+    .quick-prod-title { font-size: .95rem; }
+    .quick-prod-meta { font-size: .82rem; }
   `],
 })
 export class AdminProductsComponent implements OnInit {
@@ -328,6 +458,24 @@ export class AdminProductsComponent implements OnInit {
   form: any = this.blank();
   colors: ProductColor[] = [];
 
+  /** Social media signals */
+  postToFacebook = signal(false);
+  postToInstagram = signal(false);
+  socialConfigured = signal(false);
+  socialSettings = signal<SocialSettings | null>(null);
+  customSocialMessage = signal('');
+  showSocialDetails = signal(false);
+
+  /** Quick share modal signals */
+  showQuickShareModal = signal(false);
+  sharingProduct = signal<Product | null>(null);
+  quickShareFb = true;
+  quickShareIg = false;
+  quickShareMessage = '';
+  isSharingNow = signal(false);
+  sharingSuccessMessage = signal('');
+  sharingErrorMessage = signal('');
+
   /** Index of the photo slot currently uploading, or null. */
   uploadingAt = signal<number | null>(null);
   /** Index of the colour row currently uploading, or null. */
@@ -338,12 +486,20 @@ export class AdminProductsComponent implements OnInit {
   constructor(
     private productSvc: ProductService,
     private catSvc: CategoryService,
-    private uploads: UploadService
+    private uploads: UploadService,
+    private settingsSvc: SettingsService
   ) {}
 
   ngOnInit() {
     this.catSvc.list().subscribe((c) => this.categories.set(c));
     this.reload();
+    this.settingsSvc.getSocial().subscribe({
+      next: (s) => {
+        this.socialSettings.set(s);
+        this.socialConfigured.set(Boolean(s.facebookPageId && s.facebookPageAccessToken));
+      },
+      error: () => {},
+    });
   }
   reload() {
     this.loading.set(true);
@@ -493,8 +649,16 @@ export class AdminProductsComponent implements OnInit {
     this.form = this.blank();
     this.discountMode = 'none';
     this.discountValue = 0;
-    this.images = ['']; this.colors = []; this.error.set(''); this.showForm.set(true);
+    this.images = [''];
+    this.colors = [];
+    this.error.set('');
+    this.postToFacebook.set(this.socialSettings()?.facebookAutoPost ?? false);
+    this.postToInstagram.set(this.socialSettings()?.instagramAutoPost ?? false);
+    this.customSocialMessage.set('');
+    this.showSocialDetails.set(false);
+    this.showForm.set(true);
   }
+
   edit(p: Product) {
     this.editing.set(p);
     // Sets discountMode/discountValue and hands back the "normal" price to show.
@@ -504,9 +668,16 @@ export class AdminProductsComponent implements OnInit {
     // Copied, not referenced — cancelling the modal must leave the product's
     // own colour list untouched.
     this.colors = (p.colors || []).map((c) => ({ ...c }));
-    this.error.set(''); this.showForm.set(true);
+    this.postToFacebook.set(false);
+    this.postToInstagram.set(false);
+    this.customSocialMessage.set('');
+    this.showSocialDetails.set(false);
+    this.error.set('');
+    this.showForm.set(true);
   }
+
   close() { this.showForm.set(false); }
+
   save() {
     if (!this.form.name || !this.form.category || !this.form.price) { this.error.set('Name, category and price are required.'); return; }
     const problem = this.discountProblem();
@@ -526,6 +697,9 @@ export class AdminProductsComponent implements OnInit {
       images: this.images.map((u) => u.trim()).filter(Boolean),
       video: (this.form.video || '').trim(),
       colors,
+      postToFacebook: this.postToFacebook(),
+      postToInstagram: this.postToInstagram(),
+      socialCustomMessage: (this.customSocialMessage() || '').trim(),
     };
     const req = this.editing() ? this.productSvc.update(this.editing()!._id, payload) : this.productSvc.create(payload);
     req.subscribe({
@@ -533,9 +707,54 @@ export class AdminProductsComponent implements OnInit {
       error: (err) => { this.error.set(err.error?.message || 'Could not save.'); this.saving.set(false); },
     });
   }
+
   remove(p: Product) {
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
     this.productSvc.remove(p._id).subscribe(() => this.reload());
   }
+
   catName(p: Product) { return typeof p.category === 'object' ? p.category.name : '—'; }
+
+  /** Quick Social Share methods */
+  openQuickShare(p: Product) {
+    this.sharingProduct.set(p);
+    this.quickShareFb = this.socialConfigured();
+    this.quickShareIg = Boolean(this.socialSettings()?.instagramAccountId);
+    this.quickShareMessage = '';
+    this.sharingSuccessMessage.set('');
+    this.sharingErrorMessage.set('');
+    this.showQuickShareModal.set(true);
+  }
+
+  closeQuickShare() {
+    this.showQuickShareModal.set(false);
+    this.sharingProduct.set(null);
+  }
+
+  submitQuickShare() {
+    const prod = this.sharingProduct();
+    if (!prod) return;
+    this.isSharingNow.set(true);
+    this.sharingSuccessMessage.set('');
+    this.sharingErrorMessage.set('');
+
+    this.productSvc.shareSocial(prod._id, {
+      postToFacebook: this.quickShareFb,
+      postToInstagram: this.quickShareIg,
+      customMessage: this.quickShareMessage.trim() || undefined,
+    }).subscribe({
+      next: (res) => {
+        this.isSharingNow.set(false);
+        this.sharingSuccessMessage.set(res.message || 'Successfully posted to social media!');
+        setTimeout(() => {
+          this.closeQuickShare();
+        }, 1800);
+      },
+      error: (err) => {
+        this.isSharingNow.set(false);
+        this.sharingErrorMessage.set(err.error?.message || 'Failed to share to social media.');
+      },
+    });
+  }
 }
+

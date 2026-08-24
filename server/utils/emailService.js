@@ -50,11 +50,11 @@ let transporterInstance = null;
 
 function getTransporter() {
   if (!transporterInstance) {
-    const host = process.env.SMTP_HOST || 's13.hosterpk.com';
+    const host = process.env.SMTP_HOST || '';
     const port = parseInt(process.env.SMTP_PORT || '465', 10);
     const secure = process.env.SMTP_SECURE !== 'false';
-    const user = process.env.SMTP_USER || 'orders@wondercart.pk';
-    const pass = process.env.SMTP_PASS || 'Gateway@12345';
+    const user = process.env.SMTP_USER || '';
+    const pass = process.env.SMTP_PASS || '';
 
     transporterInstance = nodemailer.createTransport({
       host,

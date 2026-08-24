@@ -81,7 +81,8 @@ export async function updateTemplate(req, res) {
     });
     res.json(reloaded);
   } catch (err) {
-    res.status(400).json({ message: err.message || 'Failed to update email template.' });
+    console.error('[Email Template Update Error]', err);
+    res.status(400).json({ message: 'Failed to update email template. Please check the submitted fields.' });
   }
 }
 
@@ -96,9 +97,11 @@ export async function testSend(req, res) {
     if (result.success) {
       res.json({ message: `Test email sent successfully to ${to}!`, messageId: result.messageId });
     } else {
-      res.status(500).json({ message: result.error || 'Failed to send test email.' });
+      console.error('[Test Email Send Failed]', result.error);
+      res.status(500).json({ message: 'Failed to send test email. Please verify your SMTP settings.' });
     }
   } catch (err) {
-    res.status(500).json({ message: err.message || 'Error occurred while sending test email.' });
+    console.error('[Test Email Exception]', err);
+    res.status(500).json({ message: 'Error occurred while sending test email.' });
   }
 }

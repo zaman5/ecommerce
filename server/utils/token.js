@@ -1,9 +1,18 @@
 import jwt from 'jsonwebtoken';
 
-const DEFAULT_SECRET = 'wondercart_default_jwt_secret_d9f3a1c7e05b4682af6c21be7d4f90ac53e18b7264da0f95cb3e7a1d68f402b9';
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: JWT_SECRET environment variable is missing in production.');
+    }
+    return 'wondercart_dev_jwt_secret_do_not_use_in_prod';
+  }
+  return secret;
+}
 
 export function signToken(user) {
-  const secret = process.env.JWT_SECRET || DEFAULT_SECRET;
+  const secret = getJwtSecret();
   return jwt.sign(
     { id: user.id, role: user.role, name: user.name },
     secret,
@@ -12,6 +21,6 @@ export function signToken(user) {
 }
 
 export function verifyToken(token) {
-  const secret = process.env.JWT_SECRET || DEFAULT_SECRET;
+  const secret = getJwtSecret();
   return jwt.verify(token, secret);
 }

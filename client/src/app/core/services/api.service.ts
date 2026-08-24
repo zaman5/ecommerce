@@ -2,7 +2,26 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Banner, Category, ColorOption, ContactMessage, EmailAttachment, EmailTemplate, FlashSale, GuestOrderRef, JazzCashSettings, Order, Product, ProductPage, Review, ReviewSummary, ShopManager } from '../models/models';
+import {
+  Banner,
+  Category,
+  ColorOption,
+  ContactMessage,
+  EmailAttachment,
+  EmailTemplate,
+  FlashSale,
+  GuestOrderRef,
+  JazzCashSettings,
+  Order,
+  Product,
+  ProductPage,
+  Review,
+  ReviewSummary,
+  ShopManager,
+  SocialSettings,
+  SocialTestResponse,
+  SocialPostResponse,
+} from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
@@ -48,6 +67,9 @@ export class ProductService {
   }
   remove(id: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.api}/products/${id}`);
+  }
+  shareSocial(id: string, data: { postToFacebook?: boolean; postToInstagram?: boolean; customMessage?: string }): Observable<SocialPostResponse> {
+    return this.http.post<SocialPostResponse>(`${this.api}/products/${id}/share-social`, data);
   }
 }
 
@@ -319,6 +341,15 @@ export class SettingsService {
   }
   updateJazzCash(data: Partial<JazzCashSettings>): Observable<JazzCashSettings> {
     return this.http.put<JazzCashSettings>(`${this.api}/settings/jazzcash`, data);
+  }
+  getSocial(): Observable<SocialSettings> {
+    return this.http.get<SocialSettings>(`${this.api}/settings/social`);
+  }
+  updateSocial(data: Partial<SocialSettings>): Observable<SocialSettings> {
+    return this.http.put<SocialSettings>(`${this.api}/settings/social`, data);
+  }
+  testSocial(data?: Partial<SocialSettings>): Observable<SocialTestResponse> {
+    return this.http.post<SocialTestResponse>(`${this.api}/settings/social/test`, data || {});
   }
 }
 

@@ -169,9 +169,7 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
                     <span>{{ qty() }}</span>
                     <button [disabled]="qty() >= p.stock" (click)="qty.set(Math.min(p.stock, qty()+1))">+</button>
                   </div>
-                  @if (p.stock > 0) {
-                    <span class="stock in">{{ p.stock }} pieces available</span>
-                  } @else {
+                  @if (p.stock <= 0) {
                     <span class="stock out">Out of stock</span>
                   }
                 </div>
@@ -413,9 +411,9 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
     @keyframes amazonZoomFade { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
 
     @media (max-width: 1080px) {
-      .amazon-zoom-window { left: 0; top: 0; width: 100%; height: 100%; z-index: 10; }
+      .amazon-zoom-window, .amazon-lens, .zoom-hint { display: none !important; }
     }
-    @media not all and (hover: hover) { .amazon-lens, .amazon-zoom-window, .zoom-hint { display:none; } }
+    @media not all and (hover: hover) { .amazon-lens, .amazon-zoom-window, .zoom-hint { display: none !important; } }
     /* line-height is explicit because .main-wrap sets it to 0 (to kill the
        inline gap under the photo) and this span would otherwise inherit it and
        collapse to a sliver. */
@@ -589,7 +587,11 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
     @media (max-width: 800px) {
       .detail { grid-template-columns: 1fr; gap:24px; }
       .panels { grid-template-columns: 1fr; }
-      .cta { position:sticky; bottom:0; background:#fff; padding:10px 0; z-index:5; }
+      .cta {
+        position: sticky; bottom: 0; background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(8px); padding: 10px 0; z-index: 5;
+        border-top: 1px solid var(--line);
+      }
       .rev-top { grid-template-columns: 1fr; gap:16px; }
       .rev-body { margin-left:0; }
     }

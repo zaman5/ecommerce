@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SettingsService, UploadService } from '../../../core/services/api.service';
@@ -10,11 +10,13 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
   standalone: true,
   imports: [CommonModule, FormsModule, AdminNavComponent, MediaUrlPipe],
   template: `
-    <section class="section">
-      <div class="container">
-        <app-admin-nav />
-        <h1>JazzCash Payment Settings</h1>
-        <p class="text-muted">Set the account number and QR code displayed to customers choosing JazzCash at checkout.</p>
+    <section [class.section]="!embedded">
+      <div [class.container]="!embedded">
+        @if (!embedded) {
+          <app-admin-nav />
+          <h1>JazzCash Payment Settings</h1>
+          <p class="text-muted">Set the account number and QR code displayed to customers choosing JazzCash at checkout.</p>
+        }
 
         @if (loading()) {
           <div class="spinner"></div>
@@ -83,6 +85,7 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
   `],
 })
 export class AdminJazzcashSettingsComponent implements OnInit {
+  @Input() embedded = false;
   loading = signal(true);
   saving = signal(false);
   uploadingQr = signal(false);

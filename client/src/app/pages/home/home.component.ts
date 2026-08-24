@@ -1,4 +1,14 @@
-import { Component, HostListener, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FlashSaleService, ProductService, CategoryService, BannerService } from '../../core/services/api.service';
@@ -78,20 +88,38 @@ interface VisualCategory {
           </h2>
         </div>
 
-        <div class="category-grid">
-          @for (cat of visualCategories; track cat.slug) {
-            <a [routerLink]="['/shop']" [queryParams]="{ category: cat.slug }" class="cat-circle-card group">
-              <div class="cat-circle-avatar" [ngClass]="cat.bgClass">
-                @if (cat.emoji) {
-                  <span class="cat-circle-emoji">{{ cat.emoji }}</span>
-                } @else {
-                  <i [class]="cat.icon" [style.color]="cat.iconColor"></i>
-                }
-              </div>
-              <h3 class="cat-circle-title">{{ cat.name }}</h3>
-              <p class="cat-circle-sub">{{ cat.sub }}</p>
-            </a>
-          }
+        <div class="cat-rail-wrap">
+          <button
+            class="rail-nav prev"
+            [class.show]="canCatPrev()"
+            [attr.tabindex]="canCatPrev() ? 0 : -1"
+            (click)="catPage(-1)"
+            aria-label="Scroll backward"
+          >‹</button>
+
+          <div class="category-rail" #catTrack (scroll)="syncCatRail()">
+            @for (cat of visualCategories; track cat.slug) {
+              <a [routerLink]="['/shop']" [queryParams]="{ category: cat.slug }" class="cat-circle-card group">
+                <div class="cat-circle-avatar" [ngClass]="cat.bgClass">
+                  @if (cat.emoji) {
+                    <span class="cat-circle-emoji">{{ cat.emoji }}</span>
+                  } @else {
+                    <i [class]="cat.icon" [style.color]="cat.iconColor"></i>
+                  }
+                </div>
+                <h3 class="cat-circle-title">{{ cat.name }}</h3>
+                <p class="cat-circle-sub">{{ cat.sub }}</p>
+              </a>
+            }
+          </div>
+
+          <button
+            class="rail-nav next"
+            [class.show]="canCatNext()"
+            [attr.tabindex]="canCatNext() ? 0 : -1"
+            (click)="catPage(1)"
+            aria-label="Scroll forward"
+          >›</button>
         </div>
       </div>
     </section>
@@ -210,12 +238,43 @@ interface VisualCategory {
         </div>
       </div>
     </section>
+
+    <!-- ================= 6. EXPLORE OUR PRODUCTS GRID ================= -->
+    <section class="explore-section">
+      <div class="container">
+        <div class="section-heading-between">
+          <div class="heading-left">
+            <h2 class="font-nunito section-title">Explore Our Products 🎒</h2>
+            <p class="section-subtitle">Quality essentials &amp; trending gear for happy kids</p>
+          </div>
+          <a routerLink="/shop" class="see-all-link">View Full Catalog ›</a>
+        </div>
+
+        @if (loading()) {
+          <div class="spinner"></div>
+        } @else if (feed().length > 0) {
+          <div class="feed-grid">
+            @for (p of visibleFeed(); track p._id) {
+              <app-product-card [product]="p" [dense]="true" />
+            }
+          </div>
+
+          @if (hasMore()) {
+            <div class="load-more-wrap center mt-lg">
+              <button class="btn btn-ghost btn-load-more" (click)="loadMore()" [disabled]="loadingMore()">
+                {{ loadingMore() ? 'Loading products…' : 'Show More Products ▾' }}
+              </button>
+            </div>
+          }
+        }
+      </div>
+    </section>
   `,
   styles: [`
     /* ================= 1. HERO SECTION ================= */
     .hero-section {
       background: #fef9f1;
-      padding: 48px 0 64px;
+      padding: 40px 0 56px;
       position: relative;
       overflow: hidden;
     }
@@ -223,7 +282,7 @@ interface VisualCategory {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 40px;
+      gap: 36px;
     }
     .hero-left { flex: 1; max-width: 580px; z-index: 2; }
     .hero-badge {
@@ -236,33 +295,33 @@ interface VisualCategory {
       border-radius: 999px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
     .hero-title {
-      font-size: clamp(2.4rem, 4.5vw, 3.8rem);
+      font-size: clamp(2.2rem, 4.5vw, 3.8rem);
       font-weight: 900;
       color: var(--primary);
       line-height: 1.1;
-      margin: 0 0 16px;
+      margin: 0 0 14px;
     }
     .hero-title-accent {
       color: #10b981;
       text-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
     }
     .hero-subhead {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 700;
       color: #1f2937;
-      margin: 0 0 12px;
+      margin: 0 0 10px;
     }
     .hero-desc {
-      font-size: 0.95rem;
+      font-size: 0.94rem;
       color: #4b5563;
       line-height: 1.6;
-      margin: 0 0 28px;
+      margin: 0 0 24px;
       max-width: 480px;
     }
-    .hero-cta-row { margin-bottom: 32px; }
+    .hero-cta-row { margin-bottom: 26px; }
     .btn-hero-cta {
       display: inline-flex;
       align-items: center;
@@ -271,8 +330,8 @@ interface VisualCategory {
       color: #ffffff;
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 1.05rem;
-      padding: 14px 34px;
+      font-size: 1.02rem;
+      padding: 13px 32px;
       border-radius: 999px;
       text-decoration: none;
       box-shadow: 0 8px 20px rgba(30, 58, 138, 0.25);
@@ -287,13 +346,13 @@ interface VisualCategory {
     .hero-trust-row {
       display: flex;
       align-items: center;
-      gap: 20px;
-      font-size: 0.82rem;
+      gap: 16px;
+      font-size: 0.8rem;
       color: #4b5563;
       font-weight: 600;
       flex-wrap: wrap;
     }
-    .trust-item { display: inline-flex; align-items: center; gap: 6px; }
+    .trust-item { display: inline-flex; align-items: center; gap: 5px; }
 
     .hero-right { flex: 1; max-width: 580px; width: 100%; z-index: 2; }
     .hero-banner-wrapper { width: 100%; border-radius: 20px; overflow: hidden; box-shadow: 0 12px 30px rgba(0,0,0,0.08); }
@@ -311,109 +370,149 @@ interface VisualCategory {
     }
 
     /* ================= 2. SHOP BY CATEGORY ================= */
-    .category-section { padding: 56px 0; background: #ffffff; }
-    .section-heading-center { text-align: center; margin-bottom: 36px; }
-    .section-title { font-size: 1.85rem; font-weight: 800; color: var(--primary); margin: 0; display: inline-flex; align-items: center; gap: 8px; }
-    .heading-emoji { font-size: 1.5rem; }
+    .category-section { padding: 48px 0; background: #ffffff; }
+    .section-heading-center { text-align: center; margin-bottom: 24px; }
+    .section-title { font-size: 1.75rem; font-weight: 800; color: var(--primary); margin: 0; display: inline-flex; align-items: center; gap: 8px; }
+    .heading-emoji { font-size: 1.4rem; }
 
-    .category-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 20px;
-      text-align: center;
+    .cat-rail-wrap { position: relative; }
+    .category-rail {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 8px 4px;
     }
+    .category-rail::-webkit-scrollbar { display: none; }
+
     .cat-circle-card {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-decoration: none;
-      padding: 12px 6px;
+      padding: 10px 8px;
+      flex: 0 0 130px;
+      text-align: center;
       transition: transform .2s ease;
     }
     .cat-circle-card:hover { transform: translateY(-4px); }
 
     .cat-circle-avatar {
-      width: 88px;
-      height: 88px;
+      width: 82px;
+      height: 82px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2.2rem;
-      margin-bottom: 12px;
-      border: 4px solid #ffffff;
+      font-size: 2rem;
+      margin-bottom: 10px;
+      border: 3px solid #ffffff;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       transition: transform .2s ease, box-shadow .2s ease;
     }
     .cat-circle-emoji {
-      font-size: 2.4rem;
+      font-size: 2.2rem;
       line-height: 1;
       display: inline-block;
       transition: transform .2s ease;
     }
     .cat-circle-card:hover .cat-circle-avatar {
-      transform: scale(1.08);
+      transform: scale(1.06);
       box-shadow: 0 8px 20px rgba(0,0,0,0.12);
     }
     .cat-circle-card:hover .cat-circle-emoji {
-      transform: scale(1.12);
+      transform: scale(1.1);
     }
     .cat-circle-title {
       font-family: var(--font-body);
       font-weight: 700;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       color: #1f2937;
       margin: 0 0 2px;
       line-height: 1.2;
+      white-space: normal;
     }
-    .cat-circle-sub { font-size: 0.72rem; color: #9ca3af; margin: 0; }
+    .cat-circle-sub { font-size: 0.7rem; color: #9ca3af; margin: 0; white-space: normal; }
+
+    .rail-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 1px solid var(--line); background: rgba(255, 255, 255, .96);
+      box-shadow: var(--shadow); color: var(--ink);
+      font-family: var(--font-display); font-size: 1.7rem; line-height: 1;
+      display: grid; place-items: center; cursor: pointer; z-index: 3;
+      padding-bottom: 4px;
+      opacity: 0; visibility: hidden;
+      transition: opacity .18s ease, visibility .18s ease, background .15s ease, transform .12s ease;
+    }
+    .rail-nav.show { opacity: 1; visibility: visible; }
+    .rail-nav:hover { background: #fff; color: var(--brand-dark); }
+    .rail-nav:active { transform: translateY(-50%) scale(.94); }
+    .rail-nav:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+    .rail-nav.prev { left: -8px; }
+    .rail-nav.next { right: -8px; }
+
+    @media (hover: none) and (pointer: coarse) {
+      .rail-nav { display: none; }
+    }
+
+    @media (max-width: 640px) {
+      .category-rail { gap: 10px; }
+      .cat-circle-card { flex: 0 0 100px; padding: 6px 4px; }
+      .cat-circle-avatar { width: 66px; height: 66px; font-size: 1.6rem; }
+      .cat-circle-emoji { font-size: 1.8rem; }
+      .cat-circle-title { font-size: 0.75rem; }
+    }
 
     /* ================= 3. FLASH SALE / POPULAR ================= */
-    .popular-section { padding: 48px 0; background: #ffffff; }
+    .popular-section { padding: 44px 0; background: #ffffff; }
     .popular-section.bg-alt { background: #f9fafb; }
-    .section-heading-between { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-    .heading-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-    .flash-timer-badge { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #6b7280; font-weight: 600; }
-    .flash-timer-badge b { background: var(--primary); color: #ffffff; padding: 4px 10px; border-radius: 6px; font-family: var(--font-display); font-size: 0.88rem; }
-    .see-all-link { color: var(--primary); font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+    .section-heading-between { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 10px; }
+    .heading-left { display: flex; flex-direction: column; gap: 2px; }
+    .section-subtitle { font-size: 0.85rem; color: #6b7280; margin: 0; }
+    .flash-timer-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #6b7280; font-weight: 600; margin-top: 4px; }
+    .flash-timer-badge b { background: var(--primary); color: #ffffff; padding: 3px 8px; border-radius: 6px; font-family: var(--font-display); font-size: 0.85rem; }
+    .see-all-link { color: var(--primary); font-weight: 700; font-size: 0.88rem; text-decoration: none; }
     .see-all-link:hover { text-decoration: underline; }
 
     /* ================= 4. FEATURES STRIP ================= */
-    .features-strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 32px 0; background: #ffffff; }
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
-    .feature-item { display: flex; align-items: center; gap: 16px; }
-    .feature-icon-circle { width: 48px; height: 48px; border-radius: 50%; border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--primary); flex: none; }
-    .feature-title { font-weight: 700; font-size: 0.88rem; color: #1f2937; margin: 0 0 2px; }
-    .feature-desc { font-size: 0.75rem; color: #6b7280; margin: 0; }
+    .features-strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 28px 0; background: #ffffff; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .feature-item { display: flex; align-items: center; gap: 14px; }
+    .feature-icon-circle { width: 44px; height: 44px; border-radius: 50%; border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: var(--primary); flex: none; }
+    .feature-title { font-weight: 700; font-size: 0.86rem; color: #1f2937; margin: 0 0 2px; }
+    .feature-desc { font-size: 0.73rem; color: #6b7280; margin: 0; }
 
     /* ================= 5. OPENING SALE PROMO ================= */
-    .promo-banner-section { padding: 48px 0; background: #ffffff; }
+    .promo-banner-section { padding: 44px 0; background: #ffffff; }
     .promo-banner-card {
       background: var(--pastel-blue);
       border-radius: 20px;
-      padding: 32px 40px;
+      padding: 28px 36px;
       position: relative;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 28px;
+      gap: 24px;
       flex-wrap: wrap;
     }
-    .promo-left { display: flex; align-items: center; gap: 24px; z-index: 2; }
-    .promo-img-wrap { width: 72px; height: 72px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-    .promo-big-icon { font-size: 2.2rem; color: var(--accent); }
+    .promo-left { display: flex; align-items: center; gap: 20px; z-index: 2; }
+    .promo-img-wrap { width: 66px; height: 66px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .promo-big-icon { font-size: 2rem; color: var(--accent); }
     .promo-center-text { text-align: left; }
-    .promo-title { font-size: 2rem; font-weight: 900; color: var(--primary); margin: 0 0 6px; letter-spacing: 0.5px; }
-    .promo-pill { display: inline-block; background: var(--accent); color: #ffffff; font-weight: 800; font-size: 0.88rem; padding: 4px 16px; border-radius: 999px; margin-bottom: 6px; box-shadow: 0 4px 10px rgba(236, 72, 153, 0.3); }
-    .promo-sub { font-size: 1rem; font-weight: 600; color: #374151; margin: 0; }
+    .promo-title { font-size: 1.8rem; font-weight: 900; color: var(--primary); margin: 0 0 4px; letter-spacing: 0.5px; }
+    .promo-pill { display: inline-block; background: var(--accent); color: #ffffff; font-weight: 800; font-size: 0.82rem; padding: 3px 14px; border-radius: 999px; margin-bottom: 4px; box-shadow: 0 4px 10px rgba(236, 72, 153, 0.3); }
+    .promo-sub { font-size: 0.95rem; font-weight: 600; color: #374151; margin: 0; }
 
     .promo-glass-box {
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.88);
       backdrop-filter: blur(8px);
       border: 1px solid #ffffff;
       border-radius: 16px;
-      padding: 20px 28px;
+      padding: 18px 24px;
       text-align: center;
       box-shadow: 0 4px 16px rgba(0,0,0,0.05);
       z-index: 2;
@@ -421,25 +520,40 @@ interface VisualCategory {
       flex-direction: column;
       align-items: center;
     }
-    .glass-sub { font-size: 0.7rem; font-weight: 800; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-    .glass-mid { font-size: 0.82rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; }
-    .glass-bold { font-size: 1.6rem; font-weight: 900; color: var(--primary); margin-bottom: 12px; }
+    .glass-sub { font-size: 0.68rem; font-weight: 800; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .glass-mid { font-size: 0.8rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; }
+    .glass-bold { font-size: 1.5rem; font-weight: 900; color: var(--primary); margin-bottom: 10px; }
     .btn-promo-cta {
       background: var(--primary);
       color: #ffffff;
       font-weight: 700;
-      font-size: 0.85rem;
-      padding: 8px 24px;
+      font-size: 0.82rem;
+      padding: 7px 22px;
       border-radius: 999px;
       text-decoration: none;
       transition: background .15s;
     }
     .btn-promo-cta:hover { background: #172554; }
 
+    /* ================= 6. EXPLORE FEED GRID ================= */
+    .explore-section { padding: 44px 0 60px; background: #ffffff; }
+    .feed-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--listing-cols, 4), minmax(0, 1fr));
+      gap: 16px;
+    }
+    .btn-load-more {
+      padding: 12px 32px;
+      font-size: 0.95rem;
+      border-radius: 999px;
+      border: 2px solid var(--line);
+    }
+    .btn-load-more:hover { border-color: var(--primary); color: var(--primary); }
+
     @media (max-width: 960px) {
       .hero-container { flex-direction: column; text-align: center; }
       .hero-left { max-width: none; }
-      .hero-desc { margin: 0 auto 24px; }
+      .hero-desc { margin: 0 auto 20px; }
       .hero-trust-row { justify-content: center; }
       .promo-banner-card { justify-content: center; text-align: center; }
       .promo-left { flex-direction: column; text-align: center; }
@@ -447,13 +561,22 @@ interface VisualCategory {
     }
 
     @media (max-width: 640px) {
-      .category-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
-      .cat-circle-avatar { width: 70px; height: 70px; font-size: 1.7rem; }
-      .cat-circle-title { font-size: 0.78rem; }
+      .category-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .cat-circle-avatar { width: 62px; height: 62px; font-size: 1.5rem; }
+      .cat-circle-title { font-size: 0.72rem; }
+      .feed-grid { gap: 10px; }
+    }
+
+    @media (max-width: 480px) {
+      .category-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .hero-section { padding: 24px 0 36px; }
+      .promo-banner-card { padding: 20px 16px; }
+      .promo-title { font-size: 1.5rem; }
+      .features-grid { grid-template-columns: 1fr; gap: 14px; }
     }
   `],
 })
-export class HomeComponent implements OnInit, OnDestroy {
+export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   featured = signal<Product[]>([]);
   deals = signal<Product[]>([]);
   feed = signal<Product[]>([]);
@@ -462,6 +585,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   countdown = signal('00:00:00');
   flash = signal<FlashSale | null>(null);
   private expired = signal(false);
+
+  @ViewChild('catTrack') private catTrack?: ElementRef<HTMLDivElement>;
+  canCatPrev = signal(false);
+  canCatNext = signal(false);
+  private catRo?: ResizeObserver;
 
   cols = signal(DEFAULT_COLS);
   rows = signal(ROWS_SHOWN);
@@ -519,8 +647,32 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.timer = setInterval(() => this.tick(), 1000);
   }
 
+  ngAfterViewInit() {
+    this.syncCatRail();
+    if (this.catTrack?.nativeElement) {
+      this.catRo = new ResizeObserver(() => this.syncCatRail());
+      this.catRo.observe(this.catTrack.nativeElement);
+    }
+  }
+
   ngOnDestroy() {
     if (this.timer) clearInterval(this.timer);
+    this.catRo?.disconnect();
+  }
+
+  catPage(direction: 1 | -1) {
+    const el = this.catTrack?.nativeElement;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>('.cat-circle-card');
+    const step = card ? card.getBoundingClientRect().width * 2 + 32 : 280;
+    el.scrollBy({ left: direction * step, behavior: 'smooth' });
+  }
+
+  syncCatRail() {
+    const el = this.catTrack?.nativeElement;
+    if (!el) return;
+    this.canCatPrev.set(el.scrollLeft > 2);
+    this.canCatNext.set(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
   }
 
   hasMore() {

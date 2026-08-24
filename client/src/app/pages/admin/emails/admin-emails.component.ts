@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -12,7 +12,9 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
   standalone: true,
   imports: [CommonModule, FormsModule, AdminNavComponent, MediaUrlPipe],
   template: `
-    <app-admin-nav />
+    @if (!embedded) {
+      <app-admin-nav />
+    }
     <div class="admin-page">
       <div class="container">
         
@@ -368,6 +370,7 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
   `],
 })
 export class AdminEmailsComponent implements OnInit {
+  @Input() embedded = false;
   templates = signal<EmailTemplate[]>([]);
   activeType = signal<'order_confirmation' | 'order_shipped' | 'order_delivered'>('order_confirmation');
   current = signal<EmailTemplate | null>(null);

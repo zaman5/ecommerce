@@ -252,7 +252,7 @@ export function authRouteRateLimiter(req, res, next) {
   // Intercept response to update failure/success states
   res.on('finish', () => {
     const success = res.statusCode >= 200 && res.statusCode < 300;
-    const isAuthFailure = res.statusCode === 400 || res.statusCode === 401 || res.statusCode === 403;
+    const isAuthFailure = res.statusCode === 401 || res.statusCode === 403;
 
     if (success) {
       // Reset consecutive failure counters upon successful authentication

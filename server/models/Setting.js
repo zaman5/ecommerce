@@ -28,6 +28,37 @@ export function defineSetting(sequelize) {
         defaultValue: '',
         field: 'jazzcash_qr_image',
       },
+      // Social Media (Facebook & Instagram) configuration
+      facebookPageId: {
+        type: DataTypes.STRING(100),
+        defaultValue: '',
+        field: 'facebook_page_id',
+      },
+      facebookPageAccessToken: {
+        type: DataTypes.TEXT,
+        defaultValue: '',
+        field: 'facebook_page_access_token',
+      },
+      facebookAutoPost: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        field: 'facebook_auto_post',
+      },
+      instagramAccountId: {
+        type: DataTypes.STRING(100),
+        defaultValue: '',
+        field: 'instagram_account_id',
+      },
+      instagramAutoPost: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        field: 'instagram_auto_post',
+      },
+      socialPostTemplate: {
+        type: DataTypes.TEXT,
+        defaultValue: '✨ New Arrival at WonderCart! ✨\n\n🛍️ {product_name}\n💰 Price: Rs {price}\n{discount_text}\n\n👉 Order now: {product_url}\n\n#WonderCart #BabyShop #OnlineShopping',
+        field: 'social_post_template',
+      },
     },
     {
       tableName: 'settings',

@@ -14,11 +14,11 @@ export function getSequelize() {
 
 export async function connectDB(options = {}) {
   const dialect = process.env.DB_DIALECT || 'mysql';
-  const host = process.env.DB_HOST || '193.203.166.165';
+  const host = process.env.DB_HOST || '127.0.0.1';
   const port = parseInt(process.env.DB_PORT || '3306', 10);
-  const user = process.env.DB_USER || 'u813227609_root';
-  const pass = process.env.DB_PASS || 'Gateway@12345@4';
-  const name = process.env.DB_NAME || 'u813227609_wondercart';
+  const user = process.env.DB_USER || 'root';
+  const pass = process.env.DB_PASS || '';
+  const name = process.env.DB_NAME || 'wondercart';
 
   try {
     if (dialect === 'sqlite') {
@@ -68,8 +68,8 @@ export async function connectDB(options = {}) {
     const { initModels } = await import('../models/index.js');
     initModels(sequelize);
 
-    // Sync tables
-    await sequelize.sync();
+    // Sync tables (alter: true ensures new columns are added safely)
+    await sequelize.sync({ alter: true });
     console.log('✅ Database tables synced.');
 
     // Auto-seed if database has no categories (unless skipped by manual seeders)

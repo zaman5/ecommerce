@@ -207,6 +207,45 @@ export interface JazzCashSettings {
   qrImage: string;
 }
 
+export interface SocialSettings {
+  facebookPageId: string;
+  facebookPageAccessToken: string;
+  facebookAutoPost: boolean;
+  instagramAccountId: string;
+  instagramAutoPost: boolean;
+  socialPostTemplate: string;
+  isConfigured?: boolean;
+}
+
+export interface SocialTestResponse {
+  success: boolean;
+  message: string;
+  page?: {
+    id: string;
+    name: string;
+    username?: string;
+    link?: string;
+    pictureUrl?: string;
+  };
+  instagram?: {
+    id: string;
+    name: string;
+    username?: string;
+    pictureUrl?: string;
+  };
+  instagramError?: string;
+}
+
+export interface SocialPostResponse {
+  success: boolean;
+  message: string;
+  results?: {
+    facebook?: { success: boolean; id: string; message: string };
+    instagram?: { success: boolean; id: string; message: string };
+    errors?: string[];
+  };
+}
+
 export interface EmailAttachment {
   _id?: string;
   name: string;

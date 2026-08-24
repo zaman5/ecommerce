@@ -4,6 +4,7 @@ import { getReview } from '../models/Review.js';
 import { getUser } from '../models/User.js';
 import { sanitizeHtml } from '../utils/sanitizeHtml.js';
 import { scopedProductIds, canManageProduct } from '../middleware/auth.js';
+import { dispatchProductSocialPost, postProductToFacebook, postProductToInstagram } from '../services/socialService.js';
 import { Op, fn, col, literal } from 'sequelize';
 
 function toInt(value, fallback, { min = 1, max = Infinity } = {}) {
@@ -317,7 +318,35 @@ export async function createProduct(req, res, next) {
         { association: 'colors', attributes: ['name', 'hex', 'image'] },
       ],
     });
-    res.status(201).json(result);
+
+    // Auto-post to Facebook / Instagram if selected
+    const postToFacebook = Boolean(req.body.postToFacebook);
+    const postToInstagram = Boolean(req.body.postToInstagram);
+    const socialCustomMessage = req.body.socialCustomMessage || null;
+
+    let socialResult = null;
+    if (postToFacebook || postToInstagram) {
+      try {
+        const clientOrigin = req.headers.origin || req.headers.referer || '';
+        const serverOrigin = `${req.protocol}://${req.get('host')}`;
+        socialResult = await dispatchProductSocialPost(result, {
+          postToFacebook,
+          postToInstagram,
+          customMessage: socialCustomMessage,
+          clientOrigin,
+          serverOrigin,
+        });
+      } catch (socErr) {
+        console.error('Social dispatch error:', socErr.message);
+      }
+    }
+
+    const responseData = result && result.toJSON ? result.toJSON() : { ...result };
+    if (socialResult) {
+      responseData.socialResult = socialResult;
+    }
+
+    res.status(201).json(responseData);
   } catch (err) {
     next(err);
   }
@@ -415,3 +444,54 @@ export async function deleteProduct(req, res, next) {
     next(err);
   }
 }
+
+// POST /api/products/:id/share-social
+export async function shareProductSocial(req, res, next) {
+  try {
+    const Product = getProductModel();
+    const { postToFacebook = true, postToInstagram = false, customMessage = null } = req.body || {};
+
+    // Shop manager scope check.
+    if (req.user.role === 'shopmanager') {
+      const allowed = await canManageProduct(req.user, req.params.id);
+      if (!allowed) return res.status(403).json({ message: 'You do not have access to this product.' });
+    }
+
+    const product = await Product.findByPk(req.params.id, {
+      include: [
+        { association: 'category', attributes: ['id', 'name', 'slug'] },
+        { association: 'colors', attributes: ['name', 'hex', 'image'] },
+      ],
+    });
+
+    if (!product) return res.status(404).json({ message: 'Product not found.' });
+
+    const clientOrigin = req.headers.origin || req.headers.referer || '';
+    const serverOrigin = `${req.protocol}://${req.get('host')}`;
+
+    const socialResult = await dispatchProductSocialPost(product, {
+      postToFacebook: Boolean(postToFacebook),
+      postToInstagram: Boolean(postToInstagram),
+      customMessage,
+      clientOrigin,
+      serverOrigin,
+    });
+
+    if (socialResult.errors.length > 0 && !socialResult.facebook && !socialResult.instagram) {
+      return res.status(400).json({
+        success: false,
+        message: socialResult.errors.join('; '),
+        results: socialResult,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Product shared to social media successfully!',
+      results: socialResult,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+

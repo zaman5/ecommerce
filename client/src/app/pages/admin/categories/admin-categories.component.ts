@@ -141,10 +141,11 @@ import { AdminNavComponent } from '../admin-nav.component';
     .mt-sm { margin-top:6px; }
     .overlay { position:fixed; inset:0; background:rgba(51,65,79,.5); display:grid; place-items:center; z-index:100; padding:20px; }
     .modal { width:min(560px,100%); max-height:90vh; display:flex; flex-direction:column; }
-    .modal-head, .modal-foot { display:flex; align-items:center; justify-content:space-between; padding:16px 22px; }
+    .modal-head, .modal-foot { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; flex-shrink:0; }
     .modal-head { border-bottom:1px solid var(--line); }
+    .modal-body { padding:18px 20px; overflow-y:auto; flex:1; min-height:0; }
     .modal-foot { border-top:1px solid var(--line); gap:10px; justify-content:flex-end; }
-    .modal-head h3 { margin:0; }
+    .modal-head h3 { margin:0; font-size:1.1rem; }
     @media (max-width: 560px) {
       .row { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
       .row.sub, .row.empty-sub { padding-left: 20px; }

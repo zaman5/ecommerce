@@ -17,7 +17,7 @@ const PER_PAGE = 20;
   template: `
     <section class="catalog">
       <div class="container">
-        <!-- Breadcrumb, as eBay carries above its results -->
+        <!-- Breadcrumb -->
         <nav class="crumbs" aria-label="Breadcrumb">
           <a routerLink="/">Home</a>
           <span>›</span>
@@ -26,7 +26,6 @@ const PER_PAGE = 20;
             <span>›</span>
             @if (activeDept(); as dept) {
               @if (dept.slug !== filters.category) {
-                <!-- Drilled into a sub-category, so the department is a step. -->
                 <button class="crumb-btn" (click)="pickCategory(dept.slug)">{{ dept.name }}</button>
                 <span>›</span>
               }
@@ -39,10 +38,9 @@ const PER_PAGE = 20;
       </div>
 
       <div class="container">
-        <!-- On a phone the rail alone was ~1250px tall, pushing every product
-             below the fold, so it collapses behind this toggle. -->
+        <!-- Mobile Filters Button -->
         <button class="filter-toggle" (click)="filtersOpen.set(!filtersOpen())" [attr.aria-expanded]="filtersOpen()">
-          {{ filtersOpen() ? '✕ Hide filters' : '☰ Filters' }}
+          <span>{{ filtersOpen() ? '✕ Close Filters' : '☰ Filters & Sort' }}</span>
           @if (activeFilterCount() > 0) { <span class="fcount">{{ activeFilterCount() }}</span> }
         </button>
       </div>
@@ -50,12 +48,15 @@ const PER_PAGE = 20;
       <div class="container cat-layout">
         <!-- ================= FILTER RAIL ================= -->
         <aside class="rail" [class.open]="filtersOpen()">
+          <div class="rail-header-mobile">
+            <strong>Filters</strong>
+            <button class="rail-close-btn" (click)="filtersOpen.set(false)">✕</button>
+          </div>
+
           <div class="rail-group">
             <h3 class="rail-title">Category</h3>
             <div class="rail-body links">
               @if (activeDept(); as dept) {
-                <!-- Drilled into a department: show it with its children, the
-                     way eBay narrows the rail once you pick a category. -->
                 <button class="cat-back" (click)="pickCategory('')">‹ All Categories</button>
                 <button class="cat-link dept" [class.on]="filters.category === dept.slug" (click)="pickCategory(dept.slug)">
                   {{ dept.name }}
@@ -93,7 +94,7 @@ const PER_PAGE = 20;
           }
 
           <div class="rail-group">
-            <h3 class="rail-title">Price</h3>
+            <h3 class="rail-title">Price Range</h3>
             <div class="rail-body">
               <div class="price-row">
                 <input class="price-in" type="number" min="0" placeholder="Min" [(ngModel)]="minPriceInput" (keyup.enter)="applyPrice()" aria-label="Minimum price" />
@@ -107,11 +108,9 @@ const PER_PAGE = 20;
           <div class="rail-group">
             <h3 class="rail-title">Show only</h3>
             <div class="rail-body">
-              <!-- No "In stock only" here: sold-out products are never listed,
-                   so the checkbox could only ever be a no-op. -->
               <label class="opt">
                 <input type="checkbox" [(ngModel)]="filters.onSale" (change)="apply()" />
-                <span class="opt-name">Deals &amp; savings</span>
+                <span class="opt-name">🔥 Deals &amp; savings</span>
               </label>
             </div>
           </div>
@@ -121,6 +120,34 @@ const PER_PAGE = 20;
 
         <!-- ================= RESULTS ================= -->
         <div class="results">
+          <!-- Active Filter Chips -->
+          @if (activeFilterCount() > 0) {
+            <div class="active-chips-row">
+              <span class="chips-label">Active:</span>
+              @if (filters.category) {
+                <span class="chip-tag" (click)="pickCategory('')">
+                  Category: {{ scopeLabel() }} <i class="fas fa-times"></i>
+                </span>
+              }
+              @if (filters.color) {
+                <span class="chip-tag" (click)="pickColor(filters.color)">
+                  Color: {{ filters.color }} <i class="fas fa-times"></i>
+                </span>
+              }
+              @if (filters.minPrice !== '' || filters.maxPrice !== '') {
+                <span class="chip-tag" (click)="minPriceInput=null; maxPriceInput=null; applyPrice()">
+                  Price: Rs {{ filters.minPrice || 0 }} - {{ filters.maxPrice || 'Any' }} <i class="fas fa-times"></i>
+                </span>
+              }
+              @if (filters.onSale) {
+                <span class="chip-tag" (click)="filters.onSale = false; apply()">
+                  Deals Only <i class="fas fa-times"></i>
+                </span>
+              }
+              <button class="clear-all-chip" (click)="reset()">Clear all</button>
+            </div>
+          }
+
           <div class="res-head">
             <div class="res-count">
               <strong>{{ shownRange() }}</strong> of <strong>{{ total() | number }}</strong> result{{ total() === 1 ? '' : 's' }}
@@ -132,8 +159,8 @@ const PER_PAGE = 20;
                 <select class="rail-select sort" [(ngModel)]="filters.sort" (change)="apply()">
                   <option value="newest">Best Match</option>
                   <option value="popular">Most popular</option>
-                  <option value="priceLow">Price + delivery: lowest first</option>
-                  <option value="priceHigh">Price + delivery: highest first</option>
+                  <option value="priceLow">Price: lowest first</option>
+                  <option value="priceHigh">Price: highest first</option>
                   <option value="rating">Top rated</option>
                 </select>
               </label>
@@ -173,7 +200,7 @@ const PER_PAGE = 20;
               </nav>
               <div class="per-page">
                 <label>
-                  Items per page
+                  Items per page:
                   <select class="rail-select" [(ngModel)]="perPage" (change)="apply()">
                     <option [ngValue]="20">20</option>
                     <option [ngValue]="40">40</option>
@@ -188,8 +215,6 @@ const PER_PAGE = 20;
     </section>
   `,
   styles: [`
-    /* eBay's results page is mostly white with hairline rules and blue links —
-       the rail has no boxes at all, just headings over checkbox lists. */
     .catalog { padding: 14px 0 56px; --link:#3665f3; --hair:#e5e5e5; }
 
     .crumbs { display:flex; align-items:center; gap:7px; flex-wrap:wrap; font-size:.8rem; color:#707070; margin-bottom:12px; }
@@ -201,7 +226,8 @@ const PER_PAGE = 20;
     .cat-layout { display:grid; grid-template-columns: 200px minmax(0,1fr); gap: 24px; align-items:start; }
 
     /* ---- filter rail ---- */
-    .rail { position:sticky; top:88px; }
+    .rail { position:sticky; top:88px; background:var(--surface); }
+    .rail-header-mobile { display:none; }
     .rail-group { padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid var(--hair); }
     .rail-title { font-family: var(--font-body); font-weight:700; font-size:.88rem; margin:0 0 8px; }
     .rail-body.links { max-height:260px; overflow-y:auto; }
@@ -235,6 +261,18 @@ const PER_PAGE = 20;
     .link-btn { background:none; border:none; padding:0; font:inherit; font-size:.82rem; color: var(--link); cursor:pointer; }
     .link-btn:hover { text-decoration:underline; }
 
+    /* ---- Active Filter Chips ---- */
+    .active-chips-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+    .chips-label { font-size:.78rem; font-weight:700; color:var(--muted); text-transform:uppercase; }
+    .chip-tag {
+      display:inline-flex; align-items:center; gap:6px; background:var(--pastel-blue);
+      color:var(--primary); font-size:.78rem; font-weight:700; padding:4px 10px; border-radius:999px;
+      cursor:pointer; transition: background .12s;
+    }
+    .chip-tag:hover { background:#bae6fd; }
+    .clear-all-chip { background:none; border:none; font-size:.78rem; color:var(--danger); font-weight:700; cursor:pointer; padding:2px 6px; }
+    .clear-all-chip:hover { text-decoration:underline; }
+
     /* ---- results ---- */
     .res-head { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
       padding-bottom:10px; border-bottom:1px solid var(--hair); margin-bottom:14px; }
@@ -242,16 +280,13 @@ const PER_PAGE = 20;
     .res-count strong, .res-count b { color: var(--ink); }
     .tools { display:flex; align-items:center; gap:10px; }
     .sort-wrap { display:flex; align-items:center; gap:6px; }
-    .tool-label { font-size:.82rem; color:#707070; }
+    .tool-label { font-size:.82rem; color:#707070; white-space:nowrap; }
     .sort { width:auto; }
     .view-toggle { display:flex; border:1px solid #767676; border-radius:4px; overflow:hidden; }
     .view-toggle button { width:30px; height:28px; border:none; background:#fff; cursor:pointer; color:#707070; font-size:.85rem; }
     .view-toggle button.on { background: var(--ink); color:#fff; }
 
-    /* Same --listing-cols ladder the home page uses (see styles.css) — the
-       sidebar narrows the track, so cards land a shade smaller here. */
-    .prod-grid { display:grid; grid-template-columns: repeat(var(--listing-cols), minmax(0, 1fr)); gap:14px; }
-    /* List view reuses the same cards, laid out one per row. */
+    .prod-grid { display:grid; grid-template-columns: repeat(var(--listing-cols, 4), minmax(0, 1fr)); gap:14px; }
     .prod-grid.list { grid-template-columns: 1fr; gap:0; }
     .prod-grid.list app-product-card { border-bottom:1px solid var(--hair); padding:2px 0; }
     .empty { padding:60px 20px; display:flex; flex-direction:column; align-items:center; gap:10px; }
@@ -267,33 +302,37 @@ const PER_PAGE = 20;
     .per-page label { display:flex; align-items:center; gap:7px; }
     .per-page .rail-select { width:auto; }
 
-    /* Shown only on small screens — see the media query below. */
-    .filter-toggle { display:none; align-items:center; gap:8px; width:100%; margin-bottom:14px;
-      padding:12px 16px; border:1px solid #767676; border-radius:6px; background:#fff;
-      font-family: var(--font-display); font-weight:600; font-size:.95rem; color: var(--ink); cursor:pointer; }
-    .fcount { background:#fff; color: var(--accent); border:1px solid var(--accent); font-family: var(--font-body); font-weight:800;
+    .filter-toggle { display:none; align-items:center; justify-content:space-between; gap:8px; width:100%; margin-bottom:14px;
+      padding:11px 16px; border:1px solid var(--line); border-radius:10px; background:#fff;
+      font-family: var(--font-display); font-weight:700; font-size:.92rem; color: var(--ink); cursor:pointer; box-shadow:var(--shadow-sm); }
+    .fcount { background:var(--primary); color:#fff; font-family: var(--font-body); font-weight:800;
       font-size:.72rem; min-width:20px; height:20px; border-radius:999px; display:grid; place-items:center; padding:0 6px; }
 
     @media (max-width: 900px) {
       .cat-layout { grid-template-columns: 1fr; }
-      .rail { position:static; display:none; }
-      .rail.open { display:block; margin-bottom:20px; }
+      .rail {
+        display:none; position:fixed; top:0; left:0; bottom:0; width:min(320px, 85vw);
+        background:var(--surface); z-index:105; padding:20px; overflow-y:auto;
+        box-shadow:0 25px 50px rgba(0,0,0,0.3);
+      }
+      .rail.open { display:block; }
+      .rail-header-mobile { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+      .rail-close-btn { background:none; border:none; font-size:1.3rem; color:var(--ink); cursor:pointer; }
       .rail-body.links { max-height:200px; }
       .filter-toggle { display:flex; }
 
-      /* Comfortable tap targets — the desktop sizes are too small for a thumb. */
-      .opt { padding:9px 0; }
-      .opt input { width:20px; height:20px; }
-      .price-in { padding:10px; font-size:.9rem; }
-      .price-go { width:38px; height:38px; font-size:1.2rem; }
-      .rail-select, .sort { padding:10px; font-size:.9rem; }
-      .view-toggle button { width:40px; height:38px; font-size:1rem; }
-      .cat-link { padding:9px 0; }
+      .opt { padding:8px 0; }
+      .opt input { width:18px; height:18px; }
+      .price-in { padding:8px; font-size:.88rem; }
+      .price-go { width:34px; height:34px; font-size:1.1rem; }
+      .rail-select, .sort { padding:8px; font-size:.85rem; }
+      .view-toggle button { width:36px; height:34px; font-size:.95rem; }
+      .cat-link { padding:8px 0; }
       .link-btn { padding:8px 0; }
     }
     @media (max-width: 560px) {
       .prod-grid { gap:10px; }
-      .res-head { flex-direction:column; align-items:flex-start; }
+      .res-head { flex-direction:column; align-items:flex-start; gap:8px; }
       .tools { width:100%; justify-content:space-between; }
     }
   `],

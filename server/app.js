@@ -66,11 +66,24 @@ export function createApp() {
         message: 'Database populated with all products, categories, colors, banners, and admin accounts!',
       });
     } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
+      console.error('[Database Seed Error]', err);
+      res.status(500).json({ success: false, message: 'Database initialization failed. Please check server logs.' });
     }
   });
 
-  app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d' }));
+  app.use(
+    '/uploads',
+    express.static(UPLOAD_DIR, {
+      maxAge: '7d',
+      index: false,
+      dotfiles: 'ignore',
+      setHeaders: (res) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; media-src 'self'; img-src 'self'; style-src 'unsafe-inline'");
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      },
+    })
+  );
 
   app.use('/api/auth', authRoutes);
   app.use('/api/products', productRoutes);

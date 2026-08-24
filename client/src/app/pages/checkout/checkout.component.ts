@@ -195,7 +195,14 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
     .screenshot-preview img { width:120px; height:120px; object-fit:cover; border-radius:10px; border:2px solid var(--line); }
     .screenshot-warn { text-align:center; color: #e65100; font-size:.84rem; margin:10px 0 0; font-weight:600; }
 
-    @media (max-width: 800px) { .checkout-layout { grid-template-columns: 1fr; } }
+    @media (max-width: 800px) {
+      .checkout-layout { grid-template-columns: 1fr; gap: 20px; }
+      .guest-banner { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .guest-banner a { width: 100%; text-align: center; }
+      .jc-info { flex-direction: column; gap: 14px; }
+      .qr-img { width: 120px; height: 120px; }
+      .summary { position: static; }
+    }
   `],
 })
 export class CheckoutComponent implements OnInit {
