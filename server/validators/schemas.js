@@ -271,6 +271,9 @@ export const productSchema = {
     onSale: { type: 'boolean', required: false },
     flashSale: { type: 'boolean', required: false },
     badge: { type: 'string', required: false, maxLength: 60 },
+    postToFacebook: { type: 'boolean', required: false },
+    postToInstagram: { type: 'boolean', required: false },
+    socialCaption: { type: 'string', required: false, maxLength: 2000 },
     tags: {
       type: 'array',
       required: false,

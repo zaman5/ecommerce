@@ -13,9 +13,9 @@ import { AuthService } from '../../../core/services/auth.service';
       <div class="container auth-wrap">
         <div class="card card-pad auth-card">
           <div class="center">
-            <img src="assets/logo.png" alt="Wondercart" class="emoji" width="480" height="341" />
+            <img src="assets/WonderCart.png" alt="WonderCart" class="auth-logo-img" />
             <h1>Create your account</h1>
-            <p class="text-muted">Join Wondercart for faster checkout and order tracking.</p>
+            <p class="text-muted">Join WonderCart for faster checkout and order tracking.</p>
           </div>
 
           @if (error()) {
@@ -114,6 +114,7 @@ import { AuthService } from '../../../core/services/auth.service';
     .req { color: var(--accent); }
     .link { color: var(--ink); font-weight: 700; }
     .link:hover { color: var(--brand); }
+    .auth-logo-img { max-width: 220px; height: auto; margin: 0 auto 14px; display: block; }
 
     /* Password input with toggle */
     .pw-wrap { position: relative; display: flex; align-items: center; }

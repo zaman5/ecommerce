@@ -115,11 +115,11 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
 
               <div class="rating-row">
                 <span class="stars" [attr.aria-label]="'Rated ' + (p.rating | number:'1.1-1') + ' out of 5'">{{ stars(p.rating) }}</span>
-                <a class="review-jump" href="javascript:void(0)" (click)="scrollToReviews()">
+                <button type="button" class="review-jump" (click)="scrollToReviews()">
                   {{ p.numReviews }} {{ p.numReviews === 1 ? 'Rating' : 'Ratings' }}
-                </a>
+                </button>
                 <span class="divider"></span>
-                <a class="review-jump" href="javascript:void(0)" (click)="scrollToReviews()">Write a review</a>
+                <button type="button" class="review-jump" (click)="scrollToReviews()">Write a review</button>
               </div>
 
               <div class="price-box">
@@ -465,7 +465,7 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
     .rating-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 14px; }
     .stars { color:var(--sun-deep); letter-spacing:2px; }
     .divider { width:1px; height:14px; background: var(--line); }
-    .review-jump { color: var(--ink); font-weight:700; font-size:.85rem; cursor:pointer; }
+    .review-jump { color: var(--ink); font-weight:700; font-size:.85rem; cursor:pointer; background:none; border:none; padding:0; text-decoration:none; font-family:inherit; }
     .review-jump:hover { color: var(--brand); text-decoration:underline; }
 
     .price-box { background: var(--cream); border-radius: var(--radius-sm); padding:14px 16px; margin-bottom:18px; }
