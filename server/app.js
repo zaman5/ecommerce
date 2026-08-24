@@ -100,21 +100,34 @@ export function createApp() {
   app.use('/api/uploads', uploadRoutes);
 
   // ── Serve Angular frontend in production ──
-  const possibleDistPaths = [
-    path.join(__dirname, '..', 'client', 'dist', 'wondercart-client', 'browser'),
-    path.join(__dirname, '..', 'client', 'dist', 'wondercart-client'),
-    path.join(__dirname, '..', 'dist', 'wondercart-client', 'browser'),
-    path.join(__dirname, '..', 'dist', 'wondercart-client'),
-    path.join(__dirname, '..', 'dist', 'browser'),
-    path.join(__dirname, '..', 'dist'),
-  ];
-  const clientDist = possibleDistPaths.find((p) => fs.existsSync(path.join(p, 'index.html'))) || possibleDistPaths[0];
+  function getClientDist() {
+    const possibleDistPaths = [
+      path.join(process.cwd(), 'client', 'dist', 'wondercart-client', 'browser'),
+      path.join(process.cwd(), 'client', 'dist', 'wondercart-client'),
+      path.join(process.cwd(), 'dist', 'wondercart-client', 'browser'),
+      path.join(process.cwd(), 'dist', 'wondercart-client'),
+      path.join(process.cwd(), 'dist', 'browser'),
+      path.join(process.cwd(), 'dist'),
+      path.join(__dirname, '..', 'client', 'dist', 'wondercart-client', 'browser'),
+      path.join(__dirname, '..', 'client', 'dist', 'wondercart-client'),
+      path.join(__dirname, '..', 'dist', 'wondercart-client', 'browser'),
+      path.join(__dirname, '..', 'dist', 'wondercart-client'),
+      path.join(__dirname, '..', 'dist', 'browser'),
+      path.join(__dirname, '..', 'dist'),
+    ];
+    return possibleDistPaths.find((p) => fs.existsSync(path.join(p, 'index.html'))) || possibleDistPaths[0];
+  }
+
+  const clientDist = getClientDist();
 
   app.use(
     express.static(clientDist, {
+      index: false,
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
         } else if (/\.(js|css|woff2?|png|jpe?g|gif|svg|ico)$/i.test(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         }
@@ -129,9 +142,12 @@ export function createApp() {
     if (/\.[a-zA-Z0-9]+$/.test(req.path)) {
       return res.status(404).type('text/plain').send('Not found');
     }
-    const indexPath = path.join(clientDist, 'index.html');
+    const currentDist = getClientDist();
+    const indexPath = path.join(currentDist, 'index.html');
     if (fs.existsSync(indexPath)) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       return res.sendFile(indexPath);
     }
     next();
