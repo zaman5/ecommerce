@@ -17,6 +17,17 @@ export function defineSetting(sequelize) {
         unique: true,
         defaultValue: 'site',
       },
+      // Site branding
+      siteName: {
+        type: DataTypes.STRING(100),
+        defaultValue: 'WonderCart',
+        field: 'site_name',
+      },
+      logoUrl: {
+        type: DataTypes.STRING(1000),
+        defaultValue: '/uploads/logo.png',
+        field: 'logo_url',
+      },
       // JazzCash payment configuration shown at checkout
       jazzcashPhone: {
         type: DataTypes.STRING(50),

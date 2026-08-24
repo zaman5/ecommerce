@@ -1,6 +1,42 @@
 import { getSetting } from '../models/Setting.js';
 import { verifyFacebookConnection, verifyInstagramConnection } from '../services/socialService.js';
 
+// GET /api/settings/public  (public — returns site name, logo, jazzcash info)
+export async function getPublicSettings(req, res, next) {
+  try {
+    const Setting = getSetting();
+    const settings = await Setting.getInstance();
+    res.json({
+      siteName: settings.siteName || 'WonderCart',
+      logoUrl: settings.logoUrl || '/uploads/logo.png',
+      jazzcashPhone: settings.jazzcashPhone || '03038164288',
+      jazzcashQrImage: settings.jazzcashQrImage || '',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /api/settings/general  (admin only — update site name and logo URL)
+export async function updateGeneralSettings(req, res, next) {
+  try {
+    const Setting = getSetting();
+    const { siteName, logoUrl } = req.body;
+    const settings = await Setting.getInstance();
+
+    if (siteName !== undefined) settings.siteName = String(siteName).trim();
+    if (logoUrl !== undefined) settings.logoUrl = String(logoUrl).trim();
+
+    await settings.save();
+    res.json({
+      siteName: settings.siteName,
+      logoUrl: settings.logoUrl,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/settings/jazzcash  (public — shown at checkout)
 export async function getJazzCash(req, res, next) {
   try {

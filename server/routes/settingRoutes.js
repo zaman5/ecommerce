@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import {
+  getPublicSettings,
+  updateGeneralSettings,
   getJazzCash,
   updateJazzCash,
   getSocialSettings,
@@ -12,6 +14,12 @@ import { validateBody } from '../middleware/validator.js';
 import { jazzCashSettingsSchema } from '../validators/schemas.js';
 
 const router = Router();
+
+// Public — site branding & payment info
+router.get('/public', publicRateLimiter, getPublicSettings);
+
+// Admin only — manage site branding
+router.put('/general', protect, restrictTo('admin'), authenticatedRateLimiter, updateGeneralSettings);
 
 // Public — checkout page reads these to show the JazzCash details
 router.get('/jazzcash', publicRateLimiter, getJazzCash);
