@@ -41,7 +41,7 @@ import { Category } from '../../core/models/models';
 
         <!-- Brand Logo -->
         <a routerLink="/" class="brand" (click)="closeAll()" aria-label="WonderCart Home">
-          <img src="assets/WonderCart.png" alt="WonderCart Logo" class="brand-logo-img" />
+          <img src="assets/WonderCart.png?v=20260824" alt="WonderCart Logo" class="brand-logo-img" />
         </a>
 
         <!-- Search Bar -->
@@ -191,7 +191,7 @@ import { Category } from '../../core/models/models';
         <!-- Drawer Header -->
         <div class="drawer-head">
           <a routerLink="/" class="brand" (click)="closeAll()">
-            <img src="assets/WonderCart.png" alt="WonderCart" class="drawer-logo" />
+            <img src="assets/WonderCart.png?v=20260824" alt="WonderCart" class="drawer-logo" />
           </a>
           <button class="drawer-close-btn" (click)="closeAll()" aria-label="Close navigation menu">✕</button>
         </div>

@@ -15,7 +15,7 @@ import { RouterLink } from '@angular/router';
           <!-- Brand Info -->
           <div class="footer-col brand-col">
             <a routerLink="/" class="footer-brand" aria-label="WonderCart Home">
-              <img src="assets/WonderCart.png" alt="WonderCart" class="footer-logo-img" />
+              <img src="assets/WonderCart.png?v=20260824" alt="WonderCart" class="footer-logo-img" />
             </a>
             <p class="brand-desc">
               One Stop. Every Need. Every Age. Quality products for every stage of your child's life.

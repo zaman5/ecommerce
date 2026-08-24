@@ -13,7 +13,7 @@ import { AuthService } from '../../../core/services/auth.service';
       <div class="container auth-wrap">
         <div class="card card-pad auth-card">
           <div class="center">
-            <img src="assets/WonderCart.png" alt="WonderCart" class="auth-logo-img" />
+            <img src="assets/WonderCart.png?v=20260824" alt="WonderCart" class="auth-logo-img" />
             <h1>Create your account</h1>
             <p class="text-muted">Join WonderCart for faster checkout and order tracking.</p>
           </div>
