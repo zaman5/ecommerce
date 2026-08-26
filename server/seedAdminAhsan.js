@@ -13,10 +13,10 @@ async function seedAdminAhsan() {
   }
   const User = getUser();
 
-  const email = 'ahsan@wondercart.pk';
-  const password = 'Ahsan@Ahmad123';
-  const name = 'Ahsan Admin';
-  const phone = '03038164288';
+  const email = process.env.ADMIN_EMAIL || 'admin@wondercart.pk';
+  const password = process.env.ADMIN_PASSWORD || 'admin12345';
+  const name = process.env.ADMIN_NAME || 'Admin';
+  const phone = process.env.ADMIN_PHONE || '03038164288';
 
   const passwordHash = await bcrypt.hash(password, 10);
 

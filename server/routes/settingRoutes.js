@@ -2,6 +2,8 @@ import { Router } from 'express';
 import {
   getPublicSettings,
   updateGeneralSettings,
+  getContactSettings,
+  updateContactSettings,
   getJazzCash,
   updateJazzCash,
   getSocialSettings,
@@ -11,15 +13,24 @@ import {
 import { protect, restrictTo } from '../middleware/auth.js';
 import { publicRateLimiter, authenticatedRateLimiter } from '../middleware/rateLimiter.js';
 import { validateBody } from '../middleware/validator.js';
-import { jazzCashSettingsSchema } from '../validators/schemas.js';
+import {
+  jazzCashSettingsSchema,
+  contactSettingsSchema,
+  generalSettingsSchema,
+  socialSettingsSchema,
+} from '../validators/schemas.js';
 
 const router = Router();
 
-// Public — site branding & payment info
+// Public — site branding, UAN & payment info
 router.get('/public', publicRateLimiter, getPublicSettings);
 
+// Public & Admin — contact info & UAN
+router.get('/contact', publicRateLimiter, getContactSettings);
+router.put('/contact', protect, restrictTo('admin'), authenticatedRateLimiter, validateBody(contactSettingsSchema), updateContactSettings);
+
 // Admin only — manage site branding
-router.put('/general', protect, restrictTo('admin'), authenticatedRateLimiter, updateGeneralSettings);
+router.put('/general', protect, restrictTo('admin'), authenticatedRateLimiter, validateBody(generalSettingsSchema), updateGeneralSettings);
 
 // Public — checkout page reads these to show the JazzCash details
 router.get('/jazzcash', publicRateLimiter, getJazzCash);
@@ -29,7 +40,7 @@ router.put('/jazzcash', protect, restrictTo('admin'), authenticatedRateLimiter, 
 
 // Admin only — manage Facebook & Instagram Social Integration settings
 router.get('/social', protect, restrictTo('admin'), authenticatedRateLimiter, getSocialSettings);
-router.put('/social', protect, restrictTo('admin'), authenticatedRateLimiter, updateSocialSettings);
-router.post('/social/test', protect, restrictTo('admin'), authenticatedRateLimiter, testSocialConnection);
+router.put('/social', protect, restrictTo('admin'), authenticatedRateLimiter, validateBody(socialSettingsSchema), updateSocialSettings);
+router.post('/social/test', protect, restrictTo('admin'), authenticatedRateLimiter, validateBody(socialSettingsSchema), testSocialConnection);
 
 export default router;

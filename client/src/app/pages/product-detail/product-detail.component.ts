@@ -60,7 +60,6 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
                     <div class="amazon-lens" [ngStyle]="lensStyle()" aria-hidden="true"></div>
                   }
                   @if (discount(p) > 0) { <span class="off-tag">-{{ discount(p) }}%</span> }
-                  <div class="zoom-hint">🔍 Roll over image to zoom</div>
                 </div>
               }
 
@@ -376,13 +375,29 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
     /* Deliberately NOT sticky. The gallery is taller than the buy box, so
        pinning it left the picture frozen while the rest of the page scrolled
        underneath it — the whole page should move as one piece. */
-    .gallery { position:relative; }
-    .main-wrap { position:relative; overflow:hidden; border-radius: var(--radius);
-      border:1px solid var(--line); background: #fff; line-height:0; cursor: crosshair; }
-    .main-img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; }
-
-    .zoom-hint { position:absolute; bottom:10px; right:10px; z-index:2; background: rgba(15, 23, 42, 0.75); color: #fff; font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(4px); pointer-events: none; opacity: 1; transition: opacity .15s ease; }
-    .main-wrap.zooming .zoom-hint { opacity: 0; }
+    .gallery { position:relative; width: 100%; }
+    .main-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: #ffffff;
+      overflow: hidden;
+      cursor: crosshair;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .main-img {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      display: block;
+      padding: 12px;
+    }
 
     /* Amazon Target Lens Overlay */
     .amazon-lens {
@@ -411,9 +426,9 @@ import { MediaUrlPipe } from '../../shared/pipes/media-url.pipe';
     @keyframes amazonZoomFade { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
 
     @media (max-width: 1080px) {
-      .amazon-zoom-window, .amazon-lens, .zoom-hint { display: none !important; }
+      .amazon-zoom-window, .amazon-lens { display: none !important; }
     }
-    @media not all and (hover: hover) { .amazon-lens, .amazon-zoom-window, .zoom-hint { display: none !important; } }
+    @media not all and (hover: hover) { .amazon-lens, .amazon-zoom-window { display: none !important; } }
     /* line-height is explicit because .main-wrap sets it to 0 (to kill the
        inline gap under the photo) and this span would otherwise inherit it and
        collapse to a sliver. */

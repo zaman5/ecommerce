@@ -506,3 +506,118 @@ export const shopManagerUpdateSchema = {
     },
   },
 };
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * STORE SETTINGS SCHEMAS
+ * ─────────────────────────────────────────────────────────────
+ */
+
+export const contactSettingsSchema = {
+  required: false,
+  strict: true,
+  properties: {
+    uan: { type: 'string', required: false, minLength: 1, maxLength: 50 },
+    supportEmail: {
+      type: 'string',
+      required: false,
+      minLength: 5,
+      maxLength: 254,
+      pattern: PATTERNS.EMAIL,
+      patternMessage: 'Please enter a valid support email address.',
+    },
+    supportHours: { type: 'string', required: false, maxLength: 120 },
+  },
+};
+
+export const generalSettingsSchema = {
+  required: false,
+  strict: true,
+  properties: {
+    siteName: { type: 'string', required: false, minLength: 1, maxLength: 100 },
+    logoUrl: { type: 'string', required: false, maxLength: 1000 },
+    uan: { type: 'string', required: false, maxLength: 50 },
+    supportEmail: {
+      type: 'string',
+      required: false,
+      maxLength: 254,
+      pattern: PATTERNS.EMAIL,
+      patternMessage: 'Please enter a valid support email address.',
+    },
+    supportHours: { type: 'string', required: false, maxLength: 120 },
+  },
+};
+
+export const socialSettingsSchema = {
+  required: false,
+  strict: true,
+  properties: {
+    facebookPageId: { type: 'string', required: false, maxLength: 100 },
+    facebookPageAccessToken: { type: 'string', required: false, maxLength: 5000 },
+    facebookAutoPost: { type: 'boolean', required: false },
+    instagramAccountId: { type: 'string', required: false, maxLength: 100 },
+    instagramAutoPost: { type: 'boolean', required: false },
+    socialPostTemplate: { type: 'string', required: false, maxLength: 2000 },
+  },
+};
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * EMAIL TEMPLATE SCHEMAS
+ * ─────────────────────────────────────────────────────────────
+ */
+
+export const emailTemplateUpdateSchema = {
+  required: false,
+  strict: true,
+  properties: {
+    title: { type: 'string', required: false, maxLength: 200 },
+    subject: { type: 'string', required: false, maxLength: 300 },
+    heading: { type: 'string', required: false, maxLength: 200 },
+    subtitle: { type: 'string', required: false, maxLength: 300 },
+    customMessage: { type: 'string', required: false, maxLength: 10000 },
+    closingMessage: { type: 'string', required: false, maxLength: 2000 },
+    footerText: { type: 'string', required: false, maxLength: 2000 },
+    brandColor: { type: 'string', required: false, maxLength: 30 },
+    headerBanner: { type: 'string', required: false, maxLength: 1000 },
+    attachments: {
+      type: 'array',
+      required: false,
+      maxItems: 10,
+      items: {
+        type: 'object',
+        required: false,
+        properties: {
+          name: { type: 'string', required: true, maxLength: 200 },
+          url: { type: 'string', required: true, maxLength: 1000 },
+          size: { type: 'number', required: false },
+        },
+      },
+    },
+    isActive: { type: 'boolean', required: false },
+  },
+};
+
+export const emailTestSendSchema = {
+  required: true,
+  strict: true,
+  properties: {
+    to: {
+      type: 'string',
+      required: true,
+      minLength: 5,
+      maxLength: 254,
+      pattern: PATTERNS.EMAIL,
+      patternMessage: 'Please enter a valid recipient email address.',
+    },
+    type: {
+      type: 'string',
+      required: true,
+      enum: ['order_confirmation', 'order_shipped', 'order_delivered'],
+    },
+    template: {
+      type: 'object',
+      required: false,
+    },
+  },
+};

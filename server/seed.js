@@ -172,16 +172,21 @@ async function run() {
   await admin.save();
 
   const adminAhsan = User.build({
-    name: 'Ahsan Admin',
-    email: 'ahsan@wondercart.pk',
+    name: process.env.EXTRA_ADMIN_NAME || 'Support Admin',
+    email: process.env.EXTRA_ADMIN_EMAIL || 'support-admin@wondercart.pk',
     role: 'admin',
-    phone: '03038164288',
+    phone: process.env.EXTRA_ADMIN_PHONE || '03038164288',
   });
-  await adminAhsan.setPassword('Ahsan@Ahmad123');
+  await adminAhsan.setPassword(process.env.EXTRA_ADMIN_PASSWORD || 'SupportAdmin12345');
   await adminAhsan.save();
 
-  const client = User.build({ name: 'Demo Customer', email: 'customer@wondercart.pk', role: 'client', phone: '03001234567' });
-  await client.setPassword('customer123');
+  const client = User.build({
+    name: 'Demo Customer',
+    email: process.env.DEMO_CUSTOMER_EMAIL || 'customer@wondercart.pk',
+    role: 'client',
+    phone: '03001234567',
+  });
+  await client.setPassword(process.env.DEMO_CUSTOMER_PASSWORD || 'Customer12345');
   await client.save();
 
   console.log('🏷️  Creating categories...');

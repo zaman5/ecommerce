@@ -5,6 +5,8 @@ import { CategoryService } from '../../../core/services/api.service';
 import { Category } from '../../../core/models/models';
 import { AdminNavComponent } from '../admin-nav.component';
 
+type CategoryFilterMode = 'all' | 'active' | 'empty';
+
 @Component({
   selector: 'app-admin-categories',
   standalone: true,
@@ -16,7 +18,7 @@ import { AdminNavComponent } from '../admin-nav.component';
 
         <div class="head">
           <div>
-            <h1>Categories</h1>
+            <h1>📁 Category Management</h1>
             <p class="text-muted">
               {{ departments().length }} departments · {{ subCount() }} sub-categories.
               Sub-categories are what shoppers drill into from a department.
@@ -25,17 +27,58 @@ import { AdminNavComponent } from '../admin-nav.component';
           <button class="btn btn-primary" (click)="openNew()">+ New category</button>
         </div>
 
+        <!-- Filter & Visibility Control Bar -->
+        <div class="filter-bar card card-pad-sm mt">
+          <div class="filter-tabs">
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="filterMode() === 'all'"
+              (click)="filterMode.set('all')"
+            >
+              All Categories ({{ totalDepts() }})
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="filterMode() === 'active'"
+              (click)="filterMode.set('active')"
+            >
+              ✅ Active with Products ({{ activeDeptsCount() }})
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="filterMode() === 'empty'"
+              (click)="filterMode.set('empty')"
+            >
+              ⚠️ Empty (0 Products) ({{ emptyDeptsCount() }})
+            </button>
+          </div>
+
+          <div class="store-notice">
+            <span class="dot-live"></span>
+            <span>Note: Empty categories (0 products) are automatically hidden from shoppers on the storefront.</span>
+          </div>
+        </div>
+
         @if (loading()) { <div class="spinner"></div> }
         @else {
-          <div class="tree card">
+          <div class="tree card mt">
             @for (d of departments(); track d._id) {
               <div class="dept-block">
                 <div class="row dept">
                   <div class="row-main">
-                    <strong>{{ d.name }}</strong>
+                    <div class="name-row">
+                      <strong>{{ d.name }}</strong>
+                      @if ((d.productCount ?? 0) === 0) {
+                        <span class="badge-empty">0 products · Hidden on store</span>
+                      } @else {
+                        <span class="badge-active">✓ {{ d.productCount }} product{{ d.productCount === 1 ? '' : 's' }}</span>
+                      }
+                    </div>
                     <code>{{ d.slug }}</code>
                   </div>
-                  <span class="count">{{ d.productCount }} product{{ d.productCount === 1 ? '' : 's' }}</span>
                   <div class="actions">
                     <button class="icon-btn" (click)="openNew(d.slug)" title="Add a sub-category">➕</button>
                     <button class="icon-btn" (click)="edit(d)" title="Edit">✏️</button>
@@ -45,10 +88,16 @@ import { AdminNavComponent } from '../admin-nav.component';
                 @for (s of subsOf(d.slug); track s._id) {
                   <div class="row sub">
                     <div class="row-main">
-                      <span>{{ s.name }}</span>
+                      <div class="name-row">
+                        <span>{{ s.name }}</span>
+                        @if ((s.productCount ?? 0) === 0) {
+                          <span class="badge-empty-sub">0 products (Hidden)</span>
+                        } @else {
+                          <span class="badge-active-sub">{{ s.productCount }} product{{ s.productCount === 1 ? '' : 's' }}</span>
+                        }
+                      </div>
                       <code>{{ s.slug }}</code>
                     </div>
-                    <span class="count">{{ s.productCount }} product{{ s.productCount === 1 ? '' : 's' }}</span>
                     <div class="actions">
                       <button class="icon-btn" (click)="edit(s)" title="Edit">✏️</button>
                       <button class="icon-btn" (click)="remove(s)" title="Delete">🗑️</button>
@@ -56,8 +105,15 @@ import { AdminNavComponent } from '../admin-nav.component';
                   </div>
                 }
                 @if (!subsOf(d.slug).length) {
-                  <div class="row empty-sub">No sub-categories yet.</div>
+                  <div class="row empty-sub">No sub-categories in this view.</div>
                 }
+              </div>
+            }
+
+            @if (departments().length === 0) {
+              <div class="empty-state-card">
+                <p class="text-muted">No categories match the selected filter ({{ filterMode() }}).</p>
+                <button class="btn btn-ghost btn-sm mt-sm" (click)="filterMode.set('all')">Show All Categories</button>
               </div>
             }
           </div>
@@ -94,9 +150,9 @@ import { AdminNavComponent } from '../admin-nav.component';
                   <option [ngValue]="d._id">{{ d.name }}</option>
                 }
               </select>
-              @if (editing() && subsOf(editing()!.slug).length) {
+              @if (editing() && rawSubsOf(editing()!.slug).length) {
                 <p class="hint mt-sm">
-                  This department has {{ subsOf(editing()!.slug).length }} sub-categories, so it cannot become a sub-category itself.
+                  This department has {{ rawSubsOf(editing()!.slug).length }} sub-categories, so it cannot become a sub-category itself.
                 </p>
               }
             </div>
@@ -122,8 +178,17 @@ import { AdminNavComponent } from '../admin-nav.component';
     }
   `,
   styles: [`
-    .head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+    .head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
     .head h1 { margin:0 0 4px; }
+    .card-pad-sm { padding: 12px 16px; }
+    .filter-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+    .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab-btn { background: var(--cream); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 0.84rem; font-weight: 700; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .tab-btn:hover { color: var(--ink); border-color: #cbd5e1; }
+    .tab-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .store-notice { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #64748b; }
+    .dot-live { width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; }
+
     .tree { padding:6px 0; }
     .dept-block { border-bottom:1px solid var(--line); }
     .dept-block:last-child { border-bottom:none; }
@@ -131,9 +196,15 @@ import { AdminNavComponent } from '../admin-nav.component';
     .row.dept { background: var(--cream); }
     .row.sub { padding-left:44px; border-top:1px solid var(--line); }
     .row.empty-sub { padding-left:44px; border-top:1px solid var(--line); color: var(--muted); font-size:.85rem; font-style:italic; }
-    .row-main { flex:1; min-width:0; display:flex; flex-direction:column; }
+    .row-main { flex:1; min-width:0; display:flex; flex-direction:column; gap: 2px; }
+    .name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .row-main code { font-size:.74rem; color: var(--muted); }
-    .count { font-size:.82rem; color: var(--muted); white-space:nowrap; }
+    .badge-active { display: inline-block; font-size: 0.75rem; font-weight: 700; color: #047857; background: #d1fae5; padding: 2px 8px; border-radius: 6px; }
+    .badge-empty { display: inline-block; font-size: 0.75rem; font-weight: 700; color: #b45309; background: #fef3c7; padding: 2px 8px; border-radius: 6px; }
+    .badge-active-sub { display: inline-block; font-size: 0.72rem; font-weight: 700; color: #0f766e; background: #f0fdfa; padding: 1px 6px; border-radius: 4px; }
+    .badge-empty-sub { display: inline-block; font-size: 0.72rem; font-weight: 600; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 4px; }
+    .empty-state-card { padding: 30px 20px; text-align: center; }
+
     .actions { display:flex; gap:2px; }
     .icon-btn { background:none; border:none; font-size:1rem; cursor:pointer; padding:5px; border-radius:8px; }
     .icon-btn:hover { background:#fff; }
@@ -155,6 +226,7 @@ import { AdminNavComponent } from '../admin-nav.component';
 })
 export class AdminCategoriesComponent implements OnInit {
   categories = signal<Category[]>([]);
+  filterMode = signal<CategoryFilterMode>('all');
   loading = signal(true);
   saving = signal(false);
   showForm = signal(false);
@@ -169,25 +241,65 @@ export class AdminCategoriesComponent implements OnInit {
   reload() {
     this.loading.set(true);
     this.catSvc.list().subscribe({
-      next: (c) => { this.categories.set(c); this.loading.set(false); },
+      next: (c) => { this.categories.set(c || []); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
 
-  departments() { return this.categories().filter((c) => !c.parent); }
-  subsOf(parentSlug: string) { return this.categories().filter((c) => c.parent === parentSlug); }
-  subCount() { return this.categories().filter((c) => c.parent).length; }
+  totalDepts(): number {
+    return this.categories().filter((c) => !c.parent).length;
+  }
+
+  activeDeptsCount(): number {
+    return this.categories().filter((c) => !c.parent && (c.productCount ?? 0) > 0).length;
+  }
+
+  emptyDeptsCount(): number {
+    return this.categories().filter((c) => !c.parent && (c.productCount ?? 0) === 0).length;
+  }
+
+  departments(): Category[] {
+    const mode = this.filterMode();
+    const all = this.categories().filter((c) => !c.parent);
+    if (mode === 'active') {
+      return all.filter((c) => (c.productCount ?? 0) > 0);
+    }
+    if (mode === 'empty') {
+      return all.filter((c) => (c.productCount ?? 0) === 0);
+    }
+    return all;
+  }
+
+  subsOf(parentSlug: string): Category[] {
+    const mode = this.filterMode();
+    const all = this.categories().filter((c) => c.parent === parentSlug);
+    if (mode === 'active') {
+      return all.filter((c) => (c.productCount ?? 0) > 0);
+    }
+    if (mode === 'empty') {
+      return all.filter((c) => (c.productCount ?? 0) === 0);
+    }
+    return all;
+  }
+
+  rawSubsOf(parentSlug: string): Category[] {
+    return this.categories().filter((c) => c.parent === parentSlug);
+  }
+
+  subCount(): number {
+    return this.categories().filter((c) => c.parent).length;
+  }
 
   /** A category whose parent slug matches nothing — shouldn't happen, but say so if it does. */
-  orphans() {
+  orphans(): Category[] {
     const slugs = new Set(this.categories().map((c) => c.slug));
     return this.categories().filter((c) => c.parent && !slugs.has(c.parent));
   }
 
   /** Only top-level categories can be parents, and nothing can parent itself. */
-  parentOptions() {
+  parentOptions(): Category[] {
     const self = this.editing();
-    return this.departments().filter((d) => !self || d._id !== self._id);
+    return this.categories().filter((d) => !d.parent && (!self || d._id !== self._id));
   }
 
   blank() { return { name: '', slug: '', description: '', parent: '' }; }

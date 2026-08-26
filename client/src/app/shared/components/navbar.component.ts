@@ -22,7 +22,6 @@ import { Category } from '../../core/models/models';
           <span class="top-item hide-md"><i class="fas fa-truck text-icon"></i> Fast &amp; Reliable Delivery</span>
           <span class="top-item hide-md"><i class="fas fa-shield-alt text-icon"></i> Secure Payments</span>
           <span class="top-item hide-md"><i class="fas fa-undo text-icon"></i> Easy Returns</span>
-          <a routerLink="/account/orders" class="top-item"><i class="fas fa-map-marker-alt text-icon"></i> Track Order</a>
           <a routerLink="/contact" class="top-item"><i class="fas fa-question-circle text-icon"></i> Help</a>
 
           @if (auth.isAdmin()) { <a routerLink="/admin" class="admin-badge">Admin Panel</a> }
@@ -125,47 +124,67 @@ import { Category } from '../../core/models/models';
     <nav class="nav-bar hide-mobile">
       <div class="container nav-inner">
         <!-- Categories Dropdown Button -->
-        <div class="category-dropdown-wrap">
-          <button class="cat-btn" (click)="catDropdown.set(!catDropdown())">
+        <div
+          class="category-dropdown-wrap"
+          (mouseenter)="onCatHover(true)"
+          (mouseleave)="onCatHover(false)"
+        >
+          <button
+            class="cat-btn"
+            type="button"
+            (click)="catDropdown.set(!catDropdown())"
+            [class.active]="catDropdown()"
+          >
             <div class="cat-btn-left">
               <i class="fas fa-bars"></i>
               <span>All Categories</span>
             </div>
-            <i class="fas fa-chevron-down text-xs"></i>
+            <i class="fas fa-chevron-down text-xs" [class.rotate]="catDropdown()"></i>
           </button>
 
           <!-- Dropdown Menu -->
           @if (catDropdown()) {
-            <div class="cat-menu-popover">
-              @for (dept of departments(); track dept._id) {
-                <div class="cat-menu-item group">
+            <div class="cat-menu-popover" (mouseenter)="onCatHover(true)" (mouseleave)="onCatHover(false)">
+              @for (dept of departments(); track dept._id; let first = $first; let last = $last) {
+                <div class="cat-menu-item group" [class.first]="first" [class.last]="last">
                   <a
                     [routerLink]="['/shop']"
                     [queryParams]="{ category: dept.slug }"
                     class="cat-menu-link"
                     (click)="closeAll()"
                   >
-                    <span>{{ dept.name }}</span>
+                    <span class="cat-name">{{ dept.name }}</span>
                     @if (subsOf(dept.slug).length > 0) {
-                      <i class="fas fa-chevron-right text-xs text-muted"></i>
+                      <i class="fas fa-chevron-right text-xs text-muted arr-icon"></i>
                     }
                   </a>
                   @if (subsOf(dept.slug).length > 0) {
                     <div class="cat-submenu">
-                      <div class="cat-submenu-title">{{ dept.name }}</div>
-                      @for (sub of subsOf(dept.slug); track sub._id) {
-                        <a
-                          [routerLink]="['/shop']"
-                          [queryParams]="{ category: sub.slug }"
-                          class="cat-sub-link"
-                          (click)="closeAll()"
-                        >
-                          {{ sub.name }}
+                      <div class="cat-submenu-title">
+                        <span>{{ dept.name }}</span>
+                        <a [routerLink]="['/shop']" [queryParams]="{ category: dept.slug }" class="view-all-link" (click)="closeAll()">
+                          View All &rarr;
                         </a>
-                      }
+                      </div>
+                      <div class="cat-submenu-grid">
+                        @for (sub of subsOf(dept.slug); track sub._id) {
+                          <a
+                            [routerLink]="['/shop']"
+                            [queryParams]="{ category: sub.slug }"
+                            class="cat-sub-link"
+                            (click)="closeAll()"
+                          >
+                            <span class="sub-name">{{ sub.name }}</span>
+                            <span class="sub-count">({{ sub.productCount }})</span>
+                          </a>
+                        }
+                      </div>
                     </div>
                   }
                 </div>
+              }
+              @if (departments().length === 0) {
+                <div class="cat-menu-empty">No categories available.</div>
               }
             </div>
           }
@@ -351,13 +370,12 @@ import { Category } from '../../core/models/models';
 
     .category-dropdown-wrap { position: relative; }
     .cat-btn {
-      background: var(--primary);
-      color: #ffffff;
-      padding: 10px 22px;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 0.92rem;
+      background: var(--ink);
+      color: #fff;
       border: none;
+      font-size: 0.92rem;
+      font-weight: 700;
+      padding: 10px 20px;
       border-radius: 999px;
       display: inline-flex;
       align-items: center;
@@ -365,37 +383,112 @@ import { Category } from '../../core/models/models';
       gap: 14px;
       cursor: pointer;
       box-shadow: 0 4px 14px rgba(30, 58, 138, 0.2);
-      transition: transform .15s, background .15s, box-shadow .15s;
+      transition: all .15s ease;
     }
-    .cat-btn:hover {
+    .cat-btn:hover, .cat-btn.active {
       background: #172554;
-      transform: translateY(-1px);
       box-shadow: 0 6px 18px rgba(30, 58, 138, 0.3);
     }
+    .cat-btn .rotate { transform: rotate(180deg); }
+    .cat-btn i.fa-chevron-down { transition: transform .2s ease; }
     .cat-btn-left { display: inline-flex; align-items: center; gap: 8px; }
 
     .cat-menu-popover {
       position: absolute;
-      top: calc(100% + 8px);
+      top: calc(100% + 4px);
       left: 0;
-      width: 260px;
+      width: 270px;
       background: var(--surface);
       border: 1px solid var(--line);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      z-index: 55;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+      z-index: 999;
       border-radius: 14px;
-      overflow: hidden;
+      overflow: visible;
+      padding: 6px 0;
+      animation: catFadeIn .16s ease;
     }
+    @keyframes catFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
     .cat-menu-item { position: relative; }
-    .cat-menu-link { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 0.88rem; font-weight: 600; color: var(--ink); text-decoration: none; transition: background .15s, color .15s; border-bottom: 1px solid rgba(0,0,0,0.03); }
-    .cat-menu-link:hover, .cat-menu-item:hover > .cat-menu-link { background: var(--cream-deep); color: var(--primary); }
+    .cat-menu-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--ink);
+      text-decoration: none;
+      transition: background .12s, color .12s;
+    }
+    .cat-menu-link:hover, .cat-menu-item:hover > .cat-menu-link {
+      background: var(--cream-deep);
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .arr-icon { font-size: 0.72rem; transition: transform .15s; }
+    .cat-menu-item:hover .arr-icon { transform: translateX(3px); color: var(--primary); }
 
     /* Submenu flyout */
-    .cat-submenu { display: none; position: absolute; left: 100%; top: 0; width: 240px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-lg); border-radius: var(--radius-sm); padding: 8px 0; z-index: 60; }
+    .cat-submenu {
+      display: none;
+      position: absolute;
+      left: calc(100% + 6px);
+      top: -6px;
+      width: 280px;
+      min-height: 100%;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.06);
+      border-radius: 14px;
+      padding: 12px 14px;
+      z-index: 1000;
+      animation: catSubFadeIn .15s ease;
+    }
+    /* Invisible hover bridge between popover and submenu */
+    .cat-submenu::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -14px;
+      width: 16px;
+    }
+    @keyframes catSubFadeIn { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateY(0); } }
     .cat-menu-item:hover .cat-submenu { display: block; }
-    .cat-submenu-title { font-family: var(--font-display); font-weight: 800; font-size: 0.82rem; color: var(--muted); text-transform: uppercase; padding: 6px 16px 4px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
-    .cat-sub-link { display: block; padding: 7px 16px; font-size: 0.85rem; color: var(--ink); text-decoration: none; }
-    .cat-sub-link:hover { background: var(--cream-deep); color: var(--primary); }
+    .cat-submenu-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: var(--ink);
+      padding: 4px 6px 8px;
+      border-bottom: 1.5px solid var(--line);
+      margin-bottom: 8px;
+    }
+    .view-all-link { font-size: 0.76rem; color: var(--primary); text-decoration: none; font-weight: 600; }
+    .view-all-link:hover { text-decoration: underline; }
+    .cat-submenu-grid { display: flex; flex-direction: column; gap: 2px; }
+    .cat-sub-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      color: #334155;
+      text-decoration: none;
+      transition: all .12s ease;
+    }
+    .cat-sub-link:hover {
+      background: var(--cream-deep);
+      color: var(--primary);
+      font-weight: 600;
+      transform: translateX(2px);
+    }
+    .sub-count { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+    .cat-menu-empty { padding: 14px 18px; font-size: 0.88rem; color: var(--muted); text-align: center; }
 
     /* Nav Links */
     .nav-links { display: flex; list-style: none; margin: 0; padding: 0; gap: 24px; }
@@ -489,6 +582,8 @@ export class NavbarComponent implements OnInit {
   expandedDepts = signal<Set<string>>(new Set());
   query = '';
 
+  private hoverTimeout: any = null;
+
   constructor(
     public auth: AuthService,
     public cart: CartService,
@@ -502,12 +597,26 @@ export class NavbarComponent implements OnInit {
     this.cats.list().subscribe((c) => this.categories.set(c || []));
   }
 
+  onCatHover(hovering: boolean) {
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
+    }
+    if (hovering) {
+      this.catDropdown.set(true);
+    } else {
+      this.hoverTimeout = setTimeout(() => {
+        this.catDropdown.set(false);
+      }, 200);
+    }
+  }
+
   departments(): Category[] {
-    return this.categories().filter((c) => !c.parent && !c.parentId);
+    return this.categories().filter((c) => (!c.parent && !c.parentId) && (c.productCount ?? 0) > 0);
   }
 
   subsOf(parentSlug: string): Category[] {
-    return this.categories().filter((c) => c.parent === parentSlug);
+    return this.categories().filter((c) => c.parent === parentSlug && (c.productCount ?? 0) > 0);
   }
 
   toggleMenu() {
@@ -542,6 +651,10 @@ export class NavbarComponent implements OnInit {
   }
 
   closeAll() {
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
+    }
     this.menuOpen.set(false);
     this.catDropdown.set(false);
     this.accountDropdown.set(false);
@@ -570,4 +683,3 @@ export class NavbarComponent implements OnInit {
     }
   }
 }
-

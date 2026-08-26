@@ -202,6 +202,22 @@ export interface Order {
   createdAt: string;
 }
 
+export interface ContactSettings {
+  uan: string;
+  supportEmail: string;
+  supportHours: string;
+}
+
+export interface PublicSettings {
+  siteName: string;
+  logoUrl: string;
+  uan: string;
+  supportEmail: string;
+  supportHours: string;
+  jazzcashPhone: string;
+  jazzcashQrImage: string;
+}
+
 export interface JazzCashSettings {
   phone: string;
   qrImage: string;

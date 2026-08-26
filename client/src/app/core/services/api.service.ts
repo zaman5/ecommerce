@@ -7,6 +7,7 @@ import {
   Category,
   ColorOption,
   ContactMessage,
+  ContactSettings,
   EmailAttachment,
   EmailTemplate,
   FlashSale,
@@ -15,6 +16,7 @@ import {
   Order,
   Product,
   ProductPage,
+  PublicSettings,
   Review,
   ReviewSummary,
   ShopManager,
@@ -336,6 +338,15 @@ export class SettingsService {
   private api = environment.apiUrl;
   constructor(private http: HttpClient) {}
 
+  getPublic(): Observable<PublicSettings> {
+    return this.http.get<PublicSettings>(`${this.api}/settings/public`);
+  }
+  getContact(): Observable<ContactSettings> {
+    return this.http.get<ContactSettings>(`${this.api}/settings/contact`);
+  }
+  updateContact(data: Partial<ContactSettings>): Observable<ContactSettings> {
+    return this.http.put<ContactSettings>(`${this.api}/settings/contact`, data);
+  }
   getJazzCash(): Observable<JazzCashSettings> {
     return this.http.get<JazzCashSettings>(`${this.api}/settings/jazzcash`);
   }

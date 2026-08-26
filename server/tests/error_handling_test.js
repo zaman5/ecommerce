@@ -105,6 +105,24 @@ async function runErrorHandlingTests() {
   assert(r4.status === 404, 'Returns HTTP 404 for unknown product');
   assert(!hasLeak(r4.body), 'No database query or stack trace in 404 product response', r4.body);
 
+  // --- 5. MALFORMED REQUEST HEADERS / INVALID METHODS ---
+  console.log('\n--- 5. INVALID METHOD / UNEXPECTED PAYLOAD SANITIZATION ---');
+  const r5 = await request('http://localhost:5000/api/categories/99999999999999999999', {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer invalid_token' }
+  });
+  assert(r5.status === 401, 'Rejects invalid token with clean 401');
+  assert(!hasLeak(r5.body), 'No JWT internal decode error or stack trace in 401 response', r5.body);
+
+  // --- 6. PUBLIC CONTACT MESSAGE VALIDATION ERROR ---
+  console.log('\n--- 6. VALIDATION REJECTION ERROR SANITIZATION ---');
+  const r6 = await request('http://localhost:5000/api/messages', {
+    method: 'POST',
+    body: { name: 'Test', email: 'invalid', subject: 'Hi', message: 'Hello' }
+  });
+  assert(r6.status === 400, 'Rejects invalid email with HTTP 400');
+  assert(!hasLeak(r6.body), 'No validator regex internals or stack trace in 400 response', r6.body);
+
   console.log('\n====================================================');
   console.log(`🏁 ERROR HANDLING TEST RESULTS: ${passed} PASSED, ${failed} FAILED`);
   console.log('====================================================');

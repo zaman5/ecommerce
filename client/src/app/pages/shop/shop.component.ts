@@ -432,13 +432,13 @@ export class ShopComponent implements OnInit {
       .filter(Boolean).length;
   }
 
-  /** Top-level departments only. */
+  /** Top-level departments only with products. */
   departments(): Category[] {
-    return this.categories().filter((c) => !c.parent);
+    return this.categories().filter((c) => !c.parent && (c.productCount ?? 0) > 0);
   }
 
   subsOf(parentSlug: string): Category[] {
-    return this.categories().filter((c) => c.parent === parentSlug);
+    return this.categories().filter((c) => c.parent === parentSlug && (c.productCount ?? 0) > 0);
   }
 
   /**

@@ -2,12 +2,13 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminNavComponent } from '../admin-nav.component';
+import { AdminContactSettingsComponent } from '../contact-settings/admin-contact-settings.component';
 import { AdminJazzcashSettingsComponent } from '../jazzcash-settings/admin-jazzcash-settings.component';
 import { AdminSocialSettingsComponent } from '../social-settings/admin-social-settings.component';
 import { AdminEmailsComponent } from '../emails/admin-emails.component';
-import { SettingsService, EmailTemplateService } from '../../../core/services/api.service';
+import { SettingsService } from '../../../core/services/api.service';
 
-type AccountTab = 'jazzcash' | 'social' | 'emails';
+type AccountTab = 'contact' | 'jazzcash' | 'social' | 'emails';
 
 @Component({
   selector: 'app-admin-accounts-attachment',
@@ -15,6 +16,7 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
   imports: [
     CommonModule,
     AdminNavComponent,
+    AdminContactSettingsComponent,
     AdminJazzcashSettingsComponent,
     AdminSocialSettingsComponent,
     AdminEmailsComponent,
@@ -27,15 +29,31 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
         <!-- Header -->
         <div class="hub-head">
           <div>
-            <h1>🔗 Accounts Attachment</h1>
+            <h1>🔗 Accounts Attachment &amp; Store Settings</h1>
             <p class="text-muted">
-              Centralized hub to manage your payment accounts, social media platforms, and automated email services.
+              Centralized hub to manage your UAN helpline, payment accounts, social media platforms, and automated email services.
             </p>
           </div>
         </div>
 
         <!-- Quick Summary Cards -->
         <div class="summary-cards mt">
+          <!-- Contact & UAN Card -->
+          <div class="sum-card" [class.active]="activeTab() === 'contact'" (click)="setTab('contact')">
+            <div class="sum-icon-wrap phone-icon">📞</div>
+            <div class="sum-info">
+              <div class="sum-title">UAN &amp; Contact Info</div>
+              <div class="sum-status">
+                @if (uanNumber() && uanNumber() !== '[To be updated]') {
+                  <span class="badge badge-success">✓ {{ uanNumber() }}</span>
+                } @else {
+                  <span class="badge badge-warning">{{ uanNumber() || 'Not Set' }}</span>
+                }
+              </div>
+            </div>
+            <div class="sum-arrow">&rarr;</div>
+          </div>
+
           <!-- JazzCash Card -->
           <div class="sum-card" [class.active]="activeTab() === 'jazzcash'" (click)="setTab('jazzcash')">
             <div class="sum-icon-wrap jc-icon">📱</div>
@@ -56,7 +74,7 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
           <div class="sum-card" [class.active]="activeTab() === 'social'" (click)="setTab('social')">
             <div class="sum-icon-wrap soc-icon">📘</div>
             <div class="sum-info">
-              <div class="sum-title">Facebook & Instagram</div>
+              <div class="sum-title">Facebook &amp; Instagram</div>
               <div class="sum-status">
                 @if (socialConnected()) {
                   <span class="badge badge-success">✓ Meta Connected</span>
@@ -86,6 +104,16 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
           <button
             type="button"
             class="switch-btn"
+            [class.active]="activeTab() === 'contact'"
+            (click)="setTab('contact')"
+          >
+            <span class="btn-icon">📞</span>
+            <span>UAN &amp; Contact</span>
+          </button>
+
+          <button
+            type="button"
+            class="switch-btn"
             [class.active]="activeTab() === 'jazzcash'"
             (click)="setTab('jazzcash')"
           >
@@ -100,7 +128,7 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
             (click)="setTab('social')"
           >
             <span class="btn-icon">📘</span>
-            <span>Facebook & Instagram</span>
+            <span>Facebook &amp; Instagram</span>
           </button>
 
           <button
@@ -116,6 +144,9 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
 
         <!-- Tab Content Views -->
         <div class="tab-content-area mt">
+          @if (activeTab() === 'contact') {
+            <app-admin-contact-settings [embedded]="true" />
+          }
           @if (activeTab() === 'jazzcash') {
             <app-admin-jazzcash-settings [embedded]="true" />
           }
@@ -131,7 +162,7 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
   `,
   styles: [`
     .hub-head { margin-bottom: 20px; }
-    .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
     .sum-card { 
       display: flex; align-items: center; gap: 14px; background: #fff; border: 1.5px solid var(--line); 
       border-radius: var(--radius-sm); padding: 16px 20px; cursor: pointer; transition: all .2s ease;
@@ -140,6 +171,7 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
     .sum-card:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .sum-card.active { border-color: var(--brand); background: #fffbf9; border-width: 2px; }
     .sum-icon-wrap { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.3rem; flex-shrink: 0; }
+    .phone-icon { background: #eff6ff; color: #2563eb; }
     .jc-icon { background: #fdf2f8; color: #db2777; }
     .soc-icon { background: #eff6ff; color: #2563eb; }
     .mail-icon { background: #f0fdf4; color: #16a34a; }
@@ -175,8 +207,9 @@ type AccountTab = 'jazzcash' | 'social' | 'emails';
   `],
 })
 export class AdminAccountsAttachmentComponent implements OnInit {
-  activeTab = signal<AccountTab>('jazzcash');
+  activeTab = signal<AccountTab>('contact');
 
+  uanNumber = signal('');
   jazzcashPhone = signal('');
   socialConnected = signal(false);
 
@@ -189,9 +222,14 @@ export class AdminAccountsAttachmentComponent implements OnInit {
   ngOnInit() {
     this.route.queryParams.subscribe((params) => {
       const tab = params['tab'] as AccountTab;
-      if (tab && ['jazzcash', 'social', 'emails'].includes(tab)) {
+      if (tab && ['contact', 'jazzcash', 'social', 'emails'].includes(tab)) {
         this.activeTab.set(tab);
       }
+    });
+
+    this.settingsSvc.getContact().subscribe({
+      next: (c) => this.uanNumber.set(c.uan || '[To be updated]'),
+      error: () => {},
     });
 
     this.settingsSvc.getJazzCash().subscribe({

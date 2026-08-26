@@ -2,20 +2,16 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { MessageService } from '../../core/services/api.service';
+import { MessageService, SettingsService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 
 /**
- * Where to reach the shop. Kept together at the top so there is one place to
- * change when the real details are known — they also appear in the Terms page's
- * contact clause.
+ * Fallback defaults when offline or before settings load.
  */
 export const CONTACT = {
   email: 'support@wondercart.pk',
-  phone: '+92 300 1234567',
-  whatsapp: '+92 300 1234567',
+  uan: '[To be updated]',
   hours: 'Monday to Saturday, 9am – 6pm (PKT)',
-  address: 'Wondercart, Gulberg III, Lahore, Pakistan',
   replyWithin: 'one working day',
 };
 
@@ -27,10 +23,9 @@ export const CONTACT = {
     <section class="section">
       <div class="container">
         <div class="head">
-          <h1>Contact us</h1>
+          <h1>📞 Contact Us</h1>
           <p class="text-muted">
-            Questions about an order, a product or a return — send us a message and we'll reply
-            by email within {{ c.replyWithin }}.
+            For inquiries, support, or assistance, please contact WonderCart through the following channels:
           </p>
         </div>
 
@@ -98,45 +93,32 @@ export const CONTACT = {
 
           <!-- ---------- details ---------- -->
           <aside class="card card-pad side">
-            <h2>Other ways to reach us</h2>
+            <h2>📞 Contact Us</h2>
+            <p class="side-intro">
+              For inquiries, support, or assistance, please contact WonderCart through the following channels:
+            </p>
 
             <div class="line">
               <span class="ico">✉️</span>
               <div>
                 <strong>Email</strong>
-                <a [href]="'mailto:' + c.email">{{ c.email }}</a>
+                <a [href]="'mailto:' + email()">{{ email() }}</a>
               </div>
             </div>
             <div class="line">
               <span class="ico">📞</span>
               <div>
-                <strong>Phone</strong>
-                <a [href]="'tel:' + c.phone.replace(' ', '')">{{ c.phone }}</a>
-              </div>
-            </div>
-            <div class="line">
-              <span class="ico">💬</span>
-              <div>
-                <strong>WhatsApp</strong>
-                <span>{{ c.whatsapp }}</span>
+                <strong>UAN</strong>
+                <span class="uan-badge">{{ uan() }}</span>
               </div>
             </div>
             <div class="line">
               <span class="ico">⏰</span>
-              <div><strong>Hours</strong><span>{{ c.hours }}</span></div>
-            </div>
-            <div class="line">
-              <span class="ico">📍</span>
-              <div><strong>Address</strong><span>{{ c.address }}</span></div>
+              <div><strong>Hours</strong><span>{{ hours() }}</span></div>
             </div>
 
-            <div class="tip">
-              <strong>Chasing an order?</strong>
-              <p>
-                You can see its live status yourself on the
-                <a routerLink="/account/orders">Track order</a> page — that's usually faster than
-                waiting for a reply.
-              </p>
+            <div class="support-notice">
+              <p>Our customer support team is available to assist you with all order-related queries, returns, exchanges, and general information.</p>
             </div>
           </aside>
         </div>
@@ -146,9 +128,10 @@ export const CONTACT = {
   styles: [`
     .head { margin-bottom: 24px; }
     .head h1 { margin: 0 0 6px; }
-    .head p { margin: 0; max-width: 60ch; }
+    .head p { margin: 0; max-width: 65ch; line-height: 1.6; }
     .layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: start; }
     .form-card h2, .side h2 { font-size: 1.15rem; margin: 0 0 16px; }
+    .side-intro { font-size: 0.9rem; color: #4b5563; line-height: 1.5; margin: 0 0 14px; }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .hint { font-weight: 600; color: var(--muted); font-size: .82rem; }
     .msg { min-height: 150px; }
@@ -164,6 +147,9 @@ export const CONTACT = {
     .side .line strong { display: block; font-family: var(--font-display); font-size: .92rem; }
     .side .line a, .side .line span { color: var(--muted); font-size: .9rem; }
     .side .line a:hover { color: var(--brand); text-decoration: underline; }
+    .uan-badge { font-weight: 700; color: var(--ink); }
+    .support-notice { background: #f8fafc; border-left: 3px solid var(--brand); border-radius: 4px; padding: 12px 14px; margin-top: 18px; }
+    .support-notice p { margin: 0; font-size: 0.86rem; color: #374151; line-height: 1.55; }
     .tip { background: var(--soft); border-radius: var(--radius-sm); padding: 14px 16px; margin-top: 16px; }
     .tip strong { font-family: var(--font-display); }
     .tip p { margin: 4px 0 0; font-size: .88rem; color: var(--ink); }
@@ -182,6 +168,10 @@ export const CONTACT = {
 export class ContactComponent implements OnInit {
   readonly c = CONTACT;
 
+  uan = signal(CONTACT.uan);
+  email = signal(CONTACT.email);
+  hours = signal(CONTACT.hours);
+
   form = { name: '', email: '', subject: '', orderNumber: '', body: '' };
   sending = signal(false);
   sent = signal(false);
@@ -189,9 +179,23 @@ export class ContactComponent implements OnInit {
   reference = signal('');
   error = signal('');
 
-  constructor(private messages: MessageService, private auth: AuthService) {}
+  constructor(
+    private messages: MessageService,
+    private auth: AuthService,
+    private settingsSvc: SettingsService
+  ) {}
 
   ngOnInit() {
+    // Load live UAN and contact settings
+    this.settingsSvc.getContact().subscribe({
+      next: (res) => {
+        if (res.uan) this.uan.set(res.uan);
+        if (res.supportEmail) this.email.set(res.supportEmail);
+        if (res.supportHours) this.hours.set(res.supportHours);
+      },
+      error: () => {},
+    });
+
     // Save a signed-in customer retyping what we already know.
     const u = this.auth.user();
     if (u) {

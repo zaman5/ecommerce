@@ -1,7 +1,7 @@
 import { getSetting } from '../models/Setting.js';
 import { verifyFacebookConnection, verifyInstagramConnection } from '../services/socialService.js';
 
-// GET /api/settings/public  (public — returns site name, logo, jazzcash info)
+// GET /api/settings/public  (public — returns site name, logo, uan, contact info, jazzcash info)
 export async function getPublicSettings(req, res, next) {
   try {
     const Setting = getSetting();
@@ -9,6 +9,9 @@ export async function getPublicSettings(req, res, next) {
     res.json({
       siteName: settings.siteName || 'WonderCart',
       logoUrl: settings.logoUrl || '/uploads/logo.png',
+      uan: settings.uan || '[To be updated]',
+      supportEmail: settings.supportEmail || 'support@wondercart.pk',
+      supportHours: settings.supportHours || 'Monday to Saturday, 9am – 6pm (PKT)',
       jazzcashPhone: settings.jazzcashPhone || '03038164288',
       jazzcashQrImage: settings.jazzcashQrImage || '',
     });
@@ -17,20 +20,63 @@ export async function getPublicSettings(req, res, next) {
   }
 }
 
-// PUT /api/settings/general  (admin only — update site name and logo URL)
+// GET /api/settings/contact (public)
+export async function getContactSettings(req, res, next) {
+  try {
+    const Setting = getSetting();
+    const settings = await Setting.getInstance();
+    res.json({
+      uan: settings.uan || '[To be updated]',
+      supportEmail: settings.supportEmail || 'support@wondercart.pk',
+      supportHours: settings.supportHours || 'Monday to Saturday, 9am – 6pm (PKT)',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /api/settings/contact (admin only — update UAN, email, support hours)
+export async function updateContactSettings(req, res, next) {
+  try {
+    const Setting = getSetting();
+    const { uan, supportEmail, supportHours } = req.body;
+    const settings = await Setting.getInstance();
+
+    if (uan !== undefined) settings.uan = String(uan).trim();
+    if (supportEmail !== undefined) settings.supportEmail = String(supportEmail).trim();
+    if (supportHours !== undefined) settings.supportHours = String(supportHours).trim();
+
+    await settings.save();
+    res.json({
+      uan: settings.uan,
+      supportEmail: settings.supportEmail,
+      supportHours: settings.supportHours,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /api/settings/general  (admin only — update site name, logo URL, UAN)
 export async function updateGeneralSettings(req, res, next) {
   try {
     const Setting = getSetting();
-    const { siteName, logoUrl } = req.body;
+    const { siteName, logoUrl, uan, supportEmail, supportHours } = req.body;
     const settings = await Setting.getInstance();
 
     if (siteName !== undefined) settings.siteName = String(siteName).trim();
     if (logoUrl !== undefined) settings.logoUrl = String(logoUrl).trim();
+    if (uan !== undefined) settings.uan = String(uan).trim();
+    if (supportEmail !== undefined) settings.supportEmail = String(supportEmail).trim();
+    if (supportHours !== undefined) settings.supportHours = String(supportHours).trim();
 
     await settings.save();
     res.json({
       siteName: settings.siteName,
       logoUrl: settings.logoUrl,
+      uan: settings.uan,
+      supportEmail: settings.supportEmail,
+      supportHours: settings.supportHours,
     });
   } catch (err) {
     next(err);

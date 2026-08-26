@@ -31,7 +31,7 @@ import { RouterLink } from '@angular/router';
               <li><a [routerLink]="['/shop']" [queryParams]="{ sort: 'newest' }">New Arrivals</a></li>
               <li><a [routerLink]="['/shop']" [queryParams]="{ sort: 'popular' }">Best Sellers</a></li>
               <li><a [routerLink]="['/shop']" [queryParams]="{ deals: 'true' }">Deals</a></li>
-              <li><a routerLink="/terms" fragment="about">About Us</a></li>
+              <li><a routerLink="/about">About Us</a></li>
               <li><a routerLink="/contact">Contact Us</a></li>
             </ul>
           </div>
@@ -43,7 +43,7 @@ import { RouterLink } from '@angular/router';
               <li><a routerLink="/account/orders">My Orders</a></li>
               <li><a routerLink="/saved">Wishlist</a></li>
               <li><a routerLink="/account/orders">Track Order</a></li>
-              <li><a routerLink="/terms" fragment="returns">Returns</a></li>
+              <li><a routerLink="/returns">Returns &amp; Exchanges</a></li>
               <li><a routerLink="/login">Sign In</a></li>
             </ul>
           </div>
@@ -52,10 +52,12 @@ import { RouterLink } from '@angular/router';
           <div class="footer-col">
             <h4 class="footer-col-title">Customer Service</h4>
             <ul class="footer-links">
-              <li><a routerLink="/contact">Help Center</a></li>
-              <li><a routerLink="/terms" fragment="shipping">Shipping Policy</a></li>
-              <li><a routerLink="/terms" fragment="returns">Return Policy</a></li>
-              <li><a routerLink="/terms">Terms &amp; Conditions</a></li>
+              <li><a routerLink="/faq">❓ FAQs &amp; Help</a></li>
+              <li><a routerLink="/contact">📞 Contact Us</a></li>
+              <li><a href="mailto:support@wondercart.pk">support&#64;wondercart.pk</a></li>
+              <li><a routerLink="/returns">🔁 Exchange &amp; Return Policy</a></li>
+              <li><a routerLink="/privacy">🔒 Privacy Policy</a></li>
+              <li><a routerLink="/terms">📜 Terms &amp; Conditions</a></li>
             </ul>
           </div>
         </div>

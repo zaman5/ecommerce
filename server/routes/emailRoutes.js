@@ -4,6 +4,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import { protect, restrictTo } from '../middleware/auth.js';
 import { authenticatedRateLimiter } from '../middleware/rateLimiter.js';
+import { validateBody } from '../middleware/validator.js';
+import { emailTemplateUpdateSchema, emailTestSendSchema } from '../validators/schemas.js';
 import { UPLOAD_DIR } from './uploadRoutes.js';
 import {
   getTemplates,
@@ -33,8 +35,8 @@ router.use(authenticatedRateLimiter);
 
 router.get('/', getTemplates);
 router.get('/:type', getTemplateByType);
-router.put('/:type', updateTemplate);
-router.post('/test-send', testSend);
+router.put('/:type', validateBody(emailTemplateUpdateSchema), updateTemplate);
+router.post('/test-send', validateBody(emailTestSendSchema), testSend);
 
 // Upload email attachment
 router.post('/attachment', (req, res) => {

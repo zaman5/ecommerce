@@ -28,6 +28,22 @@ export function defineSetting(sequelize) {
         defaultValue: '/uploads/logo.png',
         field: 'logo_url',
       },
+      // Store contact information & UAN
+      uan: {
+        type: DataTypes.STRING(50),
+        defaultValue: '[To be updated]',
+        field: 'uan',
+      },
+      supportEmail: {
+        type: DataTypes.STRING(100),
+        defaultValue: 'support@wondercart.pk',
+        field: 'support_email',
+      },
+      supportHours: {
+        type: DataTypes.STRING(100),
+        defaultValue: 'Monday to Saturday, 9am – 6pm (PKT)',
+        field: 'support_hours',
+      },
       // JazzCash payment configuration shown at checkout
       jazzcashPhone: {
         type: DataTypes.STRING(50),
