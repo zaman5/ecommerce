@@ -108,13 +108,13 @@ import { AuthService } from '../../../core/services/auth.service';
     </section>
   `,
   styles: [`
-    .auth-wrap { max-width: 480px; margin: 0 auto; }
-    .auth-card { padding: 34px 28px; }
+    .auth-wrap { max-width: 480px; margin: 0 auto; width: 100%; }
+    .auth-card { padding: clamp(20px, 5vw, 34px) clamp(16px, 4vw, 28px); }
     .emoji { height: 80px; width: auto; margin: 0 auto 6px; }
-    .req { color: var(--accent); }
     .link { color: var(--ink); font-weight: 700; }
     .link:hover { color: var(--brand); }
-    .auth-logo-img { max-width: 220px; height: auto; margin: 0 auto 14px; display: block; }
+    .req { color: var(--accent); }
+    .auth-logo-img { max-width: clamp(160px, 45vw, 220px); height: auto; margin: 0 auto 14px; display: block; }
 
     /* Password input with toggle */
     .pw-wrap { position: relative; display: flex; align-items: center; }
@@ -137,13 +137,13 @@ import { AuthService } from '../../../core/services/auth.service';
     .pw-bar.medium { width: 66%; background: #fbbf24; }
     .pw-bar.strong { width: 100%; background: #10b981; }
 
-    .pw-labels { display: flex; justify-content: space-between; align-items: center; font-size: .8rem; }
+    .pw-labels { display: flex; justify-content: space-between; align-items: center; font-size: .8rem; flex-wrap: wrap; gap: 4px; }
     .pw-level { font-weight: 700; text-transform: capitalize; }
     .pw-level.weak { color: #f43f5e; }
     .pw-level.medium { color: #d97706; }
     .pw-level.strong { color: #10b981; }
 
-    .pw-reqs { display: flex; gap: 10px; color: var(--muted); }
+    .pw-reqs { display: flex; gap: 8px; color: var(--muted); flex-wrap: wrap; font-size: 0.76rem; }
     .pw-reqs span.met { color: #10b981; font-weight: 700; }
   `],
 })

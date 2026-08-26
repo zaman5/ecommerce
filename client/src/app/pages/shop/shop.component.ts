@@ -46,12 +46,17 @@ const PER_PAGE = 20;
         </button>
       </div>
 
+      <!-- Backdrop for mobile filter drawer -->
+      @if (filtersOpen()) {
+        <div class="rail-backdrop" (click)="filtersOpen.set(false)"></div>
+      }
+
       <div class="container cat-layout">
         <!-- ================= FILTER RAIL ================= -->
         <aside class="rail" [class.open]="filtersOpen()">
           <div class="rail-header-mobile">
             <strong>Filters</strong>
-            <button class="rail-close-btn" (click)="filtersOpen.set(false)">✕</button>
+            <button class="rail-close-btn" (click)="filtersOpen.set(false)" aria-label="Close filters">✕</button>
           </div>
 
           <div class="rail-group">
@@ -309,32 +314,47 @@ const PER_PAGE = 20;
     .fcount { background:var(--primary); color:#fff; font-family: var(--font-body); font-weight:800;
       font-size:.72rem; min-width:20px; height:20px; border-radius:999px; display:grid; place-items:center; padding:0 6px; }
 
+    .rail-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px); z-index: 104; animation: fadeIn .2s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
     @media (max-width: 900px) {
       .cat-layout { grid-template-columns: 1fr; }
+      .rail-backdrop { display: block; }
       .rail {
-        display:none; position:fixed; top:0; left:0; bottom:0; width:min(320px, 85vw);
-        background:var(--surface); z-index:105; padding:20px; overflow-y:auto;
-        box-shadow:0 25px 50px rgba(0,0,0,0.3);
+        display: none; position: fixed; top: 0; left: 0; bottom: 0; width: min(320px, 85vw);
+        background: var(--surface); z-index: 105; padding: 20px; overflow-y: auto;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.3); animation: slideInLeft .22s ease-out;
       }
-      .rail.open { display:block; }
-      .rail-header-mobile { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--line); }
-      .rail-close-btn { background:none; border:none; font-size:1.3rem; color:var(--ink); cursor:pointer; }
-      .rail-body.links { max-height:200px; }
-      .filter-toggle { display:flex; }
+      @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+      .rail.open { display: block; }
+      .rail-header-mobile { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+      .rail-close-btn { background: none; border: none; font-size: 1.3rem; color: var(--ink); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+      .rail-body.links { max-height: 220px; }
+      .filter-toggle { display: flex; }
 
-      .opt { padding:8px 0; }
-      .opt input { width:18px; height:18px; }
-      .price-in { padding:8px; font-size:.88rem; }
-      .price-go { width:34px; height:34px; font-size:1.1rem; }
-      .rail-select, .sort { padding:8px; font-size:.85rem; }
-      .view-toggle button { width:36px; height:34px; font-size:.95rem; }
-      .cat-link { padding:8px 0; }
-      .link-btn { padding:8px 0; }
+      .opt { padding: 8px 0; }
+      .opt input { width: 18px; height: 18px; }
+      .price-in { padding: 8px; font-size: 0.88rem; }
+      .price-go { width: 34px; height: 34px; font-size: 1.1rem; }
+      .rail-select, .sort { padding: 8px; font-size: 0.85rem; }
+      .view-toggle button { width: 36px; height: 34px; font-size: 0.95rem; }
+      .cat-link { padding: 8px 0; }
+      .link-btn { padding: 8px 0; }
     }
+
     @media (max-width: 560px) {
-      .prod-grid { gap:10px; }
-      .res-head { flex-direction:column; align-items:flex-start; gap:8px; }
-      .tools { width:100%; justify-content:space-between; }
+      .prod-grid { gap: 10px; }
+      .res-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .tools { width: 100%; justify-content: space-between; gap: 8px; }
+      .sort-wrap { flex: 1; }
+      .sort { width: 100%; min-width: 0; }
+      .active-chips-row { gap: 6px; margin-bottom: 10px; }
+      .chip-tag { font-size: 0.72rem; padding: 3px 8px; }
+      .pager { gap: 2px; margin-top: 20px; }
+      .pg { min-width: 28px; height: 28px; font-size: 0.8rem; padding: 0 4px; }
     }
   `],
 })

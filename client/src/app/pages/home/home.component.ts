@@ -521,8 +521,9 @@ interface VisualCategory {
     .btn-load-more:hover { border-color: var(--primary); color: var(--primary); }
 
     @media (max-width: 960px) {
-      .hero-container { flex-direction: column; text-align: center; }
-      .hero-left { max-width: none; }
+      .hero-container { flex-direction: column; text-align: center; gap: 24px; }
+      .hero-left { max-width: none; width: 100%; }
+      .hero-right { max-width: 100%; width: 100%; }
       .hero-desc { margin: 0 auto 20px; }
       .hero-trust-row { justify-content: center; }
       .promo-banner-card { justify-content: center; text-align: center; }
@@ -530,19 +531,42 @@ interface VisualCategory {
       .promo-center-text { text-align: center; }
     }
 
-    @media (max-width: 640px) {
-      .category-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
-      .cat-circle-avatar { width: 62px; height: 62px; font-size: 1.5rem; }
-      .cat-circle-title { font-size: 0.72rem; }
-      .feed-grid { gap: 10px; }
+    @media (max-width: 768px) {
+      .hero-section { padding: 32px 0 40px; }
+      .hero-title { font-size: clamp(1.8rem, 6vw, 2.5rem); margin-bottom: 10px; }
+      .hero-subhead { font-size: 1rem; }
+      .hero-desc { font-size: 0.88rem; }
+      .btn-hero-cta { padding: 11px 24px; font-size: 0.95rem; }
+      .section-title { font-size: 1.4rem; }
+      .feed-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .popular-section { padding: 32px 0; }
+      .features-strip { padding: 20px 0; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .promo-banner-section { padding: 32px 0; }
     }
 
-    @media (max-width: 480px) {
-      .category-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .hero-section { padding: 24px 0 36px; }
-      .promo-banner-card { padding: 20px 16px; }
-      .promo-title { font-size: 1.5rem; }
-      .features-grid { grid-template-columns: 1fr; gap: 14px; }
+    @media (max-width: 560px) {
+      .hero-trust-row { gap: 8px 12px; font-size: 0.75rem; }
+      .category-rail { gap: 8px; padding: 4px 2px; }
+      .cat-circle-card { flex: 0 0 85px; padding: 6px 2px; }
+      .cat-circle-avatar { width: 58px; height: 58px; font-size: 1.4rem; margin-bottom: 6px; }
+      .cat-circle-title { font-size: 0.7rem; }
+      .cat-circle-sub { font-size: 0.65rem; }
+      .promo-banner-card { padding: 20px 14px; gap: 16px; border-radius: 14px; }
+      .promo-title { font-size: 1.4rem; }
+      .promo-sub { font-size: 0.85rem; }
+      .promo-glass-box { padding: 14px 18px; width: 100%; }
+      .btn-promo-cta { width: 100%; text-align: center; }
+      .features-grid { grid-template-columns: 1fr; gap: 12px; }
+      .feed-grid { gap: 8px; }
+      .btn-load-more { padding: 10px 24px; font-size: 0.88rem; }
+    }
+
+    @media (max-width: 380px) {
+      .hero-title { font-size: 1.6rem; }
+      .cat-circle-card { flex: 0 0 76px; }
+      .cat-circle-avatar { width: 52px; height: 52px; font-size: 1.25rem; }
+      .cat-circle-title { font-size: 0.66rem; }
     }
   `],
 })

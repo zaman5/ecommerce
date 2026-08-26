@@ -131,14 +131,18 @@ import { RouterLink } from '@angular/router';
     .social-btn.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
 
     @media (max-width: 860px) {
+      .footer { padding-top: 40px; padding-bottom: 30px; margin-top: 36px; }
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
       .brand-col { grid-column: span 2; }
-      .footer-middle { flex-direction: column; align-items: flex-start; }
-      .newsletter-form { width: 100%; max-width: 360px; }
+      .footer-middle { flex-direction: column; align-items: flex-start; gap: 18px; }
+      .newsletter-wrap { width: 100%; flex-direction: column; align-items: flex-start; gap: 12px; }
+      .newsletter-form { width: 100%; max-width: 100%; }
     }
     @media (max-width: 540px) {
-      .footer-grid { grid-template-columns: 1fr; }
+      .footer { padding-top: 32px; padding-bottom: 24px; margin-top: 28px; }
+      .footer-grid { grid-template-columns: 1fr; gap: 24px; }
       .brand-col { grid-column: span 1; }
+      .footer-logo-img { height: 42px; }
     }
   `],
 })

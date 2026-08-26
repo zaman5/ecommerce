@@ -74,12 +74,12 @@ import { AuthService } from '../../../core/services/auth.service';
     </section>
   `,
   styles: [`
-    .auth-wrap { max-width: 480px; margin: 0 auto; }
-    .auth-card { padding: 34px 28px; }
+    .auth-wrap { max-width: 480px; margin: 0 auto; width: 100%; }
+    .auth-card { padding: clamp(20px, 5vw, 34px) clamp(16px, 4vw, 28px); }
     .emoji { height: 80px; width: auto; margin: 0 auto 6px; }
     .link { color: var(--ink); font-weight: 700; }
     .link:hover { color: var(--brand); }
-    .auth-logo-img { max-width: 220px; height: auto; margin: 0 auto 14px; display: block; }
+    .auth-logo-img { max-width: clamp(160px, 45vw, 220px); height: auto; margin: 0 auto 14px; display: block; }
 
     /* Password input with toggle */
     .pw-wrap { position: relative; display: flex; align-items: center; }

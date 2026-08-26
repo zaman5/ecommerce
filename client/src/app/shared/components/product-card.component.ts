@@ -278,6 +278,22 @@ import { MediaUrlPipe } from '../pipes/media-url.pipe';
     .row-layout { flex-direction: row; gap: 16px; }
     .row-layout .card-img-wrap { width: 160px; flex: none; margin-bottom: 0; }
     .row-layout .card-content { flex: 1; }
+
+    @media (max-width: 600px) {
+      .product-card { padding: 8px; border-radius: 10px; }
+      .card-img-wrap { margin-bottom: 6px; }
+      .card-title { font-size: 0.78rem; line-height: 1.25; margin-bottom: 4px; min-height: 2.5em; }
+      .card-brand { font-size: 0.65rem; margin-bottom: 1px; }
+      .card-rating { margin-bottom: 4px; font-size: 0.65rem; gap: 2px; }
+      .card-price-row { margin-bottom: 8px; gap: 4px; flex-wrap: wrap; }
+      .price-val { font-size: 0.88rem; }
+      .strike-val { font-size: 0.72rem; }
+      .btn-cart-cta { padding: 6px 6px; font-size: 0.72rem; border-radius: 6px; gap: 4px; }
+      .wish-btn { width: 28px; height: 28px; font-size: 0.85rem; top: 6px; right: 6px; }
+      .badge-tag { top: 6px; left: 6px; font-size: 0.58rem; padding: 2px 6px; }
+      .row-layout { gap: 10px; }
+      .row-layout .card-img-wrap { width: 95px; }
+    }
   `],
 })
 export class ProductCardComponent {
