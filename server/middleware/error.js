@@ -1,4 +1,9 @@
-import { UniqueConstraintError, ValidationError as SeqValidationError } from 'sequelize';
+import {
+  UniqueConstraintError,
+  ValidationError as SeqValidationError,
+  ForeignKeyConstraintError,
+  DatabaseError,
+} from 'sequelize';
 
 /**
  * 404 Handler for undefined API routes
@@ -9,6 +14,27 @@ export function notFound(req, res) {
     error: 'Not Found',
     message: `Resource not found: ${req.method} ${req.originalUrl}`,
   });
+}
+
+/**
+ * Helper to sanitize any accidental path or SQL query fragments from error messages
+ */
+function sanitizeErrorMessage(msg) {
+  if (!msg || typeof msg !== 'string') return 'An error occurred with your request.';
+  
+  // Check for file system paths, stack trace references, or SQL keywords
+  if (
+    msg.includes('\\') ||
+    msg.includes('C:') ||
+    msg.includes('/Users/') ||
+    msg.includes('/home/') ||
+    msg.includes('/var/') ||
+    msg.includes('.js:') ||
+    /\b(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|TABLE|SQLITE_|ER_)\b/i.test(msg)
+  ) {
+    return 'Invalid request parameters or database constraint violated.';
+  }
+  return msg.trim();
 }
 
 /**
@@ -39,11 +65,19 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // 3. SEQUELIZE VALIDATION ERROR (HTTP 400 Bad Request)
+  // 3. SEQUELIZE FOREIGN KEY CONSTRAINT ERROR (HTTP 409 Conflict)
+  if (err instanceof ForeignKeyConstraintError || err.name === 'SequelizeForeignKeyConstraintError') {
+    return res.status(409).json({
+      status: 409,
+      error: 'Conflict',
+      message: 'This record cannot be deleted or modified because it is referenced by other items.',
+    });
+  }
+
+  // 4. SEQUELIZE VALIDATION ERROR (HTTP 400 Bad Request)
   if (err instanceof SeqValidationError || err.name === 'SequelizeValidationError') {
     const safeMessages = err.errors?.map((e) => {
-      // Strip any internal path or SQL strings if present
-      return (e.message || 'Invalid input.').replace(/at .*/i, '').trim();
+      return sanitizeErrorMessage(e.message || 'Invalid input.');
     }) || ['Invalid input data provided.'];
 
     return res.status(400).json({
@@ -54,7 +88,19 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // 4. JSON BODY PARSER SYNTAX ERROR (HTTP 400 Bad Request)
+  // 5. MULTER FILE UPLOAD ERRORS (HTTP 400 Bad Request)
+  if (err.name === 'MulterError') {
+    let msg = 'File upload failed.';
+    if (err.code === 'LIMIT_FILE_SIZE') msg = 'Uploaded file exceeds the allowed size limit.';
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') msg = 'Unexpected file field in upload request.';
+    return res.status(400).json({
+      status: 400,
+      error: 'Upload Error',
+      message: msg,
+    });
+  }
+
+  // 6. JSON BODY PARSER SYNTAX ERROR (HTTP 400 Bad Request)
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return res.status(400).json({
       status: 400,
@@ -63,22 +109,20 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // 5. CLIENT-FACING OPERATIONAL ERRORS (HTTP 400 - 499)
+  // 7. SEQUELIZE / RAW DATABASE ERRORS (HTTP 500 — Generic Client Response)
+  if (err instanceof DatabaseError || err.name === 'SequelizeDatabaseError') {
+    return res.status(500).json({
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'A database error occurred. Please try again later.',
+    });
+  }
+
+  // 8. CLIENT-FACING OPERATIONAL ERRORS (HTTP 400 - 499)
   const statusCode = typeof err.status === 'number' && err.status >= 400 && err.status < 500 ? err.status : 500;
 
   if (statusCode < 500) {
-    let safeMessage = err.message || 'Invalid request.';
-    // If the message contains file system path separators, backslashes, or SQL keywords, sanitize it
-    if (
-      safeMessage.includes('\\') ||
-      safeMessage.includes('/var/') ||
-      safeMessage.includes('/home/') ||
-      safeMessage.includes('C:') ||
-      /\b(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|TABLE)\b/i.test(safeMessage)
-    ) {
-      safeMessage = 'Invalid request parameters.';
-    }
-
+    const safeMessage = sanitizeErrorMessage(err.message || 'Invalid request.');
     return res.status(statusCode).json({
       status: statusCode,
       error: err.name || 'Client Error',
@@ -86,7 +130,7 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // 6. INTERNAL SERVER ERRORS (HTTP 500) — STRICTLY SANITIZED FOR CLIENTS
+  // 9. INTERNAL SERVER ERRORS (HTTP 500) — STRICTLY SANITIZED FOR CLIENTS
   return res.status(500).json({
     status: 500,
     error: 'Internal Server Error',

@@ -18,7 +18,6 @@ export function defineProduct(sequelize) {
       slug: {
         type: DataTypes.STRING(500),
         allowNull: false,
-        unique: true,
         set(val) {
           this.setDataValue('slug', String(val || '').toLowerCase().trim());
         },
@@ -99,6 +98,24 @@ export function defineProduct(sequelize) {
         defaultValue: true,
         field: 'is_active',
       },
+      metaTitle: {
+        type: DataTypes.STRING(500),
+        defaultValue: '',
+        field: 'meta_title',
+      },
+      metaDescription: {
+        type: DataTypes.TEXT,
+        defaultValue: '',
+        field: 'meta_description',
+      },
+      keywords: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+      },
+      tags: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+      },
     },
     {
       tableName: 'products',
@@ -124,6 +141,12 @@ export function defineProduct(sequelize) {
     }
     if (!json.images) {
       json.images = [];
+    }
+    if (!Array.isArray(json.keywords)) {
+      json.keywords = typeof json.keywords === 'string' && json.keywords.trim() ? json.keywords.split(',').map(s => s.trim()).filter(Boolean) : [];
+    }
+    if (!Array.isArray(json.tags)) {
+      json.tags = typeof json.tags === 'string' && json.tags.trim() ? json.tags.split(',').map(s => s.trim()).filter(Boolean) : [];
     }
     return json;
   };

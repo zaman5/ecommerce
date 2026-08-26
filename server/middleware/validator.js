@@ -214,3 +214,21 @@ export function validateQuery(schema) {
     next();
   };
 }
+
+/**
+ * Express Middleware factory for route params validation
+ */
+export function validateParams(schema) {
+  return (req, res, next) => {
+    const errors = validateObject('Parameter', req.params || {}, { ...schema, strict: false });
+    if (errors.length > 0) {
+      return res.status(400).json({
+        status: 400,
+        error: 'Validation Error',
+        message: errors[0],
+        details: errors,
+      });
+    }
+    next();
+  };
+}

@@ -4,6 +4,7 @@ node_modules/
 # environment / secrets / credentials
 .env
 .env.*
+!.env.example
 *.env
 *.env.local
 *.local

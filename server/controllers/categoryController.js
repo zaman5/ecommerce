@@ -59,8 +59,17 @@ async function resolveParent(parentId, selfId) {
   if (selfId && String(parentId) === String(selfId)) {
     return { error: 'A category cannot be its own parent.' };
   }
-  const parent = await Category.findByPk(parentId).catch(() => null);
+  let parent = null;
+  if (/^\d+$/.test(String(parentId))) {
+    parent = await Category.findByPk(parentId).catch(() => null);
+  }
+  if (!parent) {
+    parent = await Category.findOne({ where: { slug: String(parentId) } }).catch(() => null);
+  }
   if (!parent) return { error: 'That parent category does not exist.' };
+  if (selfId && String(parent.id) === String(selfId)) {
+    return { error: 'A category cannot be its own parent.' };
+  }
   if (parent.parentId) {
     return { error: `"${parent.name}" is already a sub-category — categories only nest two levels deep.` };
   }

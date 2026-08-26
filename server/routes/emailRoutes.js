@@ -14,17 +14,31 @@ import {
   testSend,
 } from '../controllers/emailController.js';
 
+const ALLOWED_ATTACHMENT_MIMES = new Map([
+  ['application/pdf', '.pdf'],
+  ['image/jpeg', '.jpg'],
+  ['image/png', '.png'],
+  ['image/webp', '.webp'],
+  ['text/plain', '.txt'],
+]);
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || '.bin';
-    cb(null, `att-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
+    const ext = ALLOWED_ATTACHMENT_MIMES.get(file.mimetype) || '.bin';
+    cb(null, `att-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`);
   },
 });
 
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024, files: 1 }, // 10MB max attachment
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_ATTACHMENT_MIMES.has(file.mimetype)) {
+      return cb(new Error('Only PDF, JPG, PNG, WebP, or TXT attachments are allowed. Executable files are strictly forbidden.'));
+    }
+    cb(null, true);
+  },
 });
 
 const router = Router();
@@ -50,7 +64,6 @@ router.post('/attachment', (req, res) => {
     res.status(201).json({
       name: req.file.originalname,
       url: `/uploads/${req.file.filename}`,
-      path: req.file.path,
       size: req.file.size,
     });
   });

@@ -5,7 +5,7 @@ import { getUser } from '../models/User.js';
 import { sanitizeHtml } from '../utils/sanitizeHtml.js';
 import { scopedProductIds, canManageProduct } from '../middleware/auth.js';
 import { dispatchProductSocialPost, postProductToFacebook, postProductToInstagram } from '../services/socialService.js';
-import { Op, fn, col, literal } from 'sequelize';
+import { Op, fn, col, literal, where as seqWhere, cast } from 'sequelize';
 
 function toInt(value, fallback, { min = 1, max = Infinity } = {}) {
   const n = Math.trunc(Number(value));
@@ -38,7 +38,7 @@ async function categoryIdsFor(slug) {
 /**
  * Build filter conditions for product queries.
  */
-async function buildProductFilter(query, { ignoreColor = false } = {}) {
+export async function buildProductFilter(query, { ignoreColor = false } = {}) {
   const Product = getProductModel();
   const Category = getCategory();
   const ProductColor = getProductColor();
@@ -91,6 +91,10 @@ async function buildProductFilter(query, { ignoreColor = false } = {}) {
             { name: { [Op.like]: like } },
             { brand: { [Op.like]: like } },
             { description: { [Op.like]: like } },
+            { metaTitle: { [Op.like]: like } },
+            { metaDescription: { [Op.like]: like } },
+            seqWhere(cast(col('Product.keywords'), 'char'), { [Op.like]: like }),
+            seqWhere(cast(col('Product.tags'), 'char'), { [Op.like]: like }),
           ],
         };
       });
@@ -268,6 +272,12 @@ export async function createProduct(req, res, next) {
 
     const data = { ...req.body };
     data.slug = slugify(data.slug || data.name);
+    if (data.slug) {
+      const taken = await Product.findOne({ where: { slug: data.slug } });
+      if (taken) {
+        data.slug = `${data.slug}-${Date.now()}`;
+      }
+    }
     if (data.description !== undefined) data.description = sanitizeHtml(data.description);
 
     // Handle category field -> categoryId
@@ -390,12 +400,20 @@ export async function updateProduct(req, res, next) {
       delete data.category;
     }
 
-    if (data.name && !data.slug) data.slug = slugify(data.name);
     if (data.slug) data.slug = slugify(data.slug);
     if (data.description !== undefined) data.description = sanitizeHtml(data.description);
 
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found.' });
+
+    if (data.slug && data.slug !== product.slug) {
+      const taken = await Product.findOne({
+        where: { slug: data.slug, id: { [Op.ne]: product.id } },
+      });
+      if (taken) {
+        data.slug = `${data.slug}-${Date.now()}`;
+      }
+    }
 
     // Handle colors update
     if (data.colors !== undefined) {

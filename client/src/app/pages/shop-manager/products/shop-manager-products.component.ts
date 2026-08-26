@@ -185,6 +185,87 @@ import { RichTextEditorComponent } from '../../../shared/components/rich-text-ed
               <label class="check"><input type="checkbox" [(ngModel)]="form.isFeatured" /> Featured</label>
               <label class="check"><input type="checkbox" [(ngModel)]="form.isActive" /> Active</label>
             </div>
+
+            <!-- SEO & Multi-Keywords Suite (eBay & Daraz style) -->
+            <div class="seo-panel mt">
+              <div class="seo-panel-head">
+                <span class="seo-panel-icon">🚀</span>
+                <div>
+                  <strong>Search Engine Optimization (SEO) &amp; Multi-Keywords</strong>
+                  <span class="seo-panel-desc">Optimize for Google, Daraz &amp; marketplace search ranking</span>
+                </div>
+                <button type="button" class="btn btn-ghost btn-xs auto-seo-btn" (click)="autoGenerateSeo()">
+                  ✨ Auto-generate SEO
+                </button>
+              </div>
+
+              <!-- Multi-Keyword / Tag Input Option (eBay & Daraz style) -->
+              <div class="field mt-sm">
+                <label>
+                  Multi-Keyword Addition (eBay &amp; Daraz style)
+                  <span class="hint">— Type keyword and press Enter or comma (e.g. baby shoes, toddler sneakers)</span>
+                </label>
+                <div class="kw-input-wrap">
+                  <input
+                    class="input kw-field"
+                    [(ngModel)]="keywordInput"
+                    [ngModelOptions]="{standalone:true}"
+                    (keydown)="onKeywordKeydown($event)"
+                    placeholder="Type keyword and press Enter..."
+                  />
+                  <button type="button" class="btn btn-primary btn-sm" (click)="addKeyword()">+ Add</button>
+                </div>
+
+                @if (keywords.length) {
+                  <div class="kw-tags-wrap mt-xs">
+                    @for (kw of keywords; track $index) {
+                      <span class="kw-tag">
+                        <span class="kw-text">{{ kw }}</span>
+                        <button type="button" class="kw-remove" (click)="removeKeyword($index)" aria-label="Remove keyword">✕</button>
+                      </span>
+                    }
+                    <button type="button" class="kw-clear-all" (click)="keywords = []">Clear all ({{ keywords.length }})</button>
+                  </div>
+                } @else {
+                  <p class="hint kw-empty-tip mt-xs">💡 Add 5-10 keywords to maximize discovery in search results!</p>
+                }
+              </div>
+
+              <!-- Meta Title -->
+              <div class="field mt-sm">
+                <div class="field-head-flex">
+                  <label>SEO Meta Title <span class="hint">(shown on Google &amp; browser tab)</span></label>
+                  <span class="char-count" [class.warn]="(form.metaTitle?.length || 0) > 60">
+                    {{ form.metaTitle?.length || 0 }}/60 chars
+                  </span>
+                </div>
+                <input class="input" [(ngModel)]="form.metaTitle" placeholder="Custom SEO Title (defaults to product name if blank)..." />
+              </div>
+
+              <!-- Meta Description -->
+              <div class="field mt-sm">
+                <div class="field-head-flex">
+                  <label>SEO Meta Description <span class="hint">(snippet shown on Google search)</span></label>
+                  <span class="char-count" [class.warn]="(form.metaDescription?.length || 0) > 160">
+                    {{ form.metaDescription?.length || 0 }}/160 chars
+                  </span>
+                </div>
+                <textarea class="input" rows="2" [(ngModel)]="form.metaDescription" placeholder="Custom search snippet description..."></textarea>
+              </div>
+
+              <!-- Live Google Search Snippet Preview -->
+              <div class="google-preview-card mt-sm">
+                <div class="google-preview-label">🔍 Live Google Search Preview</div>
+                <div class="google-preview-box">
+                  <div class="gp-cite">
+                    <span class="gp-fav">🛒</span>
+                    <span class="gp-url">wondercart.pk › product › {{ previewSlug() }}</span>
+                  </div>
+                  <div class="gp-title">{{ previewTitle() }}</div>
+                  <div class="gp-desc">{{ previewDesc() }}</div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="modal-foot">
             <button class="btn btn-ghost" (click)="close()">Cancel</button>
@@ -230,6 +311,47 @@ import { RichTextEditorComponent } from '../../../shared/components/rich-text-ed
     .video-preview-player { width:100%; height:auto; max-height:180px; display:block; }
     .check { display:flex; align-items:center; gap:8px; font-weight:700; }
     .check input { accent-color: var(--ink); width:18px; height:18px; }
+    
+    /* SEO & Keywords Section */
+    .seo-panel { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px; }
+    .seo-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .seo-panel-head > div { flex: 1; min-width: 180px; }
+    .seo-panel-icon { font-size: 1.3rem; }
+    .seo-panel-head strong { font-size: .95rem; display: block; color: var(--ink); }
+    .seo-panel-desc { font-size: .78rem; color: var(--muted); }
+    .auto-seo-btn { color: var(--brand); font-weight: 700; border: 1.5px solid var(--brand); border-radius: 6px; padding: 3px 8px; font-size: .78rem; }
+    .auto-seo-btn:hover { background: #fff6f4; }
+
+    .kw-input-wrap { display: flex; gap: 8px; align-items: center; }
+    .kw-field { flex: 1; min-width: 0; }
+    .kw-tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+    .kw-tag {
+      display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: #0369a1;
+      font-size: .8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid #bae6fd;
+    }
+    .kw-text { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .kw-remove { background: none; border: none; font-size: .85rem; color: #0284c7; cursor: pointer; padding: 0 2px; line-height: 1; }
+    .kw-remove:hover { color: #b91c1c; }
+    .kw-clear-all { background: none; border: none; font-size: .75rem; color: var(--danger); font-weight: 700; cursor: pointer; padding: 2px 6px; }
+    .kw-clear-all:hover { text-decoration: underline; }
+    .kw-empty-tip { color: #64748b; font-size: .8rem; margin-top: 6px; }
+
+    .field-head-flex { display: flex; justify-content: space-between; align-items: center; }
+    .char-count { font-size: .75rem; color: var(--muted); font-weight: 700; font-family: monospace; }
+    .char-count.warn { color: var(--danger); }
+
+    /* Live Google Preview */
+    .google-preview-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow-sm); }
+    .google-preview-label { font-size: .75rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 8px; letter-spacing: .5px; }
+    .google-preview-box { font-family: Roboto, Arial, sans-serif; }
+    .gp-cite { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: #202124; margin-bottom: 2px; }
+    .gp-fav { font-size: .85rem; }
+    .gp-url { color: #4d5156; font-size: .76rem; }
+    .gp-title { color: #1a0dab; font-size: 1.05rem; font-weight: 400; line-height: 1.3; cursor: pointer; margin-bottom: 3px; word-break: break-word; }
+    .gp-title:hover { text-decoration: underline; }
+    .gp-desc { color: #4d5156; font-size: .84rem; line-height: 1.4; word-break: break-word; }
+
     @media (max-width:760px) {
       .colour-row { flex-wrap:wrap; }
       .colour-row .input { flex:1 1 100%; }
@@ -250,6 +372,8 @@ export class ShopManagerProductsComponent implements OnInit {
   images: string[] = [];
   form: any = this.blank();
   colors: ProductColor[] = [];
+  keywords: string[] = [];
+  keywordInput = '';
   uploadingAt = signal<number | null>(null);
   uploadingColorAt = signal<number | null>(null);
   uploadingVideo = signal(false);
@@ -275,7 +399,100 @@ export class ShopManagerProductsComponent implements OnInit {
     });
   }
   blank() {
-    return { name: '', description: '', brand: '', category: '', price: 0, compareAtPrice: 0, stock: 0, video: '', isFeatured: false, isFlashSale: false, isActive: true };
+    return {
+      name: '',
+      description: '',
+      brand: 'Wondercart',
+      category: '',
+      price: 0,
+      compareAtPrice: 0,
+      stock: 0,
+      video: '',
+      isFeatured: false,
+      isFlashSale: false,
+      isActive: true,
+      metaTitle: '',
+      metaDescription: '',
+    };
+  }
+
+  addKeyword() {
+    const raw = this.keywordInput.trim();
+    if (!raw) return;
+    const splitted = raw.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean);
+    for (const k of splitted) {
+      if (!this.keywords.some((existing) => existing.toLowerCase() === k.toLowerCase())) {
+        this.keywords.push(k);
+      }
+    }
+    this.keywordInput = '';
+  }
+
+  onKeywordKeydown(ev: KeyboardEvent) {
+    if (ev.key === 'Enter' || ev.key === ',') {
+      ev.preventDefault();
+      this.addKeyword();
+    }
+  }
+
+  removeKeyword(i: number) {
+    this.keywords.splice(i, 1);
+  }
+
+  autoGenerateSeo() {
+    const name = (this.form.name || '').trim();
+    const brand = (this.form.brand || '').trim() || 'Wondercart';
+    const catObj = this.categories().find((c) => c._id === this.form.category);
+    const catName = catObj ? catObj.name : '';
+
+    if (!this.form.metaTitle && name) {
+      this.form.metaTitle = `${name} — Buy Online in Pakistan | ${brand}`;
+    }
+    if (!this.form.metaDescription && name) {
+      this.form.metaDescription = `Buy ${name} (${brand}) online at best price in Pakistan. High quality ${catName ? catName.toLowerCase() : 'kids essentials'} with fast cash on delivery.`;
+    }
+
+    const suggestions: string[] = [];
+    if (name) {
+      suggestions.push(name);
+      suggestions.push(`buy ${name}`);
+      suggestions.push(`${name} online`);
+      suggestions.push(`${name} price in Pakistan`);
+    }
+    if (brand && brand !== 'Wondercart') {
+      suggestions.push(brand);
+      if (name) suggestions.push(`${brand} ${name}`);
+    }
+    if (catName) {
+      suggestions.push(catName);
+      suggestions.push(`${catName} Pakistan`);
+    }
+    suggestions.push('cash on delivery', 'fast shipping Pakistan');
+
+    for (const s of suggestions) {
+      if (!this.keywords.some((k) => k.toLowerCase() === s.toLowerCase())) {
+        this.keywords.push(s);
+      }
+    }
+  }
+
+  previewSlug(): string {
+    return (this.form.name || 'product-slug')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
+
+  previewTitle(): string {
+    return this.form.metaTitle?.trim() || (this.form.name ? `${this.form.name} — Buy Online in Pakistan | ${this.form.brand || 'Wondercart'}` : 'Product Title — Buy Online in Pakistan');
+  }
+
+  previewDesc(): string {
+    if (this.form.metaDescription?.trim()) return this.form.metaDescription.trim();
+    const clean = (this.form.description || '').replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+    if (clean) return clean.slice(0, 150) + '...';
+    return `Buy ${this.form.name || 'this product'} online at best price in Pakistan. Genuine quality, fast nationwide delivery and cash on delivery.`;
   }
 
   sellingPrice(): number {
@@ -373,18 +590,48 @@ export class ShopManagerProductsComponent implements OnInit {
   openNew() {
     this.editing.set(null);
     this.form = this.blank();
-    this.discountMode = 'none'; this.discountValue = 0;
-    this.images = ['']; this.colors = []; this.error.set(''); this.showForm.set(true);
+    this.keywords = [];
+    this.keywordInput = '';
+    this.discountMode = 'none';
+    this.discountValue = 0;
+    this.images = [''];
+    this.colors = [];
+    this.error.set('');
+    this.showForm.set(true);
   }
+
   edit(p: Product) {
     this.editing.set(p);
     const normalPrice = this.fromProduct(p);
-    this.form = { name: p.name, description: p.description, brand: p.brand, category: typeof p.category === 'object' ? p.category._id : p.category, price: normalPrice, compareAtPrice: p.compareAtPrice, stock: p.stock, video: p.video || '', isFeatured: p.isFeatured, isFlashSale: !!p.isFlashSale, isActive: p.isActive };
+    this.form = {
+      name: p.name,
+      description: p.description,
+      brand: p.brand,
+      category: typeof p.category === 'object' ? p.category._id : p.category,
+      price: normalPrice,
+      compareAtPrice: p.compareAtPrice,
+      stock: p.stock,
+      video: p.video || '',
+      isFeatured: p.isFeatured,
+      isFlashSale: !!p.isFlashSale,
+      isActive: p.isActive,
+      metaTitle: p.metaTitle || '',
+      metaDescription: p.metaDescription || '',
+    };
+    this.keywords = Array.isArray(p.keywords)
+      ? [...p.keywords]
+      : typeof p.keywords === 'string'
+      ? (p.keywords as string).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    this.keywordInput = '';
     this.images = p.images?.length ? [...p.images] : [''];
     this.colors = (p.colors || []).map((c) => ({ ...c }));
-    this.error.set(''); this.showForm.set(true);
+    this.error.set('');
+    this.showForm.set(true);
   }
+
   close() { this.showForm.set(false); }
+
   save() {
     if (!this.form.name || !this.form.category || !this.form.price) { this.error.set('Name, category and price are required.'); return; }
     const colors = this.colors.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), hex: c.hex, image: (c.image || '').trim() }));
@@ -395,6 +642,10 @@ export class ShopManagerProductsComponent implements OnInit {
       isFlashSale: this.discountMode === 'none' ? false : this.form.isFlashSale,
       images: this.images.map((u) => u.trim()).filter(Boolean),
       video: (this.form.video || '').trim(),
+      metaTitle: (this.form.metaTitle || '').trim(),
+      metaDescription: (this.form.metaDescription || '').trim(),
+      keywords: this.keywords,
+      tags: this.keywords,
       colors,
     };
     const req = this.editing() ? this.productSvc.update(this.editing()!._id, payload) : this.productSvc.create(payload);

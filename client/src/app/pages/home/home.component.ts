@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FlashSaleService, ProductService, CategoryService, BannerService } from '../../core/services/api.service';
+import { SeoService } from '../../core/services/seo.service';
 import { Banner, Category, FlashSale, Product } from '../../core/models/models';
 import { ProductCardComponent } from '../../shared/components/product-card.component';
 import { ProductRailComponent } from '../../shared/components/product-rail.component';
@@ -583,10 +584,12 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private products: ProductService,
     private flashSvc: FlashSaleService,
-    private cats: CategoryService
+    private cats: CategoryService,
+    private seoSvc: SeoService
   ) {}
 
   ngOnInit() {
+    this.seoSvc.setHomeSeo();
     this.readCols();
 
     this.flashSvc.get().subscribe({
@@ -627,6 +630,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy() {
     if (this.timer) clearInterval(this.timer);
     this.catRo?.disconnect();
+    this.seoSvc.clearStructuredData('home-json-ld');
   }
 
   catPage(direction: 1 | -1) {

@@ -58,24 +58,26 @@ class RateLimitStore {
 const publicStore = new RateLimitStore();
 const authenticatedStore = new RateLimitStore();
 const authStore = new RateLimitStore();
+const passwordResetStore = new RateLimitStore();
+const uploadStore = new RateLimitStore();
 
 /**
- * Standard Sliding Window Rate Limiter
+ * Standard Sliding Window Rate Limiter Factory
  */
-function createSlidingLimiter({ windowMs, max, message, keyGenerator }) {
+function createSlidingLimiter({ windowMs, max, message, keyGenerator, store = publicStore }) {
   return (req, res, next) => {
     if (!rateLimitConfig.enabled) return next();
 
     const key = keyGenerator(req);
     const now = Date.now();
-    let record = publicStore.get(key);
+    let record = store.get(key);
 
     if (!record || record.expiresAt < now) {
       record = {
         timestamps: [now],
         expiresAt: now + windowMs,
       };
-      publicStore.set(key, record);
+      store.set(key, record);
     } else {
       // Filter timestamps within current window
       const windowStart = now - windowMs;
@@ -88,7 +90,7 @@ function createSlidingLimiter({ windowMs, max, message, keyGenerator }) {
     const remaining = Math.max(0, max - currentHits);
     const resetTime = Math.ceil((record.expiresAt - now) / 1000);
 
-    // Standard Rate Limit headers
+    // Standard HTTP Rate Limit headers
     res.setHeader('X-RateLimit-Limit', max);
     res.setHeader('X-RateLimit-Remaining', remaining);
     res.setHeader('X-RateLimit-Reset', Math.ceil(record.expiresAt / 1000));
@@ -100,6 +102,7 @@ function createSlidingLimiter({ windowMs, max, message, keyGenerator }) {
         error: 'Too Many Requests',
         message: message || 'Too many requests. Please try again later.',
         retryAfter: resetTime,
+        type: 'rate_limit_exceeded',
       });
     }
 
@@ -108,17 +111,18 @@ function createSlidingLimiter({ windowMs, max, message, keyGenerator }) {
 }
 
 /**
- * 1. Moderate Public Endpoints Rate Limiter
+ * 1. Moderate Public Endpoints Rate Limiter (catalog browsing, products, search, sitemap, contact)
  */
 export const publicRateLimiter = createSlidingLimiter({
   windowMs: rateLimitConfig.public.windowMs,
   max: rateLimitConfig.public.max,
   message: rateLimitConfig.public.message,
   keyGenerator: (req) => `pub:${getClientIp(req)}`,
+  store: publicStore,
 });
 
 /**
- * 2. Looser Authenticated User Actions Rate Limiter
+ * 2. Looser Authenticated User Actions Rate Limiter (orders, checkout, profile updates, reviews)
  */
 export const authenticatedRateLimiter = (req, res, next) => {
   if (!rateLimitConfig.enabled) return next();
@@ -157,6 +161,68 @@ export const authenticatedRateLimiter = (req, res, next) => {
       error: 'Too Many Requests',
       message: message || 'Too many requests. Please slow down.',
       retryAfter: resetSeconds,
+      type: 'rate_limit_exceeded',
+    });
+  }
+
+  next();
+};
+
+/**
+ * 3. Stricter Password Reset Rate Limiter
+ */
+export const passwordResetRateLimiter = createSlidingLimiter({
+  windowMs: rateLimitConfig.passwordReset.windowMs,
+  max: rateLimitConfig.passwordReset.max,
+  message: rateLimitConfig.passwordReset.message,
+  keyGenerator: (req) => {
+    const account = getAccountKey(req);
+    return account ? `pw_reset:${account}` : `pw_reset:${getClientIp(req)}`;
+  },
+  store: passwordResetStore,
+});
+
+/**
+ * 4. Dedicated Upload Actions Rate Limiter
+ */
+export const uploadRateLimiter = (req, res, next) => {
+  if (!rateLimitConfig.enabled) return next();
+
+  const userId = req.user?.id || req.user?._id || getClientIp(req);
+  const key = `upload:${userId}`;
+  const now = Date.now();
+  const { windowMs, max, message } = rateLimitConfig.upload;
+
+  let record = uploadStore.get(key);
+  if (!record || record.expiresAt < now) {
+    record = {
+      timestamps: [now],
+      expiresAt: now + windowMs,
+    };
+    uploadStore.set(key, record);
+  } else {
+    const windowStart = now - windowMs;
+    record.timestamps = record.timestamps.filter((ts) => ts > windowStart);
+    record.timestamps.push(now);
+    record.expiresAt = now + windowMs;
+  }
+
+  const currentHits = record.timestamps.length;
+  const remaining = Math.max(0, max - currentHits);
+  const resetSeconds = Math.ceil((record.expiresAt - now) / 1000);
+
+  res.setHeader('X-RateLimit-Limit', max);
+  res.setHeader('X-RateLimit-Remaining', remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(record.expiresAt / 1000));
+
+  if (currentHits > max) {
+    res.setHeader('Retry-After', resetSeconds);
+    return res.status(429).json({
+      status: 429,
+      error: 'Too Many Requests',
+      message: message || 'Upload limit exceeded. Please wait a few minutes before uploading more files.',
+      retryAfter: resetSeconds,
+      type: 'rate_limit_exceeded',
     });
   }
 

@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProductService, CategoryService } from '../../core/services/api.service';
+import { SeoService } from '../../core/services/seo.service';
 import { Category, ColorOption, Product } from '../../core/models/models';
 import { ProductCardComponent } from '../../shared/components/product-card.component';
 import { SwatchPipe } from '../../shared/pipes/swatch.pipe';
@@ -369,7 +370,8 @@ export class ShopComponent implements OnInit {
     private productSvc: ProductService,
     private catSvc: CategoryService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private seoSvc: SeoService
   ) {}
 
   ngOnInit() {
@@ -381,6 +383,10 @@ export class ShopComponent implements OnInit {
       this.filters.color = q['color'] || '';
       this.load(1);
     });
+  }
+
+  ngOnDestroy() {
+    this.seoSvc.clearStructuredData('category-json-ld');
   }
 
   /**
@@ -510,6 +516,8 @@ export class ShopComponent implements OnInit {
           this.pages.set(r.pages);
           this.total.set(r.total);
           this.loading.set(false);
+          const cat = this.categories().find((c) => c.slug === this.filters.category);
+          this.seoSvc.setCategorySeo(cat?.name, cat?.slug, r.total);
         },
         error: () => this.loading.set(false),
       });

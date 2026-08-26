@@ -2,12 +2,18 @@ import { getBanner } from '../models/Banner.js';
 
 function pickWritable(body) {
   const data = {};
-  for (const key of ['title', 'subtitle', 'image', 'link', 'ctaLabel', 'theme']) {
+  for (const key of ['title', 'subtitle', 'image', 'link', 'ctaLabel', 'theme', 'tag']) {
     if (key in body) data[key] = typeof body[key] === 'string' ? body[key].trim() : body[key];
   }
+  if ('imageUrl' in body && !data.image) data.image = typeof body.imageUrl === 'string' ? body.imageUrl.trim() : body.imageUrl;
+  if ('linkUrl' in body && !data.link) data.link = typeof body.linkUrl === 'string' ? body.linkUrl.trim() : body.linkUrl;
   if ('isActive' in body) data.isActive = !!body.isActive;
+  else if ('active' in body) data.isActive = !!body.active;
   if ('order' in body) {
     const n = Number(body.order);
+    data.order = Number.isFinite(n) ? n : 0;
+  } else if ('sortOrder' in body) {
+    const n = Number(body.sortOrder);
     data.order = Number.isFinite(n) ? n : 0;
   }
   return data;

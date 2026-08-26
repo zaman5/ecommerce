@@ -19,6 +19,7 @@ import shopManagerRoutes from './routes/shopManagerRoutes.js';
 import settingRoutes from './routes/settingRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import uploadRoutes, { UPLOAD_DIR } from './routes/uploadRoutes.js';
+import seoRoutes from './routes/seoRoutes.js';
 import compression from 'compression';
 import { notFound, errorHandler } from './middleware/error.js';
 
@@ -98,6 +99,8 @@ export function createApp() {
   app.use('/api/settings', settingRoutes);
   app.use('/api/email-templates', emailRoutes);
   app.use('/api/uploads', uploadRoutes);
+  app.use('/api', seoRoutes);
+  app.use('/', seoRoutes);
 
   // ── Serve Angular frontend in production ──
   function getClientDist() {

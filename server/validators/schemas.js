@@ -236,12 +236,14 @@ export const productSchema = {
   properties: {
     name: { type: 'string', required: true, minLength: 2, maxLength: 250 },
     slug: { type: 'string', required: false, maxLength: 250 },
+    brand: { type: 'string', required: false, maxLength: 100 },
     description: { type: 'string', required: false, maxLength: 20000 },
     richDescription: { type: 'string', required: false, maxLength: 60000 },
     price: { type: 'number', required: true, min: 0, max: 10000000 },
     compareAtPrice: { type: 'number', required: false, min: 0, max: 10000000 },
     costPrice: { type: 'number', required: false, min: 0, max: 10000000 },
-    category: { type: 'string', required: true, minLength: 2, maxLength: 100 },
+    category: { type: 'string', required: false, minLength: 1, maxLength: 100 },
+    categoryId: { type: 'string', required: false, minLength: 1, maxLength: 100 },
     stock: { type: 'integer', required: true, min: 0, max: 1000000 },
     sku: { type: 'string', required: false, maxLength: 100 },
     barcode: { type: 'string', required: false, maxLength: 100 },
@@ -252,6 +254,7 @@ export const productSchema = {
       items: { type: 'string', maxLength: 500 },
     },
     videoUrl: { type: 'string', required: false, maxLength: 500 },
+    video: { type: 'string', required: false, maxLength: 1000 },
     colors: {
       type: 'array',
       required: false,
@@ -268,17 +271,97 @@ export const productSchema = {
       },
     },
     featured: { type: 'boolean', required: false },
+    isFeatured: { type: 'boolean', required: false },
     onSale: { type: 'boolean', required: false },
     flashSale: { type: 'boolean', required: false },
+    isFlashSale: { type: 'boolean', required: false },
+    isActive: { type: 'boolean', required: false },
     badge: { type: 'string', required: false, maxLength: 60 },
     postToFacebook: { type: 'boolean', required: false },
     postToInstagram: { type: 'boolean', required: false },
     socialCaption: { type: 'string', required: false, maxLength: 2000 },
+    socialCustomMessage: { type: 'string', required: false, maxLength: 2000 },
+    metaTitle: { type: 'string', required: false, maxLength: 500 },
+    metaDescription: { type: 'string', required: false, maxLength: 5000 },
+    keywords: {
+      type: 'array',
+      required: false,
+      maxItems: 100,
+      items: { type: 'string', maxLength: 100 },
+    },
     tags: {
       type: 'array',
       required: false,
+      maxItems: 100,
+      items: { type: 'string', maxLength: 100 },
+    },
+  },
+};
+
+export const updateProductSchema = {
+  required: true,
+  strict: true,
+  properties: {
+    name: { type: 'string', required: false, minLength: 2, maxLength: 250 },
+    slug: { type: 'string', required: false, maxLength: 250 },
+    brand: { type: 'string', required: false, maxLength: 100 },
+    description: { type: 'string', required: false, maxLength: 20000 },
+    richDescription: { type: 'string', required: false, maxLength: 60000 },
+    price: { type: 'number', required: false, min: 0, max: 10000000 },
+    compareAtPrice: { type: 'number', required: false, min: 0, max: 10000000 },
+    costPrice: { type: 'number', required: false, min: 0, max: 10000000 },
+    category: { type: 'string', required: false, minLength: 1, maxLength: 100 },
+    categoryId: { type: 'string', required: false, minLength: 1, maxLength: 100 },
+    stock: { type: 'integer', required: false, min: 0, max: 1000000 },
+    sku: { type: 'string', required: false, maxLength: 100 },
+    barcode: { type: 'string', required: false, maxLength: 100 },
+    images: {
+      type: 'array',
+      required: false,
+      maxItems: 30,
+      items: { type: 'string', maxLength: 500 },
+    },
+    videoUrl: { type: 'string', required: false, maxLength: 500 },
+    video: { type: 'string', required: false, maxLength: 1000 },
+    colors: {
+      type: 'array',
+      required: false,
       maxItems: 50,
-      items: { type: 'string', maxLength: 50 },
+      items: {
+        type: 'object',
+        required: true,
+        strict: true,
+        properties: {
+          name: { type: 'string', required: true, minLength: 1, maxLength: 60 },
+          hex: { type: 'string', required: true, maxLength: 20 },
+          image: { type: 'string', required: false, maxLength: 500 },
+        },
+      },
+    },
+    featured: { type: 'boolean', required: false },
+    isFeatured: { type: 'boolean', required: false },
+    onSale: { type: 'boolean', required: false },
+    flashSale: { type: 'boolean', required: false },
+    isFlashSale: { type: 'boolean', required: false },
+    isActive: { type: 'boolean', required: false },
+    badge: { type: 'string', required: false, maxLength: 60 },
+    postToFacebook: { type: 'boolean', required: false },
+    postToInstagram: { type: 'boolean', required: false },
+    socialCaption: { type: 'string', required: false, maxLength: 2000 },
+    socialCustomMessage: { type: 'string', required: false, maxLength: 2000 },
+    metaTitle: { type: 'string', required: false, maxLength: 500 },
+    metaDescription: { type: 'string', required: false, maxLength: 5000 },
+    keywords: {
+      type: 'array',
+      required: false,
+      maxItems: 100,
+      items: { type: 'string', maxLength: 100 },
+    },
+    tags: {
+      type: 'array',
+      required: false,
+      maxItems: 100,
+      items: { type: 'string', maxLength: 100 },
     },
   },
 };
@@ -312,6 +395,7 @@ export const categorySchema = {
     slug: { type: 'string', required: false, minLength: 2, maxLength: 120 },
     description: { type: 'string', required: false, maxLength: 1000 },
     parent: { type: 'string', required: false, maxLength: 120 },
+    parentId: { type: 'string', required: false, maxLength: 120 },
     image: { type: 'string', required: false, maxLength: 500 },
     icon: { type: 'string', required: false, maxLength: 100 },
     displayOrder: { type: 'integer', required: false, min: 0, max: 10000 },
@@ -331,11 +415,16 @@ export const bannerSchema = {
     title: { type: 'string', required: true, minLength: 2, maxLength: 200 },
     subtitle: { type: 'string', required: false, maxLength: 300 },
     tag: { type: 'string', required: false, maxLength: 60 },
-    imageUrl: { type: 'string', required: true, minLength: 2, maxLength: 500 },
+    image: { type: 'string', required: false, maxLength: 500 },
+    imageUrl: { type: 'string', required: false, maxLength: 500 },
+    link: { type: 'string', required: false, maxLength: 500 },
     linkUrl: { type: 'string', required: false, maxLength: 500 },
+    ctaLabel: { type: 'string', required: false, maxLength: 60 },
     theme: { type: 'string', required: false, enum: ['dark', 'light'] },
+    order: { type: 'integer', required: false, min: 0, max: 10000 },
     sortOrder: { type: 'integer', required: false, min: 0, max: 10000 },
     active: { type: 'boolean', required: false },
+    isActive: { type: 'boolean', required: false },
   },
 };
 
@@ -380,8 +469,10 @@ export const messageSchema = {
       patternMessage: 'Please enter a valid email address.',
     },
     phone: { type: 'string', required: false, maxLength: 25 },
+    orderNumber: { type: 'string', required: false, maxLength: 50 },
     subject: { type: 'string', required: true, minLength: 2, maxLength: 200 },
-    message: { type: 'string', required: true, minLength: 5, maxLength: 5000 },
+    message: { type: 'string', required: false, maxLength: 5000 },
+    body: { type: 'string', required: false, maxLength: 5000 },
   },
 };
 
@@ -403,7 +494,7 @@ export const flashSaleSchema = {
     countdownMode: {
       type: 'string',
       required: false,
-      enum: ['none', 'dailyMidnight', 'endsAt'],
+      enum: ['none', 'dailyMidnight', 'midnight', 'endsAt'],
     },
     endsAt: { type: 'string', required: false, maxLength: 60 },
     limit: { type: 'integer', required: false, min: 1, max: 50 },
@@ -621,3 +712,118 @@ export const emailTestSendSchema = {
     },
   },
 };
+
+export const updateMessageSchema = {
+  required: true,
+  strict: true,
+  properties: {
+    isRead: { type: 'boolean', required: true },
+  },
+};
+
+export const forgotPasswordSchema = {
+  required: true,
+  strict: true,
+  properties: {
+    email: {
+      type: 'string',
+      required: true,
+      minLength: 5,
+      maxLength: 254,
+      pattern: PATTERNS.EMAIL,
+      patternMessage: 'Please enter a valid email address.',
+    },
+  },
+};
+
+export const resetPasswordSchema = {
+  required: true,
+  strict: true,
+  properties: {
+    email: {
+      type: 'string',
+      required: true,
+      minLength: 5,
+      maxLength: 254,
+      pattern: PATTERNS.EMAIL,
+      patternMessage: 'Please enter a valid email address.',
+    },
+    token: {
+      type: 'string',
+      required: true,
+      minLength: 6,
+      maxLength: 128,
+    },
+    password: {
+      type: 'string',
+      required: true,
+      minLength: 8,
+      maxLength: 128,
+      pattern: PATTERNS.PASSWORD,
+      patternMessage: 'Password must be at least 8 characters long and contain both letters and numbers.',
+    },
+  },
+};
+
+export const changePasswordSchema = {
+  required: true,
+  strict: true,
+  properties: {
+    currentPassword: {
+      type: 'string',
+      required: true,
+      minLength: 1,
+      maxLength: 128,
+    },
+    newPassword: {
+      type: 'string',
+      required: true,
+      minLength: 8,
+      maxLength: 128,
+      pattern: PATTERNS.PASSWORD,
+      patternMessage: 'New password must be at least 8 characters long and contain both letters and numbers.',
+    },
+  },
+};
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * QUERY & PARAMETER SCHEMAS
+ * ─────────────────────────────────────────────────────────────
+ */
+
+export const listProductsQuerySchema = {
+  strict: false,
+  properties: {
+    category: { type: 'string', required: false, maxLength: 100 },
+    color: { type: 'string', required: false, maxLength: 50 },
+    minPrice: { type: 'number', required: false, min: 0, max: 10000000 },
+    maxPrice: { type: 'number', required: false, min: 0, max: 10000000 },
+    sort: {
+      type: 'string',
+      required: false,
+      enum: ['newest', 'price-asc', 'price-desc', 'rating', 'popular', 'featured'],
+    },
+    search: { type: 'string', required: false, maxLength: 200 },
+    page: { type: 'integer', required: false, min: 1, max: 10000 },
+    limit: { type: 'integer', required: false, min: 1, max: 200 },
+    deals: { type: 'boolean', required: false },
+    inStock: { type: 'boolean', required: false },
+    brand: { type: 'string', required: false, maxLength: 100 },
+  },
+};
+
+export const idParamSchema = {
+  strict: false,
+  properties: {
+    id: { type: 'string', required: true, minLength: 1, maxLength: 50 },
+  },
+};
+
+export const slugParamSchema = {
+  strict: false,
+  properties: {
+    slug: { type: 'string', required: true, minLength: 1, maxLength: 250 },
+  },
+};
+

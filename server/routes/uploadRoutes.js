@@ -4,14 +4,32 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import multer from 'multer';
 import { protect, restrictTo } from '../middleware/auth.js';
-import { authenticatedRateLimiter } from '../middleware/rateLimiter.js';
+import { uploadRateLimiter } from '../middleware/rateLimiter.js';
 
 // Dedicated isolated upload storage directory (outside public source files)
 export const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 try {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  // Ensure Apache / cPanel cannot execute any scripts inside the uploads directory
+  const htaccessPath = path.join(UPLOAD_DIR, '.htaccess');
+  if (!fs.existsSync(htaccessPath)) {
+    fs.writeFileSync(
+      htaccessPath,
+      `# Prevent any script execution in uploads storage
+Options -ExecCGI -Indexes
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .cgi .pl .asp .aspx .py .sh .js .html .htm
+<Files *>
+  SetHandler default-handler
+</Files>
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Content-Security-Policy "default-src 'none'; media-src 'self'; img-src 'self'"
+</IfModule>
+`
+    );
+  }
 } catch (e) {
-  console.warn('Could not create uploads directory:', e.message);
+  console.warn('Could not create/harden uploads directory:', e.message);
 }
 
 const ALLOWED_IMAGE_MIMES = new Map([
@@ -167,7 +185,7 @@ export function validateVideoContent(filePath) {
 }
 
 const router = Router();
-router.use(authenticatedRateLimiter);
+router.use(uploadRateLimiter);
 
 // POST /api/uploads/image (admin + shop manager) — returns the URL to store on the product.
 router.post('/image', protect, restrictTo('admin', 'shopmanager'), (req, res) => {

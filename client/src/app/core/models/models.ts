@@ -122,6 +122,10 @@ export interface Product {
   /** Opted in to the home page Flash Sale strip; needs a live discount to show. */
   isFlashSale?: boolean;
   isActive: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  keywords?: string[];
+  tags?: string[];
   createdAt?: string;
 }
 

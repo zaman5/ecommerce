@@ -1,7 +1,7 @@
 import { getFlashSale as getFlashSaleModel } from '../models/FlashSale.js';
 
 const SORTS = ['popular', 'newest', 'priceLow', 'priceHigh', 'rating'];
-const MODES = ['midnight', 'endsAt', 'none'];
+const MODES = ['midnight', 'dailyMidnight', 'endsAt', 'none'];
 
 // GET /api/flash-sale  (public)
 export async function getFlashSaleSettings(req, res, next) {

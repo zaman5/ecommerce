@@ -36,11 +36,12 @@ export async function createMessage(req, res, next) {
     }
 
     const str = (v, max) => String(v ?? '').trim().slice(0, max);
+    const rawBody = req.body.body || req.body.message;
     const data = {
       name: str(req.body.name, LIMITS.name),
       email: str(req.body.email, LIMITS.email).toLowerCase(),
       subject: str(req.body.subject, LIMITS.subject),
-      body: str(req.body.body, LIMITS.body),
+      body: str(rawBody, LIMITS.body),
       orderNumber: str(req.body.orderNumber, LIMITS.orderNumber),
       userId: req.user?.id || null,
     };

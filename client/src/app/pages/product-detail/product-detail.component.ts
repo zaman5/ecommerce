@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProductService, ReviewService } from '../../core/services/api.service';
+import { SeoService } from '../../core/services/seo.service';
 import { Product, ProductColor, Review, ReviewSummary } from '../../core/models/models';
 import { CartService } from '../../core/services/cart.service';
 import { SavedService } from '../../core/services/saved.service';
@@ -665,7 +666,8 @@ export class ProductDetailComponent implements OnInit {
     private cart: CartService,
     public saved: SavedService,
     private router: Router,
-    public auth: AuthService
+    public auth: AuthService,
+    private seoSvc: SeoService
   ) {}
 
   ngOnInit() {
@@ -683,11 +685,16 @@ export class ProductDetailComponent implements OnInit {
           this.colorError.set(false);
           this.qty.set(1);
           this.loading.set(false);
+          this.seoSvc.setProductSeo(p);
         },
         error: () => { this.product.set(null); this.loading.set(false); },
       });
       this.loadReviews(slug);
     });
+  }
+
+  ngOnDestroy() {
+    this.seoSvc.clearStructuredData('product-json-ld');
   }
 
   private loadReviews(slug: string) {
