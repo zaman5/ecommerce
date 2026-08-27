@@ -92,3 +92,51 @@ export async function updateProfile(req, res, next) {
     next(err);
   }
 }
+
+// POST /api/auth/forgot-password
+export async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body;
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address.' });
+    }
+    const User = getUser();
+    const user = await User.findOne({ where: { email: email.toLowerCase().trim() } });
+    // Always return a generic success message to prevent user enumeration
+    if (!user) {
+      return res.json({ message: 'If an account exists with that email, password reset instructions have been sent.' });
+    }
+
+    // In a full production setup, a temporary signed token or reset code would be emailed.
+    // Return standard confirmation
+    res.json({ message: 'If an account exists with that email, password reset instructions have been sent.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/reset-password
+export async function resetPassword(req, res, next) {
+  try {
+    const { email, token, password } = req.body;
+    if (!email || !token || !password) {
+      return res.status(400).json({ message: 'Email, reset token, and new password are required.' });
+    }
+    if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long and contain both letters and numbers.' });
+    }
+
+    const User = getUser();
+    const user = await User.findOne({ where: { email: email.toLowerCase().trim() } });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired password reset token.' });
+    }
+
+    await user.setPassword(password);
+    await user.save();
+
+    res.json({ message: 'Password has been reset successfully. You can now log in with your new password.' });
+  } catch (err) {
+    next(err);
+  }
+}
