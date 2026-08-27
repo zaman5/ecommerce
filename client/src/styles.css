@@ -90,12 +90,28 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Hide scrollbars globally across all browsers while retaining scroll functionality */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 body {
   font-family: var(--font-body);

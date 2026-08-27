@@ -112,12 +112,13 @@ const FALLBACK_SLIDES: Slide[] = [
 
     .hero-frame {
       position: relative;
-      border-radius: 18px;
+      border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
       background: #1f2937;
-      aspect-ratio: 16/10;
+      aspect-ratio: 21 / 9;
       min-height: 280px;
+      max-height: 440px;
     }
 
     .hero-track {
@@ -145,7 +146,7 @@ const FALLBACK_SLIDES: Slide[] = [
       background: linear-gradient(90deg, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.5) 50%, rgba(15, 23, 42, 0.1) 85%);
     }
     .hero-slide.light::before {
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.1) 85%);
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.65) 50%, rgba(255, 255, 255, 0.1) 85%);
     }
 
     .hero-copy {
@@ -156,13 +157,13 @@ const FALLBACK_SLIDES: Slide[] = [
       flex-direction: column;
       justify-content: center;
       align-items: flex-start;
-      gap: 10px;
-      padding: 0 clamp(20px, 6%, 48px);
-      max-width: 440px;
+      gap: 12px;
+      padding: 0 clamp(24px, 7%, 64px);
+      max-width: 580px;
     }
     .hero-copy h2 {
       font-family: var(--font-display);
-      font-size: clamp(1.4rem, 2.5vw, 2.2rem);
+      font-size: clamp(1.5rem, 3.2vw, 2.6rem);
       font-weight: 800;
       margin: 0;
       color: #ffffff;
@@ -170,8 +171,8 @@ const FALLBACK_SLIDES: Slide[] = [
     }
     .hero-copy p {
       margin: 0;
-      color: rgba(255, 255, 255, 0.9);
-      font-size: clamp(0.82rem, 1.2vw, 0.95rem);
+      color: rgba(255, 255, 255, 0.95);
+      font-size: clamp(0.88rem, 1.3vw, 1.08rem);
       line-height: 1.5;
     }
     .hero-slide.light .hero-copy h2 { color: var(--primary); }
@@ -243,6 +244,23 @@ const FALLBACK_SLIDES: Slide[] = [
       transition: width .2s, background .2s;
     }
     .banner-dot.active { width: 22px; background: var(--secondary); }
+
+    @media (max-width: 768px) {
+      .hero-frame {
+        aspect-ratio: 16 / 10;
+        min-height: 220px;
+        border-radius: 14px;
+      }
+      .hero-copy {
+        padding: 0 20px;
+        max-width: 85%;
+        gap: 8px;
+      }
+      .btn-banner-cta {
+        padding: 8px 18px;
+        font-size: 0.82rem;
+      }
+    }
   `],
 })
 export class HeroBannerComponent implements OnInit, OnDestroy {

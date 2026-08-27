@@ -37,50 +37,37 @@ interface VisualCategory {
   standalone: true,
   imports: [CommonModule, RouterLink, ProductCardComponent, ProductRailComponent, HeroBannerComponent],
   template: `
-    <!-- ================= 1. HERO SECTION ================= -->
-    <section class="hero-section">
-      <!-- Decorative Floating Elements -->
-      <div class="decor-star star-1">⭐</div>
-      <div class="decor-star star-2">✨</div>
-      <div class="decor-cloud cloud-1">☁️</div>
-
-      <div class="container hero-container">
-        <!-- Hero Left Copy -->
-        <div class="hero-left">
-          <div class="hero-badge">
-            From Newborn to 18 Years
+    <!-- ================= 1. FLASH SALE / DEALS (TOP FIRST) ================= -->
+    @if (showFlash() && deals().length) {
+      <section class="popular-section flash-sale-top">
+        <div class="container">
+          <div class="section-heading-between">
+            <div class="heading-left">
+              <h2 class="font-nunito section-title">{{ flash()!.title || 'Flash Sale' }} 🔥</h2>
+              @if (flash()!.countdownMode !== 'none') {
+                <div class="flash-timer-badge">
+                  <span>{{ flash()!.timerLabel || 'Ends in:' }}</span>
+                  <b>{{ countdown() }}</b>
+                </div>
+              }
+            </div>
+            @if (flash()!.ctaLabel) {
+              <a [routerLink]="ctaRoute()" [queryParams]="ctaParams()" class="see-all-link">{{ flash()!.ctaLabel }} ›</a>
+            }
           </div>
-          <h1 class="hero-title font-nunito">
-            Everything <br />
-            <span class="hero-title-accent">Kids Love!</span>
-          </h1>
-          <p class="hero-subhead">One Stop. Every Need. Every Age.</p>
-          <p class="hero-desc">
-            Explore a wide range of quality products for your little ones — toys, school essentials, lunch boxes, water bottles and much more!
-          </p>
-          <div class="hero-cta-row">
-            <a routerLink="/shop" class="btn-hero-cta">
-              Shop Now <i class="fas fa-shopping-bag"></i>
-            </a>
-          </div>
-          <!-- Trust Checkmarks -->
-          <div class="hero-trust-row">
-            <span class="trust-item"><i class="far fa-check-circle text-primary"></i> Quality You Can Trust</span>
-            <span class="trust-item"><i class="fas fa-tags text-primary"></i> Affordable Prices</span>
-            <span class="trust-item"><i class="far fa-heart text-accent"></i> Loved by Parents</span>
-          </div>
+          <app-product-rail [products]="deals()" />
         </div>
+      </section>
+    }
 
-        <!-- Hero Right Composition / Banner -->
-        <div class="hero-right">
-          <div class="hero-banner-wrapper">
-            <app-hero-banner />
-          </div>
-        </div>
+    <!-- ================= 2. HERO BANNER (SINGLE BANNER AFTER FLASH SALES) ================= -->
+    <section class="hero-banner-section">
+      <div class="container">
+        <app-hero-banner />
       </div>
     </section>
 
-    <!-- ================= 2. SHOP BY CATEGORY ================= -->
+    <!-- ================= 3. SHOP BY CATEGORY ================= -->
     <section class="category-section">
       <div class="container">
         <div class="section-heading-center">
@@ -125,31 +112,8 @@ interface VisualCategory {
       </div>
     </section>
 
-    <!-- ================= 3. FLASH SALE / POPULAR PICKS ================= -->
-    @if (showFlash() && deals().length) {
-      <section class="popular-section">
-        <div class="container">
-          <div class="section-heading-between">
-            <div class="heading-left">
-              <h2 class="font-nunito section-title">{{ flash()!.title || 'Flash Sale' }}</h2>
-              @if (flash()!.countdownMode !== 'none') {
-                <div class="flash-timer-badge">
-                  <span>{{ flash()!.timerLabel || 'Ends in:' }}</span>
-                  <b>{{ countdown() }}</b>
-                </div>
-              }
-            </div>
-            @if (flash()!.ctaLabel) {
-              <a [routerLink]="ctaRoute()" [queryParams]="ctaParams()" class="see-all-link">{{ flash()!.ctaLabel }} ›</a>
-            }
-          </div>
-          <app-product-rail [products]="deals()" />
-        </div>
-      </section>
-    }
-
-    <!-- POPULAR PICKS -->
-    <section class="popular-section" [class.bg-alt]="!showFlash()">
+    <!-- ================= 4. POPULAR PICKS ================= -->
+    <section class="popular-section bg-alt">
       <div class="container">
         <div class="section-heading-between">
           <div class="heading-left">
@@ -163,7 +127,7 @@ interface VisualCategory {
       </div>
     </section>
 
-    <!-- ================= 4. FEATURES STRIP ================= -->
+    <!-- ================= 5. FEATURES STRIP ================= -->
     <section class="features-strip">
       <div class="container">
         <div class="features-grid">
@@ -207,7 +171,7 @@ interface VisualCategory {
       </div>
     </section>
 
-    <!-- ================= 5. OPENING SALE BANNER ================= -->
+    <!-- ================= 6. OPENING SALE BANNER ================= -->
     <section class="promo-banner-section">
       <div class="container">
         <div class="promo-banner-card">
@@ -241,102 +205,11 @@ interface VisualCategory {
     </section>
   `,
   styles: [`
-    /* ================= 1. HERO SECTION ================= */
-    .hero-section {
+    /* ================= HERO BANNER SECTION ================= */
+    .hero-banner-section {
       background: #fef9f1;
-      padding: 40px 0 56px;
+      padding: 24px 0 32px;
       position: relative;
-      overflow: hidden;
-    }
-    .hero-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 36px;
-    }
-    .hero-left { flex: 1; max-width: 580px; z-index: 2; }
-    .hero-badge {
-      display: inline-block;
-      background: var(--secondary);
-      color: var(--primary);
-      font-weight: 800;
-      font-size: 0.82rem;
-      padding: 6px 16px;
-      border-radius: 999px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 16px;
-    }
-    .hero-title {
-      font-size: clamp(2.2rem, 4.5vw, 3.8rem);
-      font-weight: 900;
-      color: var(--primary);
-      line-height: 1.1;
-      margin: 0 0 14px;
-    }
-    .hero-title-accent {
-      color: #10b981;
-      text-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-    }
-    .hero-subhead {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #1f2937;
-      margin: 0 0 10px;
-    }
-    .hero-desc {
-      font-size: 0.94rem;
-      color: #4b5563;
-      line-height: 1.6;
-      margin: 0 0 24px;
-      max-width: 480px;
-    }
-    .hero-cta-row { margin-bottom: 26px; }
-    .btn-hero-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--primary);
-      color: #ffffff;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 1.02rem;
-      padding: 13px 32px;
-      border-radius: 999px;
-      text-decoration: none;
-      box-shadow: 0 8px 20px rgba(30, 58, 138, 0.25);
-      transition: transform .15s, background .15s, box-shadow .15s;
-    }
-    .btn-hero-cta:hover {
-      background: #172554;
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(30, 58, 138, 0.35);
-    }
-
-    .hero-trust-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      font-size: 0.8rem;
-      color: #4b5563;
-      font-weight: 600;
-      flex-wrap: wrap;
-    }
-    .trust-item { display: inline-flex; align-items: center; gap: 5px; }
-
-    .hero-right { flex: 1; max-width: 580px; width: 100%; z-index: 2; }
-    .hero-banner-wrapper { width: 100%; border-radius: 20px; overflow: hidden; box-shadow: 0 12px 30px rgba(0,0,0,0.08); }
-
-    /* Floating Decor */
-    .decor-star { position: absolute; font-size: 1.5rem; opacity: 0.6; pointer-events: none; }
-    .star-1 { top: 20px; left: 30px; animation: floatSlow 4s ease-in-out infinite alternate; }
-    .star-2 { top: 60px; right: 40%; animation: floatSlow 5s ease-in-out infinite alternate; }
-    .decor-cloud { position: absolute; font-size: 2.2rem; opacity: 0.4; pointer-events: none; }
-    .cloud-1 { top: 30px; right: 50px; }
-
-    @keyframes floatSlow {
-      from { transform: translateY(0); }
-      to { transform: translateY(-10px); }
     }
 
     /* ================= 2. SHOP BY CATEGORY ================= */
@@ -436,9 +309,10 @@ interface VisualCategory {
       .cat-circle-title { font-size: 0.75rem; }
     }
 
-    /* ================= 3. FLASH SALE / POPULAR ================= */
+    /* ================= FLASH SALE / POPULAR ================= */
     .popular-section { padding: 44px 0; background: #ffffff; }
     .popular-section.bg-alt { background: #f9fafb; }
+    .flash-sale-top { padding: 36px 0 32px; background: #ffffff; border-bottom: 1px solid #f3f4f6; }
     .section-heading-between { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 10px; }
     .heading-left { display: flex; flex-direction: column; gap: 2px; }
     .section-subtitle { font-size: 0.85rem; color: #6b7280; margin: 0; }
@@ -521,32 +395,23 @@ interface VisualCategory {
     .btn-load-more:hover { border-color: var(--primary); color: var(--primary); }
 
     @media (max-width: 960px) {
-      .hero-container { flex-direction: column; text-align: center; gap: 24px; }
-      .hero-left { max-width: none; width: 100%; }
-      .hero-right { max-width: 100%; width: 100%; }
-      .hero-desc { margin: 0 auto 20px; }
-      .hero-trust-row { justify-content: center; }
       .promo-banner-card { justify-content: center; text-align: center; }
       .promo-left { flex-direction: column; text-align: center; }
       .promo-center-text { text-align: center; }
     }
 
     @media (max-width: 768px) {
-      .hero-section { padding: 32px 0 40px; }
-      .hero-title { font-size: clamp(1.8rem, 6vw, 2.5rem); margin-bottom: 10px; }
-      .hero-subhead { font-size: 1rem; }
-      .hero-desc { font-size: 0.88rem; }
-      .btn-hero-cta { padding: 11px 24px; font-size: 0.95rem; }
+      .hero-banner-section { padding: 14px 0 20px; }
       .section-title { font-size: 1.4rem; }
       .feed-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
       .popular-section { padding: 32px 0; }
+      .flash-sale-top { padding: 24px 0 20px; }
       .features-strip { padding: 20px 0; }
       .features-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
       .promo-banner-section { padding: 32px 0; }
     }
 
     @media (max-width: 560px) {
-      .hero-trust-row { gap: 8px 12px; font-size: 0.75rem; }
       .category-rail { gap: 8px; padding: 4px 2px; }
       .cat-circle-card { flex: 0 0 85px; padding: 6px 2px; }
       .cat-circle-avatar { width: 58px; height: 58px; font-size: 1.4rem; margin-bottom: 6px; }
@@ -563,7 +428,6 @@ interface VisualCategory {
     }
 
     @media (max-width: 380px) {
-      .hero-title { font-size: 1.6rem; }
       .cat-circle-card { flex: 0 0 76px; }
       .cat-circle-avatar { width: 52px; height: 52px; font-size: 1.25rem; }
       .cat-circle-title { font-size: 0.66rem; }
