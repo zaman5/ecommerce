@@ -146,21 +146,21 @@ async function runMasterSuite() {
 
   // 3. Uploads (Image, Video, Screenshot)
   console.log('\n--- 3. MEDIA UPLOADS (PHOTO & VIDEO) ---');
-  // Photo upload
-  const dummyImg = Buffer.from('FAKE_PNG_BINARY_DATA');
+  // Valid PNG binary with magic bytes
+  const dummyImg = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89]);
   const imgUp = await uploadMultipart('/uploads/image', 'image', 'photo.png', dummyImg, 'image/png', adminToken);
   assert(imgUp.status === 201, 'Product photo uploaded successfully');
 
-  // Video upload
-  const dummyVid = Buffer.from('FAKE_MP4_BINARY_DATA');
+  // Valid MP4 binary with ftyp magic bytes
+  const dummyVid = Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d, 0x00, 0x00, 0x02, 0x00, 0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32]);
   const vidUp = await uploadMultipart('/uploads/video', 'video', 'demo.mp4', dummyVid, 'video/mp4', adminToken);
   assert(vidUp.status === 201, 'Product video uploaded successfully');
-  const videoUrl = vidUp.data.url;
+  const videoUrl = vidUp.data?.url;
 
   // Public payment screenshot upload
-  const ssUp = await uploadMultipart('/uploads/payment-screenshot', 'image', 'proof.jpg', dummyImg, 'image/jpeg');
+  const ssUp = await uploadMultipart('/uploads/payment-screenshot', 'image', 'proof.png', dummyImg, 'image/png');
   assert(ssUp.status === 201, 'Public payment screenshot uploaded without token');
-  const screenshotUrl = ssUp.data.url;
+  const screenshotUrl = ssUp.data?.url;
 
   // 4. Categories & Slug Generation
   console.log('\n--- 4. CATEGORIES & SLUG LOGIC ---');

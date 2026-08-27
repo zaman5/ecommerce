@@ -163,75 +163,98 @@ async function run() {
   await User.destroy({ where: {}, truncate: { cascade: true } }).catch(() => {});
 
   console.log('👤 Creating admin, shop manager + demo client...');
-  const admin = User.build({
-    name: process.env.ADMIN_NAME || 'Store Admin',
-    email: process.env.ADMIN_EMAIL || 'admin@wondercart.pk',
-    role: 'admin',
-  });
+  let admin = await User.findOne({ where: { email: process.env.ADMIN_EMAIL || 'admin@wondercart.pk' } });
+  if (!admin) {
+    admin = User.build({
+      name: process.env.ADMIN_NAME || 'Store Admin',
+      email: process.env.ADMIN_EMAIL || 'admin@wondercart.pk',
+      role: 'admin',
+    });
+  }
   await admin.setPassword(process.env.ADMIN_PASSWORD || 'admin12345');
   await admin.save();
 
-  const adminAhsan = User.build({
-    name: process.env.EXTRA_ADMIN_NAME || 'Support Admin',
-    email: process.env.EXTRA_ADMIN_EMAIL || 'support-admin@wondercart.pk',
-    role: 'admin',
-    phone: process.env.EXTRA_ADMIN_PHONE || '03038164288',
-  });
+  let adminAhsan = await User.findOne({ where: { email: process.env.EXTRA_ADMIN_EMAIL || 'support-admin@wondercart.pk' } });
+  if (!adminAhsan) {
+    adminAhsan = User.build({
+      name: process.env.EXTRA_ADMIN_NAME || 'Support Admin',
+      email: process.env.EXTRA_ADMIN_EMAIL || 'support-admin@wondercart.pk',
+      role: 'admin',
+      phone: process.env.EXTRA_ADMIN_PHONE || '03038164288',
+    });
+  }
   await adminAhsan.setPassword(process.env.EXTRA_ADMIN_PASSWORD || 'SupportAdmin12345');
   await adminAhsan.save();
 
-  const client = User.build({
-    name: 'Demo Customer',
-    email: process.env.DEMO_CUSTOMER_EMAIL || 'customer@wondercart.pk',
-    role: 'client',
-    phone: '03001234567',
-  });
+  let client = await User.findOne({ where: { email: process.env.DEMO_CUSTOMER_EMAIL || 'customer@wondercart.pk' } });
+  if (!client) {
+    client = User.build({
+      name: 'Demo Customer',
+      email: process.env.DEMO_CUSTOMER_EMAIL || 'customer@wondercart.pk',
+      role: 'client',
+      phone: '03001234567',
+    });
+  }
   await client.setPassword(process.env.DEMO_CUSTOMER_PASSWORD || 'Customer12345');
   await client.save();
 
   console.log('🏷️  Creating categories...');
-  await Category.bulkCreate(categoriesSeed);
+  for (const cat of categoriesSeed) {
+    const existing = await Category.findOne({ where: { slug: cat.slug } });
+    if (!existing) {
+      await Category.create(cat);
+    }
+  }
   const allCats = await Category.findAll();
   const catMap = Object.fromEntries(allCats.map((c) => [c.slug, c.id]));
 
   // Demo Shop Manager assigned to Electronics category
-  const manager = User.build({
-    name: 'Demo Shop Manager',
-    email: 'manager@wondercart.pk',
-    role: 'shopmanager',
-    isActive: true,
-  });
+  let manager = await User.findOne({ where: { email: 'manager@wondercart.pk' } });
+  if (!manager) {
+    manager = User.build({
+      name: 'Demo Shop Manager',
+      email: 'manager@wondercart.pk',
+      role: 'shopmanager',
+      isActive: true,
+    });
+  }
   await manager.setPassword('manager123');
   await manager.save();
   if (catMap['electronics']) {
-    await manager.setAssignedCategories([catMap['electronics']]);
+    await manager.setAssignedCategories([catMap['electronics']]).catch(() => {});
   }
 
   console.log('📦 Creating products...');
   const createdProducts = [];
   for (const p of productsSeed) {
     const isFlash = p.isFlashSale ?? (p.compareAtPrice > p.price);
-    const prod = await Product.create({
-      name: p.name,
-      slug: p.slug,
-      description: p.description,
-      brand: p.brand,
-      categoryId: catMap[p.catSlug],
-      price: p.price,
-      compareAtPrice: p.compareAtPrice,
-      images: [p.image],
-      stock: p.stock,
-      rating: 0,
-      numReviews: 0,
-      unitsSold: p.unitsSold,
-      isFeatured: p.isFeatured,
-      isFlashSale: isFlash,
-    });
+    const existingProd = await Product.findOne({ where: { slug: p.slug } });
+    let prod;
+    if (existingProd) {
+      prod = existingProd;
+    } else {
+      prod = await Product.create({
+        name: p.name,
+        slug: p.slug,
+        description: p.description,
+        brand: p.brand,
+        categoryId: catMap[p.catSlug] || allCats[0]?.id,
+        price: p.price,
+        compareAtPrice: p.compareAtPrice,
+        images: [p.image],
+        stock: p.stock,
+        rating: 0,
+        numReviews: 0,
+        unitsSold: p.unitsSold,
+        isFeatured: p.isFeatured,
+        isFlashSale: isFlash,
+      });
 
-    if (p.colors?.length) {
-      await ProductColor.bulkCreate(
-        p.colors.map((c) => ({ ...c, productId: prod.id }))
-      );
+      if (p.colors?.length) {
+        await ProductColor.bulkCreate(
+          p.colors.map((c) => ({ ...c, productId: prod.id }))
+        ).catch(() => {});
+      }
     }
     createdProducts.push(prod);
   }
@@ -239,9 +262,12 @@ async function run() {
   console.log('⭐ Creating reviewers + reviews...');
   const reviewers = [];
   for (const r of reviewersSeed) {
-    const u = User.build({ name: r.name, email: r.email, role: 'client' });
-    await u.setPassword('reviewer123');
-    await u.save();
+    let u = await User.findOne({ where: { email: r.email } });
+    if (!u) {
+      u = User.build({ name: r.name, email: r.email, role: 'client' });
+      await u.setPassword('reviewer123');
+      await u.save();
+    }
     reviewers.push(u);
   }
 
@@ -251,17 +277,20 @@ async function run() {
     for (let i = 0; i < howMany; i++) {
       const reviewer = reviewers[(pIndex + i) % reviewers.length];
       const [rating, comment] = reviewTexts[cursor % reviewTexts.length];
-      await Review.create({
-        productId: product.id,
-        userId: reviewer.id,
-        name: reviewer.name,
-        rating,
-        comment,
-        verifiedPurchase: i === 0,
-      });
+      await Review.findOrCreate({
+        where: { productId: product.id, userId: reviewer.id },
+        defaults: {
+          productId: product.id,
+          userId: reviewer.id,
+          name: reviewer.name,
+          rating,
+          comment,
+          verifiedPurchase: i === 0,
+        },
+      }).catch(() => {});
       cursor++;
     }
-    await recalcProductRating(product.id);
+    await recalcProductRating(product.id).catch(() => {});
   }
 
   const reviewCount = await Review.count();

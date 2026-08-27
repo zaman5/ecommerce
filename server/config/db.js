@@ -68,9 +68,32 @@ export async function connectDB(options = {}) {
     const { initModels } = await import('../models/index.js');
     initModels(sequelize);
 
-    // Sync tables (alter: true ensures new columns are added safely)
-    await sequelize.sync({ alter: true });
-    console.log('✅ Database tables synced.');
+    // Sync tables safely
+    try {
+      await sequelize.sync();
+      console.log('✅ Database tables synced.');
+    } catch (syncErr) {
+      console.warn('Sync notice (non-fatal):', syncErr.message);
+    }
+
+    // Ensure all model columns exist safely in MySQL
+    if (dialect !== 'sqlite') {
+      const alterQueries = [
+        "ALTER TABLE `products` ADD COLUMN `meta_title` VARCHAR(500) DEFAULT ''",
+        "ALTER TABLE `products` ADD COLUMN `meta_description` TEXT",
+        "ALTER TABLE `products` ADD COLUMN `keywords` JSON",
+        "ALTER TABLE `products` ADD COLUMN `tags` JSON",
+        "ALTER TABLE `products` ADD COLUMN `video` VARCHAR(1000) DEFAULT ''",
+        "ALTER TABLE `categories` ADD COLUMN `parent_id` INT UNSIGNED DEFAULT NULL",
+      ];
+      for (const q of alterQueries) {
+        try {
+          await sequelize.query(q);
+        } catch (e) {
+          // Ignored if column already exists
+        }
+      }
+    }
 
     // Auto-seed if database has no categories (unless skipped by manual seeders)
     if (!options.skipAutoSeed && !process.env.SKIP_AUTO_SEED) {
