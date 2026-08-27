@@ -209,16 +209,17 @@ async function run() {
   const catMap = Object.fromEntries(allCats.map((c) => [c.slug, c.id]));
 
   // Demo Shop Manager assigned to Electronics category
-  let manager = await User.findOne({ where: { email: 'manager@wondercart.pk' } });
+  const managerEmail = process.env.SHOP_MANAGER_EMAIL || 'manager@wondercart.pk';
+  let manager = await User.findOne({ where: { email: managerEmail } });
   if (!manager) {
     manager = User.build({
-      name: 'Demo Shop Manager',
-      email: 'manager@wondercart.pk',
+      name: process.env.SHOP_MANAGER_NAME || 'Demo Shop Manager',
+      email: managerEmail,
       role: 'shopmanager',
       isActive: true,
     });
   }
-  await manager.setPassword('manager123');
+  await manager.setPassword(process.env.SHOP_MANAGER_PASSWORD || 'manager123');
   await manager.save();
   if (catMap['electronics']) {
     await manager.setAssignedCategories([catMap['electronics']]).catch(() => {});
@@ -265,7 +266,7 @@ async function run() {
     let u = await User.findOne({ where: { email: r.email } });
     if (!u) {
       u = User.build({ name: r.name, email: r.email, role: 'client' });
-      await u.setPassword('reviewer123');
+      await u.setPassword(process.env.REVIEWER_PASSWORD || 'reviewer123');
       await u.save();
     }
     reviewers.push(u);

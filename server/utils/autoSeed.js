@@ -180,28 +180,30 @@ export async function populateFullDatabase() {
     await admin.save();
   }
 
-  const existingAhsan = await User.findOne({ where: { email: 'ahsan@wondercart.pk' } });
+  const extraAdminEmail = process.env.EXTRA_ADMIN_EMAIL || 'support-admin@wondercart.pk';
+  const existingAhsan = await User.findOne({ where: { email: extraAdminEmail } });
   if (!existingAhsan) {
     const ahsan = User.build({
-      name: 'Ahsan Admin',
-      email: 'ahsan@wondercart.pk',
+      name: process.env.EXTRA_ADMIN_NAME || 'Support Admin',
+      email: extraAdminEmail,
       role: 'admin',
-      phone: '03038164288',
+      phone: process.env.EXTRA_ADMIN_PHONE || '03038164288',
     });
-    await ahsan.setPassword('Ahsan@Ahmad123');
+    await ahsan.setPassword(process.env.EXTRA_ADMIN_PASSWORD || 'SupportAdmin12345');
     await ahsan.save();
   }
 
   // 3. Demo Shop Manager
-  const existingManager = await User.findOne({ where: { email: 'manager@wondercart.pk' } });
+  const managerEmail = process.env.SHOP_MANAGER_EMAIL || 'manager@wondercart.pk';
+  const existingManager = await User.findOne({ where: { email: managerEmail } });
   if (!existingManager) {
     const manager = User.build({
-      name: 'Demo Shop Manager',
-      email: 'manager@wondercart.pk',
+      name: process.env.SHOP_MANAGER_NAME || 'Demo Shop Manager',
+      email: managerEmail,
       role: 'shopmanager',
       isActive: true,
     });
-    await manager.setPassword('manager123');
+    await manager.setPassword(process.env.SHOP_MANAGER_PASSWORD || 'manager123');
     await manager.save();
     if (catMap['electronics']) {
       await manager.setAssignedCategories([catMap['electronics']]);
@@ -209,15 +211,16 @@ export async function populateFullDatabase() {
   }
 
   // 4. Demo Customer
-  const existingClient = await User.findOne({ where: { email: 'customer@wondercart.pk' } });
+  const demoCustEmail = process.env.DEMO_CUSTOMER_EMAIL || 'customer@wondercart.pk';
+  const existingClient = await User.findOne({ where: { email: demoCustEmail } });
   if (!existingClient) {
     const client = User.build({
-      name: 'Demo Customer',
-      email: 'customer@wondercart.pk',
+      name: process.env.DEMO_CUSTOMER_NAME || 'Demo Customer',
+      email: demoCustEmail,
       role: 'client',
-      phone: '03001234567',
+      phone: process.env.DEMO_CUSTOMER_PHONE || '03001234567',
     });
-    await client.setPassword('customer123');
+    await client.setPassword(process.env.DEMO_CUSTOMER_PASSWORD || 'Customer12345');
     await client.save();
   }
 
