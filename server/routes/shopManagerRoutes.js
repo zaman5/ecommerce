@@ -8,8 +8,8 @@ import {
 } from '../controllers/shopManagerController.js';
 import { protect, restrictTo } from '../middleware/auth.js';
 import { authenticatedRateLimiter } from '../middleware/rateLimiter.js';
-import { validateBody } from '../middleware/validator.js';
-import { shopManagerCreateSchema, shopManagerUpdateSchema } from '../validators/schemas.js';
+import { validateBody, validateParams } from '../middleware/validator.js';
+import { shopManagerCreateSchema, shopManagerUpdateSchema, idParamSchema } from '../validators/schemas.js';
 
 const router = Router();
 
@@ -18,8 +18,8 @@ router.use(protect, restrictTo('admin'), authenticatedRateLimiter);
 
 router.post('/', validateBody(shopManagerCreateSchema), createShopManager);
 router.get('/', listShopManagers);
-router.get('/:id', getShopManager);
-router.put('/:id', validateBody(shopManagerUpdateSchema), updateShopManager);
-router.delete('/:id', deleteShopManager);
+router.get('/:id', validateParams(idParamSchema), getShopManager);
+router.put('/:id', validateParams(idParamSchema), validateBody(shopManagerUpdateSchema), updateShopManager);
+router.delete('/:id', validateParams(idParamSchema), deleteShopManager);
 
 export default router;
