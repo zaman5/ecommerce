@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { Router } from 'express';
@@ -6,7 +7,7 @@ import { protect, restrictTo } from '../middleware/auth.js';
 import { authenticatedRateLimiter } from '../middleware/rateLimiter.js';
 import { validateBody } from '../middleware/validator.js';
 import { emailTemplateUpdateSchema, emailTestSendSchema } from '../validators/schemas.js';
-import { UPLOAD_DIR } from './uploadRoutes.js';
+import { UPLOAD_DIR, validateImageContent } from './uploadRoutes.js';
 import {
   getTemplates,
   getTemplateByType,
@@ -21,6 +22,47 @@ const ALLOWED_ATTACHMENT_MIMES = new Map([
   ['image/webp', '.webp'],
   ['text/plain', '.txt'],
 ]);
+
+/**
+ * Validates binary content / magic bytes for email attachments (PDF, Images, TXT)
+ */
+function validateAttachmentContent(filePath, mimeType) {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buffer = Buffer.alloc(32);
+    const bytesRead = fs.readSync(fd, buffer, 0, 32, 0);
+    fs.closeSync(fd);
+
+    if (bytesRead < 2) return false;
+
+    // Check for disguised executable headers (Windows MZ / Linux ELF / Shebang)
+    if (buffer[0] === 0x4d && buffer[1] === 0x5a) return false; // MZ header
+    if (buffer[0] === 0x7f && buffer[1] === 0x45 && buffer[2] === 0x4c && buffer[3] === 0x46) return false; // ELF header
+
+    if (mimeType === 'application/pdf') {
+      // PDF magic bytes: %PDF (0x25 0x50 0x44 0x46)
+      return buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46;
+    }
+
+    if (mimeType.startsWith('image/')) {
+      return validateImageContent(filePath);
+    }
+
+    if (mimeType === 'text/plain') {
+      // Reject binary control characters in text files
+      for (let i = 0; i < bytesRead; i++) {
+        const byte = buffer[i];
+        if (byte < 0x09 || (byte > 0x0d && byte < 0x20)) return false;
+      }
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.error('🚨 [Attachment Validation Error]', err);
+    return false;
+  }
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -60,6 +102,16 @@ router.post('/attachment', (req, res) => {
       return res.status(400).json({ message: tooBig ? 'Attachment file is larger than 10MB.' : err.message });
     }
     if (!req.file) return res.status(400).json({ message: 'No file was uploaded.' });
+
+    // Validate binary content & magic bytes
+    if (!validateAttachmentContent(req.file.path, req.file.mimetype)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+      return res.status(400).json({
+        status: 400,
+        error: 'Validation Error',
+        message: 'Invalid attachment content. Executable or corrupted files are strictly forbidden.',
+      });
+    }
 
     res.status(201).json({
       name: req.file.originalname,

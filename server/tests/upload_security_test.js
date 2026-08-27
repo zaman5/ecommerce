@@ -168,8 +168,48 @@ async function runUploadSecurityTests() {
     );
   }
 
-  // 6. ISOLATION: DIRECTORY BROWSING IS FORBIDDEN
-  console.log('\n--- 6. DIRECTORY BROWSING PROTECTION ---');
+  // 6. VIDEO UPLOAD & MAGIC BYTE VALIDATION
+  console.log('\n--- 6. VIDEO MAGIC BYTE VALIDATION ---');
+  const validMp4Bytes = Buffer.from([
+    0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, // ....ftyp
+    0x69, 0x73, 0x6f, 0x6d, 0x00, 0x00, 0x02, 0x00,
+    0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32,
+  ]);
+  const validVidRes = await sendMultipart('/api/uploads/video', 'video', 'demo.mp4', 'video/mp4', validMp4Bytes, adminToken);
+  assert(
+    validVidRes.status === 201 && validVidRes.json?.url?.startsWith('/uploads/vid-'),
+    'Accepts genuine MP4 video with ftyp magic bytes',
+    `Status: ${validVidRes.status}`
+  );
+
+  const fakeVidBytes = Buffer.from('not an actual video file but plain text');
+  const fakeVidRes = await sendMultipart('/api/uploads/video', 'video', 'demo.mp4', 'video/mp4', fakeVidBytes, adminToken);
+  assert(
+    fakeVidRes.status === 400 && fakeVidRes.json?.message?.includes('not a valid video'),
+    'Rejects disguised non-video file claiming to be .mp4',
+    `Status: ${fakeVidRes.status}`
+  );
+
+  // 7. EMAIL ATTACHMENT UPLOADS (PDF, TXT, IMAGES) & EXECUTION PREVENTION
+  console.log('\n--- 7. EMAIL ATTACHMENT MAGIC BYTE VALIDATION ---');
+  const validPdfBytes = Buffer.from('%PDF-1.4\n%âãÏÓ\n1 0 obj\n<<>>\nendobj\n');
+  const validPdfRes = await sendMultipart('/api/email-templates/attachment', 'file', 'invoice.pdf', 'application/pdf', validPdfBytes, adminToken);
+  assert(
+    validPdfRes.status === 201 && validPdfRes.json?.url?.startsWith('/uploads/att-'),
+    'Accepts genuine PDF attachment with %PDF magic bytes',
+    `Status: ${validPdfRes.status}`
+  );
+
+  const fakeExePdfBytes = Buffer.from('MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff\xff');
+  const fakePdfRes = await sendMultipart('/api/email-templates/attachment', 'file', 'invoice.pdf', 'application/pdf', fakeExePdfBytes, adminToken);
+  assert(
+    fakePdfRes.status === 400 && fakePdfRes.json?.message?.includes('Executable or corrupted files are strictly forbidden'),
+    'Rejects executable payload disguised as PDF attachment',
+    `Status: ${fakePdfRes.status}`
+  );
+
+  // 8. ISOLATION: DIRECTORY BROWSING IS FORBIDDEN
+  console.log('\n--- 8. DIRECTORY BROWSING PROTECTION ---');
   const dirRes = await getRequest('/uploads/');
   assert(dirRes.status === 404, 'Directory listing on /uploads/ is disabled (returns 404)');
 
