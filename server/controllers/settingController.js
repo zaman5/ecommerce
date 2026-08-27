@@ -219,9 +219,13 @@ export async function testSocialConnection(req, res) {
       instagramError,
     });
   } catch (err) {
+    console.error('🚨 [Meta Connection Test Error]', err);
+    const safeMsg = err.message && !err.message.includes('http') && !err.message.includes('/') && !err.message.includes('\\')
+      ? err.message
+      : 'Failed to connect to Meta API. Please verify your Page ID and Access Token.';
     res.status(400).json({
       success: false,
-      message: err.message || 'Failed to connect to Meta API.',
+      message: safeMsg,
     });
   }
 }
