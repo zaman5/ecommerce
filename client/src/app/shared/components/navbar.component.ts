@@ -244,8 +244,25 @@ import { Category } from '../../core/models/models';
     .admin-badge { background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.72rem; }
 
     /* MAIN HEADER */
-    .main-header { background: var(--surface); padding: 12px 0; position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .main-header {
+      background: var(--surface);
+      padding: 12px 0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
 
     .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
     .brand-logo-img { height: 56px; width: auto; object-fit: contain; transition: transform 0.2s ease; }
@@ -253,8 +270,11 @@ import { Category } from '../../core/models/models';
 
     /* Search Bar with Category Selector */
     .search-bar {
-      flex: 1;
+      flex: 1 1 auto;
       max-width: 640px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
       position: relative;
       display: flex;
       align-items: center;
@@ -274,6 +294,7 @@ import { Category } from '../../core/models/models';
       display: flex;
       align-items: center;
       flex-shrink: 0;
+      max-width: 40%;
     }
     .search-cat-select {
       appearance: none;
@@ -291,6 +312,8 @@ import { Category } from '../../core/models/models';
       outline: none;
       border-radius: 999px 0 0 999px;
       max-width: 145px;
+      width: 100%;
+      box-sizing: border-box;
       text-overflow: ellipsis;
       white-space: nowrap;
       transition: color .15s, background .15s;
@@ -314,8 +337,10 @@ import { Category } from '../../core/models/models';
     }
 
     .search-input {
-      flex: 1;
+      flex: 1 1 0%;
       min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
       padding: 9px 42px 9px 12px;
       border: none;
       background: transparent;
@@ -442,13 +467,39 @@ import { Category } from '../../core/models/models';
     }
 
     @media (max-width: 768px) {
-      .search-bar { max-width: none; order: 3; flex-basis: 100%; margin-top: 8px; }
-      .search-cat-select { padding: 8px 22px 8px 10px; font-size: 0.78rem; max-width: 105px; }
+      .main-header { padding: 10px 0; }
+      .header-inner {
+        flex-wrap: wrap;
+        justify-content: space-between;
+        row-gap: 8px;
+        column-gap: 12px;
+      }
+      .search-bar {
+        width: 100%;
+        max-width: 100%;
+        order: 3;
+        flex: 1 1 100%;
+        margin-top: 4px;
+      }
+      .search-cat-wrap { max-width: 38%; }
+      .search-cat-select {
+        padding: 8px 22px 8px 10px;
+        font-size: 0.78rem;
+        max-width: 110px;
+      }
       .search-cat-arrow { right: 6px; font-size: 0.55rem; }
-      .search-input { padding: 8px 38px 8px 10px; font-size: 0.82rem; }
-      .header-inner { flex-wrap: wrap; gap: 8px 12px; }
+      .search-input {
+        padding: 8px 36px 8px 10px;
+        font-size: 0.82rem;
+      }
+      .search-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+        right: 5px;
+      }
       .top-welcome { font-size: 0.72rem; }
-      .brand-logo-img { height: 42px; max-width: 160px; }
+      .brand-logo-img { height: 40px; max-width: 150px; }
       .header-actions { gap: 8px; }
       .action-circle { width: 36px; height: 36px; font-size: 0.95rem; }
     }
@@ -456,11 +507,28 @@ import { Category } from '../../core/models/models';
     @media (max-width: 480px) {
       .top-bar-inner { justify-content: center; }
       .top-welcome { display: none; }
-      .brand-logo-img { height: 36px; max-width: 130px; }
+      .brand-logo-img { height: 34px; max-width: 120px; }
+      .search-cat-wrap { max-width: 40%; }
+      .search-cat-select {
+        padding: 7px 18px 7px 8px;
+        font-size: 0.74rem;
+        max-width: 90px;
+      }
+      .search-cat-arrow { right: 5px; font-size: 0.5rem; }
+      .search-input {
+        padding: 7px 32px 7px 8px;
+        font-size: 0.78rem;
+      }
+      .search-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.74rem;
+        right: 4px;
+      }
       .action-circle { width: 32px; height: 32px; font-size: 0.88rem; }
       .bubble-badge { top: -4px; right: -4px; font-size: 0.6rem; min-width: 16px; height: 16px; padding: 0 4px; }
-      .header-inner { gap: 6px 8px; }
-      .search-bar { margin-top: 6px; }
+      .header-inner { row-gap: 6px; column-gap: 8px; }
+      .search-bar { margin-top: 2px; }
     }
   `],
 })
