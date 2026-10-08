@@ -55,11 +55,37 @@ export function defineSetting(sequelize) {
         defaultValue: '',
         field: 'jazzcash_qr_image',
       },
+      // Public Social Media Links (shown in website footer)
+      facebookUrl: {
+        type: DataTypes.STRING(1000),
+        defaultValue: 'https://www.facebook.com/share/1GPTAFhAcv/?mibextid=wwXIfr',
+        field: 'facebook_url',
+      },
+      instagramUrl: {
+        type: DataTypes.STRING(1000),
+        defaultValue: 'https://www.instagram.com/wondercartpaksitan?igsh=cG1yNWIzcWpzZjR4&utm_source=qr',
+        field: 'instagram_url',
+      },
       // Social Media (Facebook & Instagram) configuration
+      facebookAppId: {
+        type: DataTypes.STRING(100),
+        defaultValue: '970580869378166',
+        field: 'facebook_app_id',
+      },
+      facebookAppSecret: {
+        type: DataTypes.STRING(255),
+        defaultValue: '',
+        field: 'facebook_app_secret',
+      },
       facebookPageId: {
         type: DataTypes.STRING(100),
         defaultValue: '',
         field: 'facebook_page_id',
+      },
+      facebookPageName: {
+        type: DataTypes.STRING(255),
+        defaultValue: '',
+        field: 'facebook_page_name',
       },
       facebookPageAccessToken: {
         type: DataTypes.TEXT,
@@ -68,13 +94,18 @@ export function defineSetting(sequelize) {
       },
       facebookAutoPost: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false,
+        defaultValue: true,
         field: 'facebook_auto_post',
       },
       instagramAccountId: {
         type: DataTypes.STRING(100),
         defaultValue: '',
         field: 'instagram_account_id',
+      },
+      instagramUsername: {
+        type: DataTypes.STRING(255),
+        defaultValue: '',
+        field: 'instagram_username',
       },
       instagramAutoPost: {
         type: DataTypes.BOOLEAN,
@@ -100,6 +131,8 @@ export function defineSetting(sequelize) {
     if (json.id) {
       json._id = json.id.toString();
     }
+    json.easypaisaPhone = json.jazzcashPhone || '';
+    json.easypaisaQrImage = json.jazzcashQrImage || '';
     return json;
   };
 

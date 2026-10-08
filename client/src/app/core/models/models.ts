@@ -35,6 +35,7 @@ export interface ShopManager {
 
 export interface Category {
   _id: string;
+  id?: number | string;
   name: string;
   slug: string;
   description?: string;
@@ -68,6 +69,7 @@ export interface ContactMessage {
   subject: string;
   body: string;
   orderNumber?: string;
+  imageUrl?: string;
   isRead: boolean;
   /** Populated when a signed-in customer sent it; null for a guest. */
   user?: { _id: string; name: string; email: string } | null;
@@ -106,10 +108,16 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
+  richDescription?: string;
   brand: string;
   category: Category | string;
+  additionalCategories?: string[];
   price: number;
   compareAtPrice: number;
+  costPrice?: number;
+  sku?: string;
+  barcode?: string;
+  badge?: string;
   images: string[];
   video?: string;
   /** Empty (or absent on older products) means no colour choice. */
@@ -218,23 +226,66 @@ export interface PublicSettings {
   uan: string;
   supportEmail: string;
   supportHours: string;
-  jazzcashPhone: string;
-  jazzcashQrImage: string;
+  easypaisaPhone?: string;
+  easypaisaQrImage?: string;
+  jazzcashPhone?: string;
+  jazzcashQrImage?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
 }
 
-export interface JazzCashSettings {
+export interface EasyPaisaSettings {
   phone: string;
   qrImage: string;
 }
 
+export type JazzCashSettings = EasyPaisaSettings;
+
 export interface SocialSettings {
+  facebookUrl?: string;
+  instagramUrl?: string;
+  facebookAppId?: string;
+  facebookAppSecret?: string;
+  facebookAppSecretSet?: boolean;
   facebookPageId: string;
+  facebookPageName?: string;
   facebookPageAccessToken: string;
   facebookAutoPost: boolean;
   instagramAccountId: string;
+  instagramUsername?: string;
   instagramAutoPost: boolean;
   socialPostTemplate: string;
   isConfigured?: boolean;
+}
+
+export interface AvailableSocialPage {
+  id: string;
+  name: string;
+  category?: string;
+  pictureUrl?: string;
+  link?: string;
+  pageAccessToken?: string;
+  instagram?: {
+    id: string;
+    username?: string;
+    name?: string;
+    pictureUrl?: string;
+  } | null;
+}
+
+export interface MetaOAuthExchangeResponse {
+  success: boolean;
+  userAccessToken?: string;
+  availablePages: AvailableSocialPage[];
+  selectedPage?: AvailableSocialPage | null;
+  selectedPageToken?: string;
+  instagram?: {
+    id: string;
+    username?: string;
+    name?: string;
+    pictureUrl?: string;
+  } | null;
+  message?: string;
 }
 
 export interface SocialTestResponse {
@@ -243,10 +294,15 @@ export interface SocialTestResponse {
   page?: {
     id: string;
     name: string;
+    category?: string;
     username?: string;
     link?: string;
     pictureUrl?: string;
   };
+  resolvedPageId?: string;
+  resolvedPageToken?: string;
+  resolvedInstagramId?: string | null;
+  availablePages?: AvailableSocialPage[];
   instagram?: {
     id: string;
     name: string;
@@ -289,4 +345,41 @@ export interface EmailTemplate {
   attachments?: EmailAttachment[];
   isActive?: boolean;
   updatedAt?: string;
+}
+
+export interface ChatProduct {
+  id: number;
+  name: string;
+  brand?: string;
+  price: number;
+  compareAtPrice?: number | null;
+  discountPercent?: number | null;
+  imageUrl: string;
+  slug: string;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  sender: 'user' | 'bot' | 'agent';
+  senderName?: string;
+  text: string;
+  products?: ChatProduct[];
+  quickReplies?: string[];
+  timestamp: string;
+}
+
+export interface ChatSessionRecord {
+  _id: string;
+  id: number;
+  sessionId: string;
+  visitorName: string;
+  visitorEmail: string;
+  userId?: number | null;
+  messages: ChatMessageItem[];
+  lastMessage?: string;
+  unreadByAdmin: boolean;
+  status: string;
+  ip?: string;
+  createdAt: string;
+  updatedAt: string;
 }

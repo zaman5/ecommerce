@@ -7,9 +7,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let sequelize = null;
+let lastDbError = null;
 
 export function getSequelize() {
   return sequelize;
+}
+
+export function getLastDbError() {
+  return lastDbError;
 }
 
 export async function connectDB(options = {}) {
@@ -27,7 +32,16 @@ export async function connectDB(options = {}) {
         dialect: 'sqlite',
         storage: storagePath,
         logging: false,
+        retry: {
+          max: 5,
+        },
+        pool: {
+          max: 1,
+          idle: 10000,
+        },
       });
+      await sequelize.query('PRAGMA journal_mode = WAL;');
+      await sequelize.query('PRAGMA busy_timeout = 5000;');
       console.log(`✅ SQLite connected: ${storagePath}`);
     } else {
       // MySQL
@@ -60,8 +74,23 @@ export async function connectDB(options = {}) {
           idle: 10000,
         },
       });
-      await sequelize.authenticate();
-      console.log(`✅ MySQL connected: ${host}:${port}/${name}`);
+      try {
+        await sequelize.authenticate();
+        console.log(`✅ MySQL connected: ${host}:${port}/${name}`);
+      } catch (mysqlAuthErr) {
+        console.warn(`⚠️ MySQL connection failed (${mysqlAuthErr.message}). Falling back to SQLite so the application stays online.`);
+        const storagePath = path.resolve(__dirname, '..', `${name}.sqlite`);
+        sequelize = new Sequelize({
+          dialect: 'sqlite',
+          storage: storagePath,
+          logging: false,
+          retry: { max: 5 },
+          pool: { max: 1, idle: 10000 },
+        });
+        await sequelize.query('PRAGMA journal_mode = WAL;');
+        await sequelize.query('PRAGMA busy_timeout = 5000;');
+        console.log(`✅ SQLite fallback connected: ${storagePath}`);
+      }
     }
 
     // Import and initialise all models + associations
@@ -76,22 +105,33 @@ export async function connectDB(options = {}) {
       console.warn('Sync notice (non-fatal):', syncErr.message);
     }
 
-    // Ensure all model columns exist safely in MySQL
-    if (dialect !== 'sqlite') {
-      const alterQueries = [
-        "ALTER TABLE `products` ADD COLUMN `meta_title` VARCHAR(500) DEFAULT ''",
-        "ALTER TABLE `products` ADD COLUMN `meta_description` TEXT",
-        "ALTER TABLE `products` ADD COLUMN `keywords` JSON",
-        "ALTER TABLE `products` ADD COLUMN `tags` JSON",
-        "ALTER TABLE `products` ADD COLUMN `video` VARCHAR(1000) DEFAULT ''",
-        "ALTER TABLE `categories` ADD COLUMN `parent_id` INT UNSIGNED DEFAULT NULL",
-      ];
-      for (const q of alterQueries) {
-        try {
-          await sequelize.query(q);
-        } catch (e) {
-          // Ignored if column already exists
-        }
+    // Ensure all model columns exist safely (if running MySQL or SQLite)
+    const alterQueries = [
+      "ALTER TABLE `products` ADD COLUMN `meta_title` VARCHAR(500) DEFAULT ''",
+      "ALTER TABLE `products` ADD COLUMN `meta_description` TEXT",
+      "ALTER TABLE `products` ADD COLUMN `keywords` JSON",
+      "ALTER TABLE `products` ADD COLUMN `tags` JSON",
+      "ALTER TABLE `products` ADD COLUMN `additional_categories` JSON",
+      "ALTER TABLE `products` ADD COLUMN `video` VARCHAR(1000) DEFAULT ''",
+      "ALTER TABLE `products` ADD COLUMN `cost_price` DECIMAL(12, 2) DEFAULT 0",
+      "ALTER TABLE `products` ADD COLUMN `sku` VARCHAR(100) DEFAULT ''",
+      "ALTER TABLE `products` ADD COLUMN `barcode` VARCHAR(100) DEFAULT ''",
+      "ALTER TABLE `products` ADD COLUMN `badge` VARCHAR(100) DEFAULT ''",
+      "ALTER TABLE `products` ADD COLUMN `rich_description` LONGTEXT",
+      "ALTER TABLE `categories` ADD COLUMN `parent_id` INT UNSIGNED DEFAULT NULL",
+      "ALTER TABLE `messages` ADD COLUMN `image_url` VARCHAR(500) DEFAULT ''",
+      "ALTER TABLE `settings` ADD COLUMN `facebook_url` VARCHAR(1000) DEFAULT 'https://facebook.com'",
+      "ALTER TABLE `settings` ADD COLUMN `instagram_url` VARCHAR(1000) DEFAULT 'https://instagram.com'",
+      "ALTER TABLE `settings` ADD COLUMN `facebook_app_id` VARCHAR(100) DEFAULT '970580869378166'",
+      "ALTER TABLE `settings` ADD COLUMN `facebook_app_secret` VARCHAR(255) DEFAULT ''",
+      "ALTER TABLE `settings` ADD COLUMN `facebook_page_name` VARCHAR(255) DEFAULT ''",
+      "ALTER TABLE `settings` ADD COLUMN `instagram_username` VARCHAR(255) DEFAULT ''",
+    ];
+    for (const q of alterQueries) {
+      try {
+        await sequelize.query(q);
+      } catch (colErr) {
+        // Column probably already exists, safe to ignore
       }
     }
 
@@ -102,8 +142,25 @@ export async function connectDB(options = {}) {
 
     return sequelize;
   } catch (err) {
-    console.error('❌ Database connection failed:', err.message);
-    console.error('👉 Tip: For MySQL, check DB_HOST, DB_USER, DB_PASS, DB_NAME and make sure MySQL is running.');
-    return null;
+    lastDbError = err.message || String(err);
+    console.error('❌ Database initialization failed:', err.message);
+    try {
+      const storagePath = path.resolve(__dirname, '..', `wondercart.sqlite`);
+      sequelize = new Sequelize({
+        dialect: 'sqlite',
+        storage: storagePath,
+        logging: false,
+      });
+      const { initModels } = await import('../models/index.js');
+      initModels(sequelize);
+      await sequelize.sync();
+      if (!options.skipAutoSeed && !process.env.SKIP_AUTO_SEED) {
+        autoSeedIfEmpty().catch(() => {});
+      }
+      return sequelize;
+    } catch (fallbackErr) {
+      console.error('❌ Critical SQLite fallback error:', fallbackErr.message);
+      return null;
+    }
   }
 }

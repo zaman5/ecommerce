@@ -4,7 +4,8 @@ import { getReview } from '../models/Review.js';
 import { getUser } from '../models/User.js';
 import { sanitizeHtml } from '../utils/sanitizeHtml.js';
 import { scopedProductIds, canManageProduct } from '../middleware/auth.js';
-import { dispatchProductSocialPost, postProductToFacebook, postProductToInstagram } from '../services/socialService.js';
+import { dispatchProductSocialPost, getRequestOrigins, postProductToFacebook, postProductToInstagram } from '../services/socialService.js';
+import { invalidateCache } from '../middleware/cache.js';
 import { Op, fn, col, literal, where as seqWhere, cast } from 'sequelize';
 
 function toInt(value, fallback, { min = 1, max = Infinity } = {}) {
@@ -24,9 +25,15 @@ function slugify(str) {
 /**
  * Every category id a slug should match: the category itself plus its children.
  */
-async function categoryIdsFor(slug) {
+async function categoryIdsFor(identifier) {
   const Category = getCategory();
-  const cat = await Category.findOne({ where: { slug } });
+  let cat = null;
+  if (/^\d+$/.test(String(identifier))) {
+    cat = await Category.findByPk(identifier);
+  }
+  if (!cat) {
+    cat = await Category.findOne({ where: { slug: String(identifier) } });
+  }
   if (!cat) return null;
   const children = await Category.findAll({
     where: { parentId: cat.id },
@@ -57,7 +64,26 @@ export async function buildProductFilter(query, { ignoreColor = false } = {}) {
   if (category) {
     const ids = await categoryIdsFor(category);
     if (!ids) return { unknownCategory: true };
-    where.categoryId = { [Op.in]: ids };
+
+    const categoryConditions = [
+      { categoryId: { [Op.in]: ids } },
+    ];
+    for (const id of ids) {
+      const idStr = String(id);
+      categoryConditions.push(
+        seqWhere(cast(col('Product.additional_categories'), 'char'), { [Op.like]: `%"${idStr}"%` }),
+        seqWhere(cast(col('Product.additional_categories'), 'char'), { [Op.like]: `%,${idStr},%` }),
+        seqWhere(cast(col('Product.additional_categories'), 'char'), { [Op.like]: `%,${idStr}]%` }),
+        seqWhere(cast(col('Product.additional_categories'), 'char'), { [Op.like]: `%[${idStr},%` }),
+        seqWhere(cast(col('Product.additional_categories'), 'char'), { [Op.like]: `%[${idStr}]%` }),
+        seqWhere(cast(col('Product.additional_categories'), 'char'), { [Op.like]: `%, ${idStr},%` }),
+        seqWhere(cast(col('Product.additional_categories'), 'char'), { [Op.like]: `%, ${idStr}]%` })
+      );
+    }
+    where[Op.and] = [
+      ...(where[Op.and] || []),
+      { [Op.or]: categoryConditions },
+    ];
   }
 
   if (featured === 'true') where.isFeatured = true;
@@ -232,7 +258,6 @@ export async function getProduct(req, res, next) {
       ],
     });
     if (!product) return res.status(404).json({ message: 'Product not found.' });
-    if (product.stock <= 0) return res.status(404).json({ message: 'Product not found.' });
     res.json(product);
   } catch (err) {
     next(err);
@@ -286,6 +311,23 @@ export async function createProduct(req, res, next) {
       delete data.category;
     }
 
+    // Sanitize additionalCategories
+    if (data.additionalCategories !== undefined) {
+      const rawList = Array.isArray(data.additionalCategories)
+        ? data.additionalCategories
+        : typeof data.additionalCategories === 'string'
+        ? data.additionalCategories.split(',').map((s) => s.trim())
+        : [];
+      const primaryIdStr = (data.categoryId || '').toString();
+      data.additionalCategories = [
+        ...new Set(
+          rawList
+            .map((x) => (x !== null && x !== undefined ? String(x).trim() : ''))
+            .filter((x) => x && x !== primaryIdStr)
+        ),
+      ];
+    }
+
     // Shop managers may only create products within their assigned categories.
     if (req.user.role === 'shopmanager') {
       const fullUser = await User.findByPk(req.user.id, {
@@ -337,8 +379,7 @@ export async function createProduct(req, res, next) {
     let socialResult = null;
     if (postToFacebook || postToInstagram) {
       try {
-        const clientOrigin = req.headers.origin || req.headers.referer || '';
-        const serverOrigin = `${req.protocol}://${req.get('host')}`;
+        const { clientOrigin, serverOrigin } = getRequestOrigins(req);
         socialResult = await dispatchProductSocialPost(result, {
           postToFacebook,
           postToInstagram,
@@ -355,6 +396,9 @@ export async function createProduct(req, res, next) {
     if (socialResult) {
       responseData.socialResult = socialResult;
     }
+
+    // Invalidate cached product catalog and flash-sales
+    invalidateCache(['products', 'flash-sale']);
 
     res.status(201).json(responseData);
   } catch (err) {
@@ -394,17 +438,34 @@ export async function updateProduct(req, res, next) {
       }
     }
 
+    const product = await Product.findByPk(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found.' });
+
     // Handle category field -> categoryId
     if (data.category && !data.categoryId) {
       data.categoryId = data.category;
       delete data.category;
     }
 
+    // Sanitize additionalCategories
+    if (data.additionalCategories !== undefined) {
+      const rawList = Array.isArray(data.additionalCategories)
+        ? data.additionalCategories
+        : typeof data.additionalCategories === 'string'
+        ? data.additionalCategories.split(',').map((s) => s.trim())
+        : [];
+      const primaryIdStr = (data.categoryId || product.categoryId || '').toString();
+      data.additionalCategories = [
+        ...new Set(
+          rawList
+            .map((x) => (x !== null && x !== undefined ? String(x).trim() : ''))
+            .filter((x) => x && x !== primaryIdStr)
+        ),
+      ];
+    }
+
     if (data.slug) data.slug = slugify(data.slug);
     if (data.description !== undefined) data.description = sanitizeHtml(data.description);
-
-    const product = await Product.findByPk(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found.' });
 
     if (data.slug && data.slug !== product.slug) {
       const taken = await Product.findOne({
@@ -435,6 +496,10 @@ export async function updateProduct(req, res, next) {
         { association: 'colors', attributes: ['name', 'hex', 'image'] },
       ],
     });
+
+    // Invalidate cached product catalog and flash-sales
+    invalidateCache(['products', 'flash-sale']);
+
     res.json(result);
   } catch (err) {
     next(err);
@@ -455,8 +520,14 @@ export async function deleteProduct(req, res, next) {
 
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found.' });
+    const ProductColor = getProductColor();
+    await ProductColor.destroy({ where: { productId: product.id } });
     await Review.destroy({ where: { productId: product.id } });
     await product.destroy();
+
+    // Invalidate cached product catalog and flash-sales
+    invalidateCache(['products', 'flash-sale']);
+
     res.json({ message: 'Product deleted.' });
   } catch (err) {
     next(err);
@@ -467,7 +538,15 @@ export async function deleteProduct(req, res, next) {
 export async function shareProductSocial(req, res, next) {
   try {
     const Product = getProductModel();
-    const { postToFacebook = true, postToInstagram = false, customMessage = null } = req.body || {};
+    const {
+      postToFacebook = true,
+      postToInstagram = false,
+      customMessage = null,
+      selectedImages = null,
+      includeVideo = false,
+      mediaMode = 'auto',
+      includeShopNowButton = true,
+    } = req.body || {};
 
     // Shop manager scope check.
     if (req.user.role === 'shopmanager') {
@@ -484,8 +563,7 @@ export async function shareProductSocial(req, res, next) {
 
     if (!product) return res.status(404).json({ message: 'Product not found.' });
 
-    const clientOrigin = req.headers.origin || req.headers.referer || '';
-    const serverOrigin = `${req.protocol}://${req.get('host')}`;
+    const { clientOrigin, serverOrigin } = getRequestOrigins(req);
 
     const socialResult = await dispatchProductSocialPost(product, {
       postToFacebook: Boolean(postToFacebook),
@@ -493,6 +571,10 @@ export async function shareProductSocial(req, res, next) {
       customMessage,
       clientOrigin,
       serverOrigin,
+      selectedImages,
+      includeVideo: Boolean(includeVideo),
+      mediaMode,
+      includeShopNowButton: Boolean(includeShopNowButton),
     });
 
     if (socialResult.errors.length > 0 && !socialResult.facebook && !socialResult.instagram) {
