@@ -1,7 +1,6 @@
 export const environment = {
   production: true,
-  // Relative on purpose: the API is served by the Vercel function on the same
-  // domain as the site, so there is no cross-origin host to hardcode and no
-  // CORS to configure. angular.json swaps this file in for production builds.
-  apiUrl: '/api',
+  // The API runs on its own subdomain; wondercart.pk itself only serves the
+  // Angular build. Uploaded media ("/uploads/…") resolves against this origin too.
+  apiUrl: 'https://api.wondercart.pk/api',
 };
